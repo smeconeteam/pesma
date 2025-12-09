@@ -1,7 +1,26 @@
 <?php
 
+use App\Http\Controllers\ProfileController;
+use App\Http\Middleware\EnsureUserIsResident;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
 });
+
+Route::middleware(['auth', 'verified', 'resident.only'])->group(function () {
+
+    Route::get('/dashboard', function () {
+        return view('dashboard');
+    })->name('dashboard');
+
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+Route::get('/no-access', function () {
+    return view('no-access');
+})->name('no-access');
+
+require __DIR__ . '/auth.php';
