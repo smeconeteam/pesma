@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\Storage;
 
 class Institution extends Model
 {
@@ -19,4 +20,25 @@ class Institution extends Model
         'website',
         'logo_path',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::deleting(function ($institution) {
+            // Hapus logo dari storage jika ada
+            if ($institution->logo_path && Storage::disk('public')->exists($institution->logo_path)) {
+                Storage::disk('public')->delete($institution->logo_path);
+            }
+        });
+    }
+
+    public function getLogoUrlAttribute(): ?string
+    {
+        if ($this->logo_path) {
+            return Storage::disk('public')->url($this->logo_path);
+        }
+
+        return null;
+    }
 }
