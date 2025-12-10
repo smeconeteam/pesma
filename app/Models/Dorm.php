@@ -16,23 +16,4 @@ class Dorm extends Model
     ];
 
     // RELASI
-
-    // Satu asrama cabang punya banyak blok
-    public function blocks()
-    {
-        return $this->hasMany(Block::class);
-    }
-
-    // Admin yang di-scope ke cabang ini (via admin_scopes)
-    public function adminScopes()
-    {
-        return $this->hasMany(AdminScope::class);
-    }
-
-    // Kalau nanti kamu mau akses semua kamar melalui blok:
-    public function rooms()
-    {
-        // relasi hasManyThrough: Dorm -> Blocks -> Rooms
-        return $this->hasManyThrough(Room::class, Block::class);
-    }
 }
