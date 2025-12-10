@@ -4,10 +4,6 @@
 
     <form action="{{ route('logout') }}" method="POST">
         @csrf
-<<<<<<< HEAD
-        <button type="submit">Keluar</button>
-=======
-        <x-primary-button>{{ __('Log out') }}</x-primary-button>
->>>>>>> 316556ee39ab6c669cf47a9b6df9fd1b5b68f6d3
+        <x-primary-button>{{ __('Keluar') }}</x-primary-button>
     </form>
 </x-guest-layout>
