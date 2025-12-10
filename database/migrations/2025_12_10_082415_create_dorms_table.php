@@ -12,14 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('dorms', function (Blueprint $table) {
-            $table->id(); // bigint unsigned auto increment (pk)
-
-            $table->string('name');        // nama cabang asrama
-            $table->text('address');       // alamat lengkap asrama cabang
-            $table->text('description')    // deskripsi, catatan internal, dll.
-                ->nullable();
-
-            $table->timestamps();          // created_at, updated_at
+            $table->id();
+            $table->string('name');
+            $table->text('address');
+            $table->text('description')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
         });
     }
 
