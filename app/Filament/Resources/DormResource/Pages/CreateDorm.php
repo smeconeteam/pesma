@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateDorm extends CreateRecord
 {
     protected static string $resource = DormResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }
