@@ -6,11 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ institution()->dormitory_name ?? config('app.name', 'Laravel') }}</title>
+    @php
+        $institution = institution();
+    @endphp
 
-    @if (institution() && institution()->logo_path)
+    <title>{{ $institution->dormitory_name ?? config('app.name', 'Laravel') }}</title>
+
+    @if ($institution && $institution->logo_path)
         @php
-            $favicon = Storage::url(institution()->logo_path);
+            $favicon = Storage::url($institution->logo_path);
         @endphp
 
         <!-- Favicon -->
@@ -33,11 +37,19 @@
     <div class="flex min-h-screen flex-col items-center bg-gray-100 pt-6 sm:justify-center sm:pt-0">
         <div>
             <a href="/" class="flex justify-center">
-                <x-application-logo class="h-20 w-20 fill-current text-gray-500" />
+                @if ($institution && $institution->logo_path)
+                    <img
+                        src="{{ Storage::url($institution->logo_path) }}"
+                        alt="{{ $institution->dormitory_name }}"
+                        class="h-20 w-20 object-contain"
+                    >
+                @else
+                    <x-application-logo class="h-20 w-20 fill-current text-gray-500" />
+                @endif
             </a>
 
-            <h1 class="mt-2 text-3xl font-semibold tracking-tight text-gray-900">
-                {{ institution()->dormitory_name ?? config('app.name', 'Laravel') }}
+            <h1 class="mt-2 text-3xl font-semibold tracking-tight text-gray-900 text-center">
+                {{ $institution->dormitory_name ?? config('app.name', 'Laravel') }}
             </h1>
         </div>
 
