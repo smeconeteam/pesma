@@ -96,6 +96,7 @@ class DormResource extends Resource
                         1 => 'Aktif',
                         0 => 'Nonaktif',
                     ]),
+                Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
