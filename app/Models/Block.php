@@ -2,23 +2,22 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Dorm extends Model
+class Block extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'dorm_id',
         'name',
-        'address',
         'description',
         'is_active',
     ];
 
-    // RELASI
-    public function blocks()
+    public function dorm()
     {
-        return $this->hasMany(Block::class);
+        return $this->belongsTo(Dorm::class);
     }
 }
