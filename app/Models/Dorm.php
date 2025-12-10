@@ -13,6 +13,7 @@ class Dorm extends Model
         'name',
         'address',
         'description',
+        'is_active',
     ];
 
     // RELASI
