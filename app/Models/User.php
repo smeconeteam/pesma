@@ -36,10 +36,13 @@ class User extends Authenticatable implements FilamentUser
         return $this->belongsToMany(Role::class, 'role_user');
     }
 
-    // Helpers
-    public function hasRole(string $roleName): bool
+    public function hasRole(string|array $roles): bool
     {
-        return $this->roles()->where('name', $roleName)->exists();
+        $roles = (array) $roles;
+
+        return $this->roles()
+            ->whereIn('name', $roles)
+            ->exists();
     }
 
     public function hasAnyRole(array $roleNames): bool
