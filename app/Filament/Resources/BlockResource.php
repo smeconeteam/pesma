@@ -18,7 +18,7 @@ class BlockResource extends Resource
     protected static ?string $model = Block::class;
 
     protected static ?string $navigationGroup = 'Asrama';
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $navigationLabel = 'Komplek';
     protected static ?string $navigationIcon = null;

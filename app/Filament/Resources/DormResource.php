@@ -17,8 +17,7 @@ class DormResource extends Resource
     protected static ?string $model = Dorm::class;
 
     protected static ?string $navigationGroup = 'Asrama';
-    protected static ?string $navigationGroupIcon = 'heroicon-o-home-group';
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $navigationLabel = 'Cabang';
     protected static ?string $navigationIcon = null;
