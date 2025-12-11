@@ -33,16 +33,8 @@ class DormResource extends Resource
                         Forms\Components\TextInput::make('name')
                             ->label('Nama Cabang Asrama')
                             ->required()
+                            ->columnSpan(2)
                             ->maxLength(255),
-
-                        Forms\Components\Select::make('is_active')
-                            ->label('Status Aktif')
-                            ->options([
-                                1 => 'Aktif',
-                                0 => 'Nonaktif',
-                            ])
-                            ->default(1)
-                            ->required(),
 
                         Forms\Components\Textarea::make('address')
                             ->label('Alamat')
@@ -53,6 +45,10 @@ class DormResource extends Resource
                             ->label('Deskripsi')
                             ->rows(3)
                             ->nullable(),
+                                                
+                        Forms\Components\Toggle::make('is_active')
+                            ->label('Aktif')
+                            ->default(true),
                     ])
                     ->columns(2),
             ]);
