@@ -112,7 +112,7 @@ class DormResource extends Resource
 
                 Tables\Actions\RestoreAction::make()
                     ->visible(fn (Dorm $record): bool =>
-                        auth()->user()?->hasRole(['super_admin', 'main_admin'])
+                        auth()->user()?->hasRole(['super_admin'])
                         && $record->trashed()
                     ),
 
@@ -122,7 +122,7 @@ class DormResource extends Resource
                     Tables\Actions\DeleteBulkAction::make()
                         ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin'])),
                     Tables\Actions\RestoreBulkAction::make()
-                        ->visible(fn () => auth()->user()?->hasRole(['super_admin', 'main_admin'])),
+                        ->visible(fn () => auth()->user()?->hasRole(['super_admin'])),
                 ]),
             ]);
     }
