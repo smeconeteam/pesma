@@ -11,10 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('dorms', function (Blueprint $table) {
+        Schema::create('blocks', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('dorm_id')->constrained('dorms')->onDelete('cascade');
             $table->string('name');
-            $table->text('address');
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
             $table->softDeletes();
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('dorms');
+        Schema::dropIfExists('blocks');
     }
 };
