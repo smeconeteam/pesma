@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             InstitutionSeeder::class,
             DormSeeder::class,
             BlockSeeder::class,
+            AdminScopeSeeder::class,
         ]);
     }
 }

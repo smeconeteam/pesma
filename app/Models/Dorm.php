@@ -23,4 +23,9 @@ class Dorm extends Model
     {
         return $this->hasMany(Block::class);
     }
+
+    public function adminScopes()
+    {
+        return $this->hasMany(AdminScope::class);
+    }
 }

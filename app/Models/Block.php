@@ -20,4 +20,9 @@ class Block extends Model
     {
         return $this->belongsTo(Dorm::class);
     }
+
+    public function adminScopes()
+    {
+        return $this->hasMany(AdminScope::class);
+    }
 }

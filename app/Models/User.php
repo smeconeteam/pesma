@@ -45,6 +45,32 @@ class User extends Authenticatable implements FilamentUser
             ->exists();
     }
 
+    public function adminScopes()
+    {
+        return $this->hasMany(AdminScope::class);
+    }
+
+    public function branchDormIds()
+    {
+        if ($this->hasRole(['super_admin', 'main_admin'])) {
+            return Dorm::pluck('id');
+        }
+
+        return $this->adminScopes()
+            ->where('type', 'branch')
+            ->whereNotNull('dorm_id')
+            ->pluck('dorm_id');
+    }
+
+    public function blockIds()
+    {
+        // block_admin: ambil komplek yang dia pegang
+        return $this->adminScopes()
+            ->where('type', 'block')
+            ->whereNotNull('block_id')
+            ->pluck('block_id');
+    }
+
     public function hasAnyRole(array $roleNames): bool
     {
         return $this->roles()->whereIn('name', $roleNames)->exists();
