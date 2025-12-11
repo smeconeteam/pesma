@@ -17,9 +17,9 @@ return new class extends Migration
             $table->string('institution_name');
             $table->string('dormitory_name');
             $table->text('address');
-            $table->string('phone');
-            $table->string('email');
-            $table->string('website');
+            $table->string('phone')->nullable();
+            $table->string('email')->nullable();
+            $table->string('website')->nullable();
             $table->string('logo_path')->nullable();
             $table->timestamps();
         });
