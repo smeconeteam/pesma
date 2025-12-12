@@ -21,8 +21,6 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class ResidentResource extends Resource
 {
     protected static ?string $model = User::class;
-
-    protected static ?string $navigationGroup = 'Asrama';
     protected static ?string $navigationLabel = 'Penghuni';
     protected static ?string $pluralLabel = 'Penghuni';
     protected static ?string $modelLabel = 'Penghuni';
@@ -293,13 +291,10 @@ class ResidentResource extends Resource
                 Tables\Actions\DeleteAction::make()->label('Hapus'), // soft delete
 
                 Tables\Actions\RestoreAction::make()->label('Pulihkan'),
-
-                Tables\Actions\ForceDeleteAction::make()->label('Hapus Permanen'),
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
                 Tables\Actions\RestoreBulkAction::make(),
-                Tables\Actions\ForceDeleteBulkAction::make(),
             ])
             ->defaultSort('id', 'desc');
     }
