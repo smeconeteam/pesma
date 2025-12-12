@@ -57,13 +57,17 @@ class RoomResource extends Resource
                                     $component->state($record->block->dorm_id);
                                 }
                             })
-                            ->afterStateUpdated(function (Set $set) {
-                                // reset block saat cabang berubah
+                           ->afterStateUpdated(function (Set $set) {
                                 $set('block_id', null);
+                                $set('code', null);
                             }),
 
                         Forms\Components\Select::make('block_id')
                             ->label('Komplek')
+                            ->live()
+                            ->afterStateUpdated(fn (Set $set, Get $get) =>
+                                static::generateRoomCode($set, $get)
+                            )
                             ->options(function (Get $get) {
                                 $dormId = $get('dorm_id');
                                 if (! $dormId) {
@@ -92,12 +96,20 @@ class RoomResource extends Resource
                                 ->toArray())
                             ->searchable()
                             ->native(false)
-                            ->required(),
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(fn (Set $set, Get $get) =>
+                                static::generateRoomCode($set, $get)
+                            ),
 
                         Forms\Components\TextInput::make('number')
                             ->label('Nomor Kamar')
                             ->required()
                             ->maxLength(20)
+                            ->live()
+                            ->afterStateUpdated(fn (Set $set, Get $get) =>
+                                static::generateRoomCode($set, $get)
+                            )
                             ->helperText('Contoh: 01, 02, 101, dst.'),
 
                         Forms\Components\TextInput::make('code')
@@ -105,6 +117,8 @@ class RoomResource extends Resource
                             ->required()
                             ->maxLength(100)
                             ->unique(ignoreRecord: true)
+                            ->dehydrated(true)
+                            ->readonly()
                             ->helperText('Format contoh: asrama1-A-VVIP-02'),
 
                         Forms\Components\TextInput::make('capacity')
@@ -304,4 +318,36 @@ class RoomResource extends Resource
             'edit' => Pages\EditRoom::route('/{record}/edit'),
         ];
     }
+
+    protected static function generateRoomCode(Set $set, Get $get): void
+    {
+        $dormId     = $get('dorm_id');
+        $blockId    = $get('block_id');
+        $roomTypeId = $get('room_type_id');
+        $number     = $get('number');
+        
+        if (! $dormId || ! $blockId || ! $roomTypeId || ! $number) {
+            $set('code', null);
+            return;
+        }
+        
+        $dorm     = Dorm::find($dormId);
+        $block    = Block::find($blockId);
+        $roomType = RoomType::find($roomTypeId);
+        
+        if (! $dorm || ! $block || ! $roomType) {
+            $set('code', null);
+            return;
+        }
+        
+        $code = Room::generateCode(
+            $dorm->name,
+            $block->name,
+            $roomType->name,
+            $number
+        );
+    
+        $set('code', $code);
+    }
 }
+
