@@ -22,6 +22,11 @@ class Block extends Model
         return $this->belongsTo(Dorm::class);
     }
 
+    public function rooms()
+    {
+        return $this->hasMany(Room::class);
+    }
+
     public function adminScopes()
     {
         return $this->hasMany(AdminScope::class);
