@@ -334,9 +334,9 @@ class RoomResource extends Resource
             return;
         }
 
-        $dorm     = \App\Models\Dorm::find($dormId);
-        $block    = \App\Models\Block::find($blockId);
-        $roomType = \App\Models\RoomType::find($roomTypeId);
+        $dorm     = Dorm::find($dormId);
+        $block    = Block::find($blockId);
+        $roomType = RoomType::find($roomTypeId);
 
         if (! $dorm || ! $block || ! $roomType) {
             $set('code', null);
