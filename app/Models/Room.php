@@ -44,26 +44,39 @@ class Room extends Model
     }
 
     public static function generateCode(
-        string $dormName,
-        string $blockName,
-        string $roomTypeName,
-        string $number
-    ): string {
+        ?string $dormName,
+        ?string $blockName,
+        ?string $roomTypeName,
+        ?string $number
+    ): ?string {
+        if (! $dormName || ! $blockName || ! $roomTypeName || ! $number) {
+            return null;
+        }
+
+        // cabangjakarta
         $dormPart = Str::of($dormName)
-            ->slug('')
+            ->lower()
+            ->replace(['asrama', ' '], '')
+            ->toString();
+
+        // KomplekA (BUKAN KomplekACimahi)
+        $blockPart = Str::of($blockName)
+            ->trim()
+            ->explode(' ')
+            ->take(2)
+            ->implode('');
+
+        // vip / reguler / vvip
+        $typePart = Str::of($roomTypeName)
+            ->before(' ')
             ->lower()
             ->toString();
 
-        $blockPart = Str::upper(
-            Str::of($blockName)->before(' ')->toString()
-        );
-
-        $typePart = Str::upper(
-            Str::of($roomTypeName)->before(' ')->toString()
-        );
-
-        $numberPart = str_pad($number, 2, '0', STR_PAD_LEFT);
+        // 03
+        $numberPart = str_pad((string) $number, 2, '0', STR_PAD_LEFT);
 
         return "{$dormPart}-{$blockPart}-{$typePart}-{$numberPart}";
     }
+
+
 }

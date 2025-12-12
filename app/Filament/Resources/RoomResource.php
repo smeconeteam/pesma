@@ -114,12 +114,12 @@ class RoomResource extends Resource
 
                         Forms\Components\TextInput::make('code')
                             ->label('Kode Kamar')
+                            ->disabled()
                             ->required()
                             ->maxLength(100)
                             ->unique(ignoreRecord: true)
                             ->dehydrated(true)
-                            ->readonly()
-                            ->helperText('Format contoh: asrama1-A-VVIP-02'),
+                            ->readonly(),
 
                         Forms\Components\TextInput::make('capacity')
                             ->label('Kapasitas')
@@ -221,7 +221,8 @@ class RoomResource extends Resource
 
                 // Restore hanya super_admin
                 Tables\Actions\RestoreAction::make()
-                    ->visible(fn() => auth()->user()?->hasRole('super_admin')),
+                    ->visible(fn ($record) => $record?->trashed() && auth()->user()?->hasRole('super_admin')),
+
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -229,7 +230,8 @@ class RoomResource extends Resource
                         ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin'])),
 
                     Tables\Actions\RestoreBulkAction::make()
-                        ->visible(fn() => auth()->user()?->hasRole('super_admin')),
+                        ->visible(fn () => auth()->user()?->hasRole('super_admin')),
+
                 ]),
             ]);
     }
@@ -246,8 +248,9 @@ class RoomResource extends Resource
         $user = auth()->user();
 
         $query = parent::getEloquentQuery()
-            // PENTING: jangan matikan SoftDeletingScope secara manual
+            ->withoutGlobalScopes([SoftDeletingScope::class]) // WAJIB untuk TrashedFilter
             ->whereHas('block.dorm');
+
 
         if (! $user) {
             return $query->whereRaw('1 = 0');
@@ -319,35 +322,36 @@ class RoomResource extends Resource
         ];
     }
 
-    protected static function generateRoomCode(Set $set, Get $get): void
+    protected static function generateRoomCode(\Filament\Forms\Set $set, \Filament\Forms\Get $get): void
     {
         $dormId     = $get('dorm_id');
         $blockId    = $get('block_id');
         $roomTypeId = $get('room_type_id');
         $number     = $get('number');
-        
+
         if (! $dormId || ! $blockId || ! $roomTypeId || ! $number) {
             $set('code', null);
             return;
         }
-        
-        $dorm     = Dorm::find($dormId);
-        $block    = Block::find($blockId);
-        $roomType = RoomType::find($roomTypeId);
-        
+
+        $dorm     = \App\Models\Dorm::find($dormId);
+        $block    = \App\Models\Block::find($blockId);
+        $roomType = \App\Models\RoomType::find($roomTypeId);
+
         if (! $dorm || ! $block || ! $roomType) {
             $set('code', null);
             return;
         }
-        
-        $code = Room::generateCode(
+
+        $code = \App\Models\Room::generateCode(
             $dorm->name,
             $block->name,
             $roomType->name,
-            $number
+            (string) $number
         );
-    
+
         $set('code', $code);
-    }
+}
+
 }
 
