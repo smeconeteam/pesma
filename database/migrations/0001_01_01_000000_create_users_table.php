@@ -20,6 +20,10 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->rememberToken();
             $table->timestamps();
+
+            if (! Schema::hasColumn('users', 'deleted_at')) {
+                $table->softDeletes();
+            }
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
@@ -46,5 +50,10 @@ return new class extends Migration
         Schema::dropIfExists('users');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
+        Schema::table('users', function (Blueprint $table) {
+            if (Schema::hasColumn('users', 'deleted_at')) {
+                $table->dropSoftDeletes();
+            }
+        });
     }
 };
