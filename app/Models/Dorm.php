@@ -24,6 +24,11 @@ class Dorm extends Model
         return $this->hasMany(Block::class);
     }
 
+    public function rooms()
+    {
+        return $this->hasManyThrough(Room::class, Block::class);
+    }
+
     public function adminScopes()
     {
         return $this->hasMany(AdminScope::class);

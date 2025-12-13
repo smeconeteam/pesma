@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
             DormSeeder::class,
             BlockSeeder::class,
             AdminScopeSeeder::class,
+            RoomTypeSeeder::class,
+            RoomSeeder::class,
         ]);
     }
 }

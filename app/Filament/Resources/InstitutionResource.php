@@ -29,7 +29,8 @@ class InstitutionResource extends Resource
                     ->schema([
                         Forms\Components\TextInput::make('legal_number')
                             ->label('Nomor Legalitas')
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->required(),
 
                         Forms\Components\TextInput::make('institution_name')
                             ->label('Nama Lembaga')
@@ -38,11 +39,13 @@ class InstitutionResource extends Resource
 
                         Forms\Components\TextInput::make('dormitory_name')
                             ->label('Nama Asrama')
+                            ->required()
                             ->maxLength(255),
 
                         Forms\Components\Textarea::make('address')
                             ->label('Alamat')
                             ->rows(3)
+                            ->required()
                             ->columnSpan(2),
                     ])
                     ->columns(2),
