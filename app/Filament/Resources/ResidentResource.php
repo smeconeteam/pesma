@@ -13,10 +13,18 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Models\RoomResident;
+use App\Models\ResidentCategory;
+use Filament\Notifications\Notification;
+use Filament\Infolists\Infolist;
+use Filament\Infolists\Components\Section;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Components\IconEntry;
 
 class ResidentResource extends Resource
 {
@@ -32,7 +40,10 @@ class ResidentResource extends Resource
         return parent::getEloquentQuery()
             ->withoutGlobalScopes([SoftDeletingScope::class])
             ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
-            ->with(['residentProfile', 'roomResidents.room.block']);
+            ->with([
+                'residentProfile.residentCategory',
+                'roomResidents.room',
+            ]);
     }
 
     public static function form(Form $form): Form
@@ -52,11 +63,22 @@ class ResidentResource extends Resource
                         ->label('Aktif')
                         ->default(true),
 
-                    Forms\Components\TextInput::make('profile.full_name')
+                    Forms\Components\TextInput::make('residentProfile.full_name')
                         ->label('Nama Lengkap')
                         ->required()
                         ->maxLength(255)
                         ->columnSpanFull(),
+
+                    Forms\Components\Select::make('residentProfile.resident_category_id')
+                        ->label('Kategori Penghuni')
+                        ->options(fn() => ResidentCategory::query()->orderBy('name')->pluck('name', 'id'))
+                        ->searchable()
+                        ->native(false)
+                        ->required(),
+
+                    Forms\Components\Toggle::make('residentProfile.is_international')
+                        ->label('Penghuni Luar Negeri?')
+                        ->default(false),
 
                     Forms\Components\TextInput::make('profile.national_id')
                         ->label('NIK')
@@ -75,11 +97,15 @@ class ResidentResource extends Resource
 
                     Forms\Components\Select::make('profile.gender')
                         ->label('Jenis Kelamin')
-                        ->options([
-                            'M' => 'Laki-laki',
-                            'F' => 'Perempuan',
-                        ])
-                        ->native(false),
+                        ->options(['M' => 'Laki-laki', 'F' => 'Perempuan'])
+                        ->native(false)
+                        ->required()
+                        ->reactive()
+                        ->afterStateUpdated(function (Forms\Set $set) {
+                            // reset pilihan kamar kalau gender diubah
+                            $set('room.room_id', null);
+                            $set('room.is_pic', false);
+                        }),
 
                     Forms\Components\TextInput::make('profile.birth_place')
                         ->label('Tempat Lahir')
@@ -165,22 +191,65 @@ class ResidentResource extends Resource
                         ->required()
                         ->searchable()
                         ->native(false)
+                        ->reactive()
+                        ->disabled(fn(Forms\Get $get) => blank($get('block_id')) || blank($get('profile.gender')))
+                        ->helperText(
+                            fn(Forms\Get $get) =>
+                            blank($get('profile.gender'))
+                                ? 'Pilih jenis kelamin dulu.'
+                                : 'Kamar hanya boleh untuk 1 gender.'
+                        )
                         ->options(function (Forms\Get $get) {
                             $blockId = $get('block_id');
+                            $gender  = $get('profile.gender'); // M/F
+                            if (blank($blockId) || blank($gender)) return [];
 
-                            if (blank($blockId)) return [];
-
-                            return Room::query()
+                            $rooms = \App\Models\Room::query()
                                 ->where('block_id', $blockId)
                                 ->where('is_active', true)
                                 ->orderBy('code')
-                                ->get()
-                                ->mapWithKeys(function (Room $room) {
-                                    $label = trim(($room->code ?? '') . ' ' . ($room->number ? "({$room->number})" : ''));
-                                    $label .= " — Kap: {$room->capacity}";
-                                    return [$room->id => $label];
-                                })
-                                ->toArray();
+                                ->get();
+
+                            $options = [];
+
+                            foreach ($rooms as $room) {
+                                // cari gender penghuni aktif (kalau ada)
+                                $activeGender = RoomResident::query()
+                                    ->where('room_residents.room_id', $room->id)
+                                    ->whereNull('room_residents.check_out_date')
+                                    ->join('resident_profiles', 'resident_profiles.user_id', '=', 'room_residents.user_id')
+                                    ->value('resident_profiles.gender');
+
+                                // kalau kamar kosong -> boleh, kalau terisi -> harus sama gender
+                                if ($activeGender && $activeGender !== $gender) {
+                                    continue;
+                                }
+
+                                $genderLabel = $activeGender
+                                    ? ($activeGender === 'M' ? 'Laki-laki' : 'Perempuan')
+                                    : 'Kosong (bebas)';
+
+                                $label = ($room->code ?? '-') . ($room->number ? " ({$room->number})" : '');
+                                $label .= " — {$genderLabel} — Kap: {$room->capacity}";
+
+                                $options[$room->id] = $label;
+                            }
+
+                            return $options;
+                        })
+                        ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
+                            if (blank($state)) return;
+
+                            // Kalau kamar sudah punya PIC aktif -> nonaktifkan toggle PIC
+                            $hasPic = RoomResident::query()
+                                ->where('room_id', $state)
+                                ->whereNull('check_out_date')
+                                ->where('is_pic', true)
+                                ->exists();
+
+                            if ($hasPic) {
+                                $set('room.is_pic', false);
+                            }
                         }),
 
                     Forms\Components\DatePicker::make('room.check_in_date')
@@ -191,7 +260,32 @@ class ResidentResource extends Resource
 
                     Forms\Components\Toggle::make('room.is_pic')
                         ->label('Jadikan PIC?')
-                        ->default(false),
+                        ->default(false)
+                        ->reactive()
+                        ->disabled(function (Forms\Get $get) {
+                            $roomId = $get('room.room_id');
+                            if (blank($roomId)) return true; // belum pilih kamar
+
+                            return RoomResident::query()
+                                ->where('room_id', $roomId)
+                                ->whereNull('check_out_date')
+                                ->where('is_pic', true)
+                                ->exists();
+                        })
+                        ->helperText(function (Forms\Get $get) {
+                            $roomId = $get('room.room_id');
+                            if (blank($roomId)) return 'Pilih kamar terlebih dahulu.';
+
+                            $hasPic = RoomResident::query()
+                                ->where('room_id', $roomId)
+                                ->whereNull('check_out_date')
+                                ->where('is_pic', true)
+                                ->exists();
+
+                            return $hasPic
+                                ? 'PIC aktif sudah ada di kamar ini.'
+                                : 'Jika diaktifkan, penghuni ini menjadi PIC kamar.';
+                        }),
                 ]),
         ]);
     }
@@ -205,29 +299,17 @@ class ResidentResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('email')
-                    ->label('Email')
-                    ->searchable()
-                    ->toggleable(),
+                Tables\Columns\TextColumn::make('residentProfile.residentCategory.name')
+                    ->label('Kategori')
+                    ->sortable(),
 
-                Tables\Columns\TextColumn::make('residentProfile.national_id')
-                    ->label('NIK')
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('residentProfile.student_id')
-                    ->label('NIM')
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\IconColumn::make('residentProfile.is_international')
+                    ->label('LN')
+                    ->boolean(),
 
                 Tables\Columns\TextColumn::make('residentProfile.phone_number')
                     ->label('No. HP')
                     ->toggleable(),
-
-                Tables\Columns\TextColumn::make('residentProfile.gender')
-                    ->label('Gender')
-                    ->formatStateUsing(fn(?string $state) => $state === 'M' ? 'Laki-laki' : ($state === 'F' ? 'Perempuan' : '-'))
-                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('Aktif')
@@ -246,12 +328,8 @@ class ResidentResource extends Resource
                         $room = $active->room;
                         return ($room->code ?? '-') . ($room->number ? " ({$room->number})" : '');
                     })
-                    ->toggleable(),
-
-                Tables\Columns\TextColumn::make('deleted_at')
-                    ->label('Dihapus')
-                    ->dateTime('d M Y H:i')
                     ->toggleable(isToggledHiddenByDefault: true),
+
             ])
             ->filters([
                 TernaryFilter::make('is_active')
@@ -285,18 +363,93 @@ class ResidentResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()->label('Lihat'),
-
                 Tables\Actions\EditAction::make()->label('Edit'),
-
-                Tables\Actions\DeleteAction::make()->label('Hapus'), // soft delete
-
-                Tables\Actions\RestoreAction::make()->label('Pulihkan'),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn() => auth()->user()?->hasAnyRole(['super_admin', 'branch_admin'])),
+                Tables\Actions\RestoreAction::make()
+                    ->visible(
+                        fn($record) =>
+                        auth()->user()?->hasRole('super_admin') && $record?->trashed()
+                    ),
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
                 Tables\Actions\RestoreBulkAction::make(),
             ])
             ->defaultSort('id', 'desc');
+    }
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist->schema([
+            Section::make('Profil Penghuni')
+                ->columns(2)
+                ->schema([
+                    TextEntry::make('residentProfile.full_name')->label('Nama Lengkap')->placeholder('-'),
+                    TextEntry::make('email')->label('Email')->placeholder('-'),
+                    IconEntry::make('is_active')->label('Aktif')->boolean(),
+
+                    TextEntry::make('residentProfile.national_id')->label('NIK')->placeholder('-'),
+                    TextEntry::make('residentProfile.student_id')->label('NIM')->placeholder('-'),
+
+                    TextEntry::make('residentProfile.gender')->label('Gender')->placeholder('-'),
+                    TextEntry::make('residentProfile.phone_number')->label('No. HP')->placeholder('-'),
+
+                    TextEntry::make('residentProfile.residentCategory.name')->label('Kategori')->placeholder('-'),
+                    IconEntry::make('residentProfile.is_international')->label('Luar Negeri')->boolean(),
+                ]),
+
+            Section::make('Kamar Aktif')
+                ->columns(2)
+                ->schema([
+                    TextEntry::make('kamar_aktif')
+                        ->label('Kamar')
+                        ->state(function (User $record) {
+                            $active = $record->roomResidents()
+                                ->whereNull('room_residents.check_out_date')
+                                ->latest('check_in_date')
+                                ->first();
+
+                            if (! $active?->room) return '-';
+
+                            $room = $active->room;
+                            return ($room->code ?? '-') . ($room->number ? " ({$room->number})" : '');
+                        }),
+
+                    IconEntry::make('pic_aktif')
+                        ->label('PIC?')
+                        ->boolean()
+                        ->state(function (User $record) {
+                            return $record->roomResidents()
+                                ->whereNull('room_residents.check_out_date')
+                                ->where('room_residents.is_pic', true)
+                                ->exists();
+                        }),
+                ]),
+        ]);
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        $u = auth()->user();
+        return $u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
+    }
+
+    public static function canViewAny(): bool
+    {
+        $u = auth()->user();
+        return $u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        $u = auth()->user();
+        return $u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        $u = auth()->user();
+        return $u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
     }
 
     public static function getPages(): array

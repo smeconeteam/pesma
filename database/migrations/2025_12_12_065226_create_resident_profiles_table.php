@@ -14,6 +14,13 @@ return new class extends Migration {
                 ->constrained('users')
                 ->cascadeOnDelete();
 
+            $table->foreignId('resident_category_id')
+                ->nullable()
+                ->constrained('resident_categories')
+                ->nullOnDelete();
+
+            $table->boolean('is_international')->default(false);
+
             $table->string('national_id')->nullable();          // NIK
             $table->string('student_id')->nullable();           // NIM
             $table->string('full_name');

@@ -14,9 +14,11 @@ class EditResident extends EditRecord
 {
     protected static string $resource = ResidentResource::class;
 
-    /**
-     * Tarik data dari relasi ke dalam input (profile.* dan room.*)
-     */
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
+
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $record = $this->record;
@@ -55,7 +57,6 @@ class EditResident extends EditRecord
                 'is_pic'        => (bool) $active->is_pic,
             ];
         } else {
-            // kalau belum punya kamar
             $data['dorm_id'] = null;
             $data['block_id'] = null;
             $data['room'] = [

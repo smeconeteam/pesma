@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\Institution;
+use App\Models\RoomResident;
+use App\Observers\RoomResidentObserver;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
@@ -28,5 +30,7 @@ class AppServiceProvider extends ServiceProvider
                 config(['app.name' => $institution->dormitory_name]);
             }
         }
+        
+        RoomResident::observe(RoomResidentObserver::class);
     }
 }

@@ -12,6 +12,7 @@ use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class CreateResident extends CreateRecord
 {
@@ -43,6 +44,8 @@ class CreateResident extends CreateRecord
             // 3) create resident profile
             ResidentProfile::create([
                 'user_id'               => $user->id,
+                'resident_category_id'  => $profile['resident_category_id'] ?? null,
+                'is_international'      => (bool) ($profile['is_international'] ?? false),
                 'national_id'           => $profile['national_id'] ?? null,
                 'student_id'            => $profile['student_id'] ?? null,
                 'full_name'             => $profile['full_name'] ?? $user->name,
@@ -58,12 +61,64 @@ class CreateResident extends CreateRecord
                 'photo_path'            => $profile['photo_path'] ?? null,
             ]);
 
+            $roomId = $room['room_id'];
+            $wantPic = (bool) ($room['is_pic'] ?? false);
+
+            RoomResident::query()
+                ->where('room_id', $roomId)
+                ->whereNull('check_out_date')
+                ->lockForUpdate()
+                ->get();
+
+            if ($wantPic) {
+                $hasPic = RoomResident::query()
+                    ->where('room_residents.room_id', $roomId)
+                    ->whereNull('room_residents.check_out_date')
+                    ->where('room_residents.is_pic', true)
+                    ->exists();
+
+                if ($hasPic) {
+                    throw ValidationException::withMessages([
+                        'room.is_pic' => 'PIC aktif untuk kamar ini sudah ada. Tidak bisa menetapkan PIC kedua.',
+                    ]);
+                }
+            }
+
+            $roomId = $room['room_id'];
+            $gender = $profile['gender'] ?? null;
+
+            if (! in_array($gender, ['M', 'F'], true)) {
+                throw ValidationException::withMessages([
+                    'profile.gender' => 'Jenis kelamin wajib diisi.',
+                ]);
+            }
+
+            // Lock penghuni aktif kamar ini (mencegah submit barengan)
+            RoomResident::query()
+                ->where('room_id', $roomId)
+                ->whereNull('check_out_date')
+                ->lockForUpdate()
+                ->get();
+
+            // cek gender kamar dari penghuni aktif
+            $activeGender = RoomResident::query()
+                ->where('room_residents.room_id', $roomId)
+                ->whereNull('room_residents.check_out_date')
+                ->join('resident_profiles', 'resident_profiles.user_id', '=', 'room_residents.user_id')
+                ->value('resident_profiles.gender');
+
+            if ($activeGender && $activeGender !== $gender) {
+                throw ValidationException::withMessages([
+                    'room.room_id' => 'Kamar ini sudah khusus untuk gender lain (tidak boleh campur).',
+                ]);
+            }
+
             // 4) create room_residents (penempatan kamar)
             RoomResident::create([
                 'room_id'       => $room['room_id'],
                 'user_id'       => $user->id,
                 'check_in_date' => $room['check_in_date'],
-                'check_out_date'=> null,
+                'check_out_date' => null,
                 'is_pic'        => (bool) ($room['is_pic'] ?? false),
             ]);
 

@@ -9,6 +9,8 @@ class ResidentProfile extends Model
 {
     protected $fillable = [
         'user_id',
+        'resident_category_id',
+        'is_international',
         'national_id',
         'student_id',
         'full_name',
@@ -27,8 +29,14 @@ class ResidentProfile extends Model
     protected $casts = [
         'birth_date'    => 'date',
         'check_in_date' => 'date',
-        'check_out_date'=> 'date',
+        'check_out_date' => 'date',
+        'is_international' => 'boolean',
     ];
+
+    public function residentCategory(): BelongsTo
+    {
+        return $this->belongsTo(ResidentCategory::class);
+    }
 
     public function user(): BelongsTo
     {
