@@ -102,8 +102,9 @@ class RoomTypeResource extends Resource
                         0 => 'Nonaktif',
                     ]),
 
-                Tables\Filters\TrashedFilter::make()
-                    ->label('Data Terhapus'),
+                ...(auth()->user()?->hasRole('super_admin')
+                    ? [Tables\Filters\TrashedFilter::make()->label('Data Terhapus')]
+                    : []),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
