@@ -74,7 +74,7 @@ class BlockResource extends Resource
                             ->rows(3)
                             ->columnSpan(2)
                             ->nullable(),
-                                                    
+
                         Forms\Components\Toggle::make('is_active')
                             ->label('Aktif')
                             ->default(true),
@@ -127,8 +127,9 @@ class BlockResource extends Resource
                     )
                     ->visible(fn() => $user?->hasRole(['super_admin', 'main_admin'])),
 
-                Tables\Filters\TrashedFilter::make()
-                    ->visible(fn() => $user?->hasRole(['super_admin', 'main_admin'])),
+                ...($user?->hasRole('super_admin')
+                    ? [Tables\Filters\TrashedFilter::make()->label('Data Terhapus')]
+                    : []),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

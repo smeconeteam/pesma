@@ -57,7 +57,7 @@ class RoomResource extends Resource
                                     $component->state($record->block->dorm_id);
                                 }
                             })
-                           ->afterStateUpdated(function (Set $set) {
+                            ->afterStateUpdated(function (Set $set) {
                                 $set('block_id', null);
                                 $set('code', null);
                             }),
@@ -65,7 +65,8 @@ class RoomResource extends Resource
                         Forms\Components\Select::make('block_id')
                             ->label('Komplek')
                             ->live()
-                            ->afterStateUpdated(fn (Set $set, Get $get) =>
+                            ->afterStateUpdated(
+                                fn(Set $set, Get $get) =>
                                 static::generateRoomCode($set, $get)
                             )
                             ->options(function (Get $get) {
@@ -98,7 +99,8 @@ class RoomResource extends Resource
                             ->native(false)
                             ->required()
                             ->live()
-                            ->afterStateUpdated(fn (Set $set, Get $get) =>
+                            ->afterStateUpdated(
+                                fn(Set $set, Get $get) =>
                                 static::generateRoomCode($set, $get)
                             ),
 
@@ -107,7 +109,8 @@ class RoomResource extends Resource
                             ->required()
                             ->maxLength(20)
                             ->live()
-                            ->afterStateUpdated(fn (Set $set, Get $get) =>
+                            ->afterStateUpdated(
+                                fn(Set $set, Get $get) =>
                                 static::generateRoomCode($set, $get)
                             )
                             ->helperText('Contoh: 01, 02, 101, dst.'),
@@ -206,9 +209,9 @@ class RoomResource extends Resource
                     })
                     ->visible(fn() => $user?->hasRole(['super_admin', 'main_admin'])),
 
-                Tables\Filters\TrashedFilter::make()
-                    ->label('Data Terhapus')
-                    ->visible(fn() => $user?->hasRole(['super_admin', 'main_admin'])),
+                ...($user?->hasRole('super_admin')
+                    ? [Tables\Filters\TrashedFilter::make()->label('Data Terhapus')]
+                    : []),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -221,7 +224,7 @@ class RoomResource extends Resource
 
                 // Restore hanya super_admin
                 Tables\Actions\RestoreAction::make()
-                    ->visible(fn ($record) => $record?->trashed() && auth()->user()?->hasRole('super_admin')),
+                    ->visible(fn($record) => $record?->trashed() && auth()->user()?->hasRole('super_admin')),
 
             ])
             ->bulkActions([
@@ -230,7 +233,7 @@ class RoomResource extends Resource
                         ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin'])),
 
                     Tables\Actions\RestoreBulkAction::make()
-                        ->visible(fn () => auth()->user()?->hasRole('super_admin')),
+                        ->visible(fn() => auth()->user()?->hasRole('super_admin')),
 
                 ]),
             ]);
@@ -248,9 +251,11 @@ class RoomResource extends Resource
         $user = auth()->user();
 
         $query = parent::getEloquentQuery()
-            ->withoutGlobalScopes([SoftDeletingScope::class]) // WAJIB untuk TrashedFilter
             ->whereHas('block.dorm');
 
+        if ($user?->hasRole('super_admin')) {
+            $query = $query->withoutGlobalScopes([SoftDeletingScope::class]);
+        }
 
         if (! $user) {
             return $query->whereRaw('1 = 0');
@@ -263,8 +268,7 @@ class RoomResource extends Resource
         if ($user->hasRole('branch_admin')) {
             return $query->whereHas(
                 'block',
-                fn($q) =>
-                $q->whereIn('dorm_id', $user->branchDormIds())
+                fn($q) => $q->whereIn('dorm_id', $user->branchDormIds())
             );
         }
 
@@ -351,7 +355,5 @@ class RoomResource extends Resource
         );
 
         $set('code', $code);
+    }
 }
-
-}
-
