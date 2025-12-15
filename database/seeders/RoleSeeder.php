@@ -2,80 +2,194 @@
 
 namespace Database\Seeders;
 
+use App\Models\Block;
+use App\Models\Dorm;
+use App\Models\ResidentCategory;
+use App\Models\ResidentProfile;
 use App\Models\Role;
+use App\Models\Room;
+use App\Models\RoomResident;
+use App\Models\RoomType;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class RoleSeeder extends Seeder
 {
     public function run(): void
     {
-        // buat roles
-        $roleNames = [
-            'super_admin',
-            'main_admin',
-            'branch_admin',
-            'block_admin',
-            'resident',
-        ];
+        DB::transaction(function () {
 
-        foreach ($roleNames as $name) {
-            Role::firstOrCreate(['name' => $name]);
-        }
+            /**
+             * =========================================================
+             * 1) ROLES
+             * =========================================================
+             */
+            $roleNames = [
+                'super_admin',
+                'main_admin',
+                'branch_admin',
+                'block_admin',
+                'resident',
+            ];
 
-        $superAdminRole = Role::where('name', 'super_admin')->first();
-        $residentRole   = Role::where('name', 'resident')->first();
-        $branchAdminRole = Role::where('name', 'branch_admin')->first();
-        $blockAdminRole  = Role::where('name', 'block_admin')->first();
+            foreach ($roleNames as $name) {
+                Role::firstOrCreate(['name' => $name]);
+            }
 
-        // Super Admin
-        $superAdmin = User::firstOrCreate(
-            ['email' => 'superadmin@example.com'],
-            [
-                'name'      => 'Super Admin',
-                'password'  => bcrypt('123456789'),
-                'is_active' => true,
-            ]
-        );
-        $superAdmin->roles()->syncWithoutDetaching([$superAdminRole->id]);
+            $roles = Role::whereIn('name', $roleNames)->get()->keyBy('name');
 
-        // penghuni biasa
-        $resident = User::firstOrCreate(
-            ['email' => 'resident@example.com'],
-            [
-                'name'      => 'Example Resident',
-                'password'  => bcrypt('123456789'),
-                'is_active' => true,
-            ]
-        );
-        $resident->roles()->syncWithoutDetaching([$residentRole->id]);
+            /**
+             * =========================================================
+             * 2) USER ACCOUNTS
+             * =========================================================
+             */
+            $superAdmin = User::firstOrCreate(
+                ['email' => 'superadmin@example.com'],
+                [
+                    'name'      => 'Super Admin',
+                    'password'  => Hash::make('123456789'),
+                    'is_active' => true,
+                ]
+            );
+            $superAdmin->roles()->syncWithoutDetaching([$roles['super_admin']->id]);
 
-        // penghuni dan admin cabang
-        $branchAdminResident = User::firstOrCreate(
-            ['email' => 'branch-resident@example.com'],
-            [
-                'name'      => 'Resident Admin Cabang',
-                'password'  => bcrypt('123456789'),
-                'is_active' => true,
-            ]
-        );
-        $branchAdminResident->roles()->syncWithoutDetaching([
-            $residentRole->id,
-            $branchAdminRole->id,
-        ]);
+            $resident = User::firstOrCreate(
+                ['email' => 'resident@example.com'],
+                [
+                    'name'      => 'Example Resident',
+                    'password'  => Hash::make('123456789'),
+                    'is_active' => true,
+                ]
+            );
+            $resident->roles()->syncWithoutDetaching([$roles['resident']->id]);
 
-        // penghuni dan admin komplek
-        $blockAdminResident = User::firstOrCreate(
-            ['email' => 'block-resident@example.com'],
-            [
-                'name'      => 'Resident Admin Komplek',
-                'password'  => bcrypt('123456789'),
-                'is_active' => true,
-            ]
-        );
-        $blockAdminResident->roles()->syncWithoutDetaching([
-            $residentRole->id,
-            $blockAdminRole->id,
-        ]);
+            $branchAdminResident = User::firstOrCreate(
+                ['email' => 'branch-resident@example.com'],
+                [
+                    'name'      => 'Resident Admin Cabang',
+                    'password'  => Hash::make('123456789'),
+                    'is_active' => true,
+                ]
+            );
+            $branchAdminResident->roles()->syncWithoutDetaching([
+                $roles['resident']->id,
+                $roles['branch_admin']->id,
+            ]);
+
+            $blockAdminResident = User::firstOrCreate(
+                ['email' => 'block-resident@example.com'],
+                [
+                    'name'      => 'Resident Admin Komplek',
+                    'password'  => Hash::make('123456789'),
+                    'is_active' => true,
+                ]
+            );
+            $blockAdminResident->roles()->syncWithoutDetaching([
+                $roles['resident']->id,
+                $roles['block_admin']->id,
+            ]);
+
+            /**
+             * =========================================================
+             * 3) DATA MASTER UNTUK PENEMPATAN KAMAR
+             * =========================================================
+             */
+            $category = ResidentCategory::firstOrCreate(
+                ['name' => 'Pondok'],
+                ['description' => 'Seeder kategori']
+            );
+
+            $dorm = Dorm::firstOrCreate(
+                ['name' => 'Cabang Utama'],
+                ['address' => 'Alamat contoh', 'description' => 'Seeder dorm', 'is_active' => true]
+            );
+
+            $block = Block::firstOrCreate(
+                ['dorm_id' => $dorm->id, 'name' => 'Blok A'],
+                ['description' => 'Seeder block', 'is_active' => true]
+            );
+
+            $roomType = RoomType::firstOrCreate(
+                ['name' => 'Regular'],
+                [
+                    'description' => 'Seeder room type',
+                    'default_capacity' => 8,
+                    'default_monthly_rate' => 800000,
+                    'is_active' => true,
+                ]
+            );
+
+            $room = Room::firstOrCreate(
+                ['block_id' => $block->id, 'code' => 'A-101'],
+                [
+                    'room_type_id' => $roomType->id,
+                    'resident_category_id' => null, // auto-lock nanti
+                    'number' => '101',
+                    'capacity' => 8,
+                    'monthly_rate' => 800000,
+                    'is_active' => true,
+                ]
+            );
+
+            /**
+             * =========================================================
+             * 4) BUAT DATA PENGHUNI (KECUALI SUPER ADMIN)
+             * =========================================================
+             */
+            $users = User::whereHas('roles', fn ($q) => $q->where('name', 'resident'))
+                ->whereDoesntHave('roles', fn ($q) => $q->where('name', 'super_admin'))
+                ->get();
+
+            foreach ($users as $index => $user) {
+                // ===== Resident Profile =====
+                $profile = ResidentProfile::updateOrCreate(
+                    ['user_id' => $user->id],
+                    [
+                        'resident_category_id' => $category->id,
+                        'is_international' => false,
+                        'national_id' => '32000000000000' . ($index + 1),
+                        'student_id'  => 'NIM' . str_pad($index + 1, 3, '0', STR_PAD_LEFT),
+                        'full_name'   => $user->name,
+                        'gender'      => 'M', // samakan agar tidak konflik
+                        'birth_place' => 'Bandung',
+                        'birth_date'  => '2003-01-01',
+                        'university_school' => 'Contoh University',
+                        'phone_number' => '0812345678' . $index,
+                        'guardian_name' => 'Orang Tua',
+                        'guardian_phone_number' => '0812987654' . $index,
+                        'check_in_date' => now()->toDateString(),
+                        'check_out_date' => null,
+                        'photo_path' => null,
+                    ]
+                );
+
+                // ===== LOCK ROOM =====
+                $room = Room::query()->lockForUpdate()->findOrFail($room->id);
+
+                // ===== AUTO-LOCK KATEGORI ROOM =====
+                if (is_null($room->resident_category_id)) {
+                    $room->resident_category_id = $category->id;
+                    $room->save();
+                }
+
+                // ===== PIC: hanya penghuni pertama =====
+                $isPic = $index === 0;
+
+                // ===== ROOM RESIDENT =====
+                RoomResident::firstOrCreate(
+                    [
+                        'room_id' => $room->id,
+                        'user_id' => $user->id,
+                        'check_in_date' => now()->toDateString(),
+                    ],
+                    [
+                        'check_out_date' => null,
+                        'is_pic' => $isPic,
+                    ]
+                );
+            }
+        });
     }
 }

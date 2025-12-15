@@ -17,6 +17,8 @@ use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\RoomResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\RoomResource\RelationManagers;
+use Filament\Forms\Components\Select;
+use App\Models\ResidentCategory;
 
 
 class RoomResource extends Resource
@@ -37,7 +39,7 @@ class RoomResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Informasi Kamar')
                     ->schema([
-                        Forms\Components\Select::make('dorm_id')
+                        Select::make('dorm_id')
                             ->label('Cabang')
                             ->dehydrated(false)
                             ->options(function () {
@@ -62,7 +64,7 @@ class RoomResource extends Resource
                                 $set('code', null);
                             }),
 
-                        Forms\Components\Select::make('block_id')
+                        Select::make('block_id')
                             ->label('Komplek')
                             ->live()
                             ->afterStateUpdated(
@@ -88,7 +90,7 @@ class RoomResource extends Resource
                             ->helperText('Pilih cabang terlebih dahulu untuk memuat daftar komplek.'),
 
                         // Tipe kamar (hanya yang aktif)
-                        Forms\Components\Select::make('room_type_id')
+                        Select::make('room_type_id')
                             ->label('Tipe Kamar')
                             ->options(fn() => RoomType::query()
                                 ->where('is_active', true)
@@ -142,6 +144,20 @@ class RoomResource extends Resource
                         Forms\Components\Toggle::make('is_active')
                             ->label('Aktif')
                             ->default(true),
+
+                        Select::make('resident_category_id')
+                            ->label('Kategori Kamar')
+                            ->relationship('residentCategory', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->helperText('Kategori hanya bisa diubah jika kamar kosong (tidak ada penghuni aktif).')
+                            ->disabled(function (?Room $record) {
+                                // saat create, $record null => boleh pilih
+                                if (! $record) return false;
+
+                                // saat edit, jika ada penghuni aktif => disable
+                                return ! $record->isEmpty();
+                            }),
                     ])
                     ->columns(2),
             ]);

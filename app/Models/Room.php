@@ -6,6 +6,8 @@ use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Room extends Model
 {
@@ -14,12 +16,33 @@ class Room extends Model
     protected $fillable = [
         'block_id',
         'room_type_id',
+        'resident_category_id',
         'code',
         'number',
         'capacity',
         'monthly_rate',
         'is_active',
     ];
+
+     public function residentCategory(): BelongsTo
+    {
+        return $this->belongsTo(ResidentCategory::class, 'resident_category_id');
+    }
+
+    public function roomResidents(): HasMany
+    {
+        return $this->hasMany(RoomResident::class, 'room_id');
+    }
+
+    public function activeRoomResidents(): HasMany
+    {
+        return $this->roomResidents()->whereNull('check_out_date');
+    }
+
+    public function isEmpty(): bool
+    {
+        return ! $this->activeRoomResidents()->exists();
+    }
 
     public function block()
     {
