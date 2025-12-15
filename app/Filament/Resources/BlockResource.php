@@ -74,7 +74,7 @@ class BlockResource extends Resource
                             ->rows(3)
                             ->columnSpan(2)
                             ->nullable(),
-                                                    
+
                         Forms\Components\Toggle::make('is_active')
                             ->label('Aktif')
                             ->default(true),
@@ -116,6 +116,13 @@ class BlockResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('is_active')
+                    ->label('Status Aktif')
+                    ->options([
+                        1 => 'Aktif',
+                        0 => 'Nonaktif',
+                    ]),
+
                 Tables\Filters\SelectFilter::make('dorm_id')
                     ->label('Cabang')
                     ->relationship(
@@ -126,6 +133,24 @@ class BlockResource extends Resource
                             ->whereNull('deleted_at')
                     )
                     ->visible(fn() => $user?->hasRole(['super_admin', 'main_admin'])),
+
+                Tables\Filters\Filter::make('created_at_range')
+                    ->label('Tanggal Dibuat')
+                    ->form([
+                        Forms\Components\DatePicker::make('created_from')->label('Dari'),
+                        Forms\Components\DatePicker::make('created_until')->label('Sampai'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['created_from'] ?? null, fn(Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
+                            ->when($data['created_until'] ?? null, fn(Builder $q, $date) => $q->whereDate('created_at', '<=', $date));
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if (! empty($data['created_from'])) $indicators[] = 'Dari: ' . $data['created_from'];
+                        if (! empty($data['created_until'])) $indicators[] = 'Sampai: ' . $data['created_until'];
+                        return $indicators;
+                    }),
 
                 ...($user?->hasRole('super_admin')
                     ? [Tables\Filters\TrashedFilter::make()->label('Data Terhapus')]

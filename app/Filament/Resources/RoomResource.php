@@ -194,20 +194,120 @@ class RoomResource extends Resource
                     ->sortable(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('dorm_id')
-                    ->label('Cabang')
-                    ->options(fn() => Dorm::query()
-                        ->where('is_active', true)
-                        ->orderBy('name')
-                        ->pluck('name', 'id')
-                        ->toArray())
-                    ->query(function (Builder $query, array $data) {
-                        $dormId = $data['value'] ?? null;
-                        if ($dormId) {
-                            $query->whereHas('block', fn(Builder $q) => $q->where('dorm_id', $dormId));
-                        }
+                Tables\Filters\SelectFilter::make('is_active')
+                    ->label('Status Aktif')
+                    ->options([
+                        1 => 'Aktif',
+                        0 => 'Nonaktif',
+                    ]),
+
+                Tables\Filters\Filter::make('lokasi')
+                    ->label('Lokasi')
+                    ->form([
+                        Forms\Components\Select::make('dorm_id')
+                            ->label('Cabang')
+                            ->options(function () {
+                                $user = auth()->user();
+
+                                $query = Dorm::query()
+                                    ->where('is_active', true)
+                                    ->whereNull('deleted_at')
+                                    ->orderBy('name');
+
+                                // super_admin & main_admin: semua
+                                if ($user?->hasRole(['super_admin', 'main_admin'])) {
+                                    return $query->pluck('name', 'id')->toArray();
+                                }
+
+                                // branch_admin: sesuai scope cabang
+                                if ($user?->hasRole('branch_admin')) {
+                                    return $query->whereIn('id', $user->branchDormIds())->pluck('name', 'id')->toArray();
+                                }
+
+                                // block_admin: cabang dari block scope
+                                if ($user?->hasRole('block_admin')) {
+                                    return $query->whereHas('blocks', fn(Builder $q) => $q->whereIn('blocks.id', $user->blockIds()))
+                                        ->pluck('name', 'id')
+                                        ->toArray();
+                                }
+
+                                return [];
+                            })
+                            ->searchable()
+                            ->reactive()
+                            ->afterStateUpdated(fn(Set $set) => $set('block_id', null)),
+
+                        Forms\Components\Select::make('block_id')
+                            ->label('Komplek')
+                            ->options(function (Get $get) {
+                                $user = auth()->user();
+                                $dormId = $get('dorm_id');
+
+                                if (! $dormId) return [];
+
+                                $query = Block::query()
+                                    ->where('dorm_id', $dormId)
+                                    ->whereNull('deleted_at')
+                                    ->orderBy('name');
+
+                                // super_admin & main_admin: semua block di cabang tsb
+                                if ($user?->hasRole(['super_admin', 'main_admin'])) {
+                                    return $query->pluck('name', 'id')->toArray();
+                                }
+
+                                // branch_admin: block di cabang tsb (dorm sudah disaring)
+                                if ($user?->hasRole('branch_admin')) {
+                                    return $query->pluck('name', 'id')->toArray();
+                                }
+
+                                // block_admin: hanya block miliknya
+                                if ($user?->hasRole('block_admin')) {
+                                    return $query->whereIn('id', $user->blockIds())->pluck('name', 'id')->toArray();
+                                }
+
+                                return [];
+                            })
+                            ->searchable()
+                            ->disabled(fn(Get $get) => blank($get('dorm_id'))),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['block_id'] ?? null, fn(Builder $q, $blockId) => $q->where('block_id', $blockId))
+                            ->when(
+                                ($data['dorm_id'] ?? null) && empty($data['block_id']),
+                                fn(Builder $q) => $q->whereHas('block', fn(Builder $qb) => $qb->where('dorm_id', $data['dorm_id']))
+                            );
                     })
-                    ->visible(fn() => $user?->hasRole(['super_admin', 'main_admin'])),
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if (! empty($data['dorm_id'])) {
+                            $name = Dorm::query()->whereKey($data['dorm_id'])->value('name');
+                            if ($name) $indicators[] = "Cabang: {$name}";
+                        }
+                        if (! empty($data['block_id'])) {
+                            $name = Block::query()->whereKey($data['block_id'])->value('name');
+                            if ($name) $indicators[] = "Komplek: {$name}";
+                        }
+                        return $indicators;
+                    }),
+
+                Tables\Filters\Filter::make('created_at_range')
+                    ->label('Tanggal Dibuat')
+                    ->form([
+                        Forms\Components\DatePicker::make('created_from')->label('Dari'),
+                        Forms\Components\DatePicker::make('created_until')->label('Sampai'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['created_from'] ?? null, fn(Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
+                            ->when($data['created_until'] ?? null, fn(Builder $q, $date) => $q->whereDate('created_at', '<=', $date));
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if (! empty($data['created_from'])) $indicators[] = 'Dari: ' . $data['created_from'];
+                        if (! empty($data['created_until'])) $indicators[] = 'Sampai: ' . $data['created_until'];
+                        return $indicators;
+                    }),
 
                 ...($user?->hasRole('super_admin')
                     ? [Tables\Filters\TrashedFilter::make()->label('Data Terhapus')]

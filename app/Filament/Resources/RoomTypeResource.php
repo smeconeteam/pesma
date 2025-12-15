@@ -102,6 +102,24 @@ class RoomTypeResource extends Resource
                         0 => 'Nonaktif',
                     ]),
 
+                Tables\Filters\Filter::make('created_at_range')
+                    ->label('Tanggal Dibuat')
+                    ->form([
+                        Forms\Components\DatePicker::make('created_from')->label('Dari'),
+                        Forms\Components\DatePicker::make('created_until')->label('Sampai'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['created_from'] ?? null, fn(Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
+                            ->when($data['created_until'] ?? null, fn(Builder $q, $date) => $q->whereDate('created_at', '<=', $date));
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if (! empty($data['created_from'])) $indicators[] = 'Dari: ' . $data['created_from'];
+                        if (! empty($data['created_until'])) $indicators[] = 'Sampai: ' . $data['created_until'];
+                        return $indicators;
+                    }),
+
                 ...(auth()->user()?->hasRole('super_admin')
                     ? [Tables\Filters\TrashedFilter::make()->label('Data Terhapus')]
                     : []),
