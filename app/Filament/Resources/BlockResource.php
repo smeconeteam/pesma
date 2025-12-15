@@ -74,7 +74,7 @@ class BlockResource extends Resource
                             ->rows(3)
                             ->columnSpan(2)
                             ->nullable(),
-
+                                                    
                         Forms\Components\Toggle::make('is_active')
                             ->label('Aktif')
                             ->default(true),

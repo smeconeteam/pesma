@@ -8,10 +8,13 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable implements FilamentUser
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -86,5 +89,15 @@ class User extends Authenticatable implements FilamentUser
             'branch_admin',
             'block_admin',
         ]);
+    }
+
+    public function residentProfile(): HasOne
+    {
+        return $this->hasOne(ResidentProfile::class);
+    }
+
+    public function roomResidents(): HasMany
+    {
+        return $this->hasMany(RoomResident::class);
     }
 }
