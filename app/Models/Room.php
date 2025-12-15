@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -41,4 +42,41 @@ class Room extends Model
             'dorm_id'  // FK di blocks.dorm_id
         );
     }
+
+    public static function generateCode(
+        ?string $dormName,
+        ?string $blockName,
+        ?string $roomTypeName,
+        ?string $number
+    ): ?string {
+        if (! $dormName || ! $blockName || ! $roomTypeName || ! $number) {
+            return null;
+        }
+
+        // cabangjakarta
+        $dormPart = Str::of($dormName)
+            ->lower()
+            ->replace(['asrama', ' '], '')
+            ->toString();
+
+        // KomplekA (BUKAN KomplekACimahi)
+        $blockPart = Str::of($blockName)
+            ->trim()
+            ->explode(' ')
+            ->take(2)
+            ->implode('');
+
+        // vip / reguler / vvip
+        $typePart = Str::of($roomTypeName)
+            ->before(' ')
+            ->lower()
+            ->toString();
+
+        // 03
+        $numberPart = str_pad((string) $number, 2, '0', STR_PAD_LEFT);
+
+        return "{$dormPart}-{$blockPart}-{$typePart}-{$numberPart}";
+    }
+
+
 }

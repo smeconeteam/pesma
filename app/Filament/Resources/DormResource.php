@@ -45,7 +45,7 @@ class DormResource extends Resource
                             ->label('Deskripsi')
                             ->rows(3)
                             ->nullable(),
-                                                
+
                         Forms\Components\Toggle::make('is_active')
                             ->label('Aktif')
                             ->default(true),
@@ -91,7 +91,9 @@ class DormResource extends Resource
                         1 => 'Aktif',
                         0 => 'Nonaktif',
                     ]),
-                Tables\Filters\TrashedFilter::make(),
+                ...(auth()->user()?->hasRole('super_admin')
+                    ? [Tables\Filters\TrashedFilter::make()->label('Data Terhapus')]
+                    : []),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -100,15 +102,17 @@ class DormResource extends Resource
                     ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin'])),
 
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn (Dorm $record): bool =>
+                    ->visible(
+                        fn(Dorm $record): bool =>
                         auth()->user()?->hasRole(['super_admin', 'main_admin'])
-                        && ! $record->trashed()
+                            && ! $record->trashed()
                     ),
 
                 Tables\Actions\RestoreAction::make()
-                    ->visible(fn (Dorm $record): bool =>
+                    ->visible(
+                        fn(Dorm $record): bool =>
                         auth()->user()?->hasRole(['super_admin'])
-                        && $record->trashed()
+                            && $record->trashed()
                     ),
 
             ])
@@ -117,28 +121,29 @@ class DormResource extends Resource
                     Tables\Actions\DeleteBulkAction::make()
                         ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin'])),
                     Tables\Actions\RestoreBulkAction::make()
-                        ->visible(fn () => auth()->user()?->hasRole(['super_admin'])),
+                        ->visible(fn() => auth()->user()?->hasRole(['super_admin'])),
                 ]),
             ]);
     }
 
-       public static function getEloquentQuery(): Builder
+    public static function getEloquentQuery(): Builder
     {
-        // Hilangkan global scope soft delete supaya TrashedFilter bisa bekerja
-        $query = parent::getEloquentQuery()
-            ->withoutGlobalScopes([
-                SoftDeletingScope::class,
-            ]);
-
         $user = auth()->user();
 
-        // Hanya super_admin & main_admin yang boleh lihat data
-        if ($user && $user->hasRole(['super_admin', 'main_admin'])) {
-            return $query;
+        if (! $user) {
+            return parent::getEloquentQuery()->whereRaw('1 = 0');
         }
 
-        // selain itu, blok semua (jaga-jaga kalau sampai tembus)
-        return $query->whereRaw('1 = 0');
+        if ($user->hasRole('super_admin')) {
+            return parent::getEloquentQuery()
+                ->withoutGlobalScopes([SoftDeletingScope::class]);
+        }
+
+        if ($user->hasRole('main_admin')) {
+            return parent::getEloquentQuery();
+        }
+
+        return parent::getEloquentQuery()->whereRaw('1 = 0');
     }
 
     public static function canViewAny(): bool

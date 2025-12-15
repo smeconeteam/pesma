@@ -61,6 +61,8 @@ class RoomSeeder extends Seeder
 
                             'capacity'     => null,
                             'monthly_rate' => null,
+                            'capacity'     => $roomType->default_capacity,
+                            'monthly_rate' => $roomType->default_monthly_rate,
 
                             'is_active'    => true,
                         ]
