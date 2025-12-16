@@ -100,13 +100,14 @@ class RoomTypeResource extends Resource
                     ->options([
                         1 => 'Aktif',
                         0 => 'Nonaktif',
-                    ]),
+                    ])
+                    ->native(false),
 
                 Tables\Filters\Filter::make('created_at_range')
                     ->label('Tanggal Dibuat')
                     ->form([
-                        Forms\Components\DatePicker::make('created_from')->label('Dari'),
-                        Forms\Components\DatePicker::make('created_until')->label('Sampai'),
+                        Forms\Components\DatePicker::make('created_from')->label('Dari')->native(false),
+                        Forms\Components\DatePicker::make('created_until')->label('Sampai')->native(false),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -118,10 +119,11 @@ class RoomTypeResource extends Resource
                         if (! empty($data['created_from'])) $indicators[] = 'Dari: ' . $data['created_from'];
                         if (! empty($data['created_until'])) $indicators[] = 'Sampai: ' . $data['created_until'];
                         return $indicators;
-                    }),
+                    })
+                    ->native(false),
 
                 ...(auth()->user()?->hasRole('super_admin')
-                    ? [Tables\Filters\TrashedFilter::make()->label('Data Terhapus')]
+                    ? [Tables\Filters\TrashedFilter::make()->label('Data Terhapus')->native(false)]
                     : []),
             ])
             ->actions([

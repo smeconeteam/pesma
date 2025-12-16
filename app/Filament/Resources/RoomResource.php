@@ -199,7 +199,8 @@ class RoomResource extends Resource
                     ->options([
                         1 => 'Aktif',
                         0 => 'Nonaktif',
-                    ]),
+                    ])
+                    ->native(false),
 
                 Tables\Filters\Filter::make('lokasi')
                     ->label('Lokasi')
@@ -235,7 +236,8 @@ class RoomResource extends Resource
                             })
                             ->searchable()
                             ->reactive()
-                            ->afterStateUpdated(fn(Set $set) => $set('block_id', null)),
+                            ->afterStateUpdated(fn(Set $set) => $set('block_id', null))
+                            ->native(false),
 
                         Forms\Components\Select::make('block_id')
                             ->label('Komplek')
@@ -268,7 +270,8 @@ class RoomResource extends Resource
                                 return [];
                             })
                             ->searchable()
-                            ->disabled(fn(Get $get) => blank($get('dorm_id'))),
+                            ->disabled(fn(Get $get) => blank($get('dorm_id')))
+                            ->native(false),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -294,8 +297,8 @@ class RoomResource extends Resource
                 Tables\Filters\Filter::make('created_at_range')
                     ->label('Tanggal Dibuat')
                     ->form([
-                        Forms\Components\DatePicker::make('created_from')->label('Dari'),
-                        Forms\Components\DatePicker::make('created_until')->label('Sampai'),
+                        Forms\Components\DatePicker::make('created_from')->label('Dari')->native(false),
+                        Forms\Components\DatePicker::make('created_until')->label('Sampai')->native(false),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -310,7 +313,7 @@ class RoomResource extends Resource
                     }),
 
                 ...($user?->hasRole('super_admin')
-                    ? [Tables\Filters\TrashedFilter::make()->label('Data Terhapus')]
+                    ? [Tables\Filters\TrashedFilter::make()->label('Data Terhapus')->native(false)]
                     : []),
             ])
             ->actions([

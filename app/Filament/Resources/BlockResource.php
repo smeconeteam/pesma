@@ -121,7 +121,8 @@ class BlockResource extends Resource
                     ->options([
                         1 => 'Aktif',
                         0 => 'Nonaktif',
-                    ]),
+                    ])
+                    ->native(false),
 
                 Tables\Filters\SelectFilter::make('dorm_id')
                     ->label('Cabang')
@@ -132,13 +133,14 @@ class BlockResource extends Resource
                         $query->where('is_active', true)
                             ->whereNull('deleted_at')
                     )
-                    ->visible(fn() => $user?->hasRole(['super_admin', 'main_admin'])),
+                    ->visible(fn() => $user?->hasRole(['super_admin', 'main_admin']))
+                    ->native(false),
 
                 Tables\Filters\Filter::make('created_at_range')
                     ->label('Tanggal Dibuat')
                     ->form([
-                        Forms\Components\DatePicker::make('created_from')->label('Dari'),
-                        Forms\Components\DatePicker::make('created_until')->label('Sampai'),
+                        Forms\Components\DatePicker::make('created_from')->label('Dari')->native(false),
+                        Forms\Components\DatePicker::make('created_until')->label('Sampai')->native(false),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -153,7 +155,7 @@ class BlockResource extends Resource
                     }),
 
                 ...($user?->hasRole('super_admin')
-                    ? [Tables\Filters\TrashedFilter::make()->label('Data Terhapus')]
+                    ? [Tables\Filters\TrashedFilter::make()->label('Data Terhapus')->native(false)]
                     : []),
             ])
             ->actions([
