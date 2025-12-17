@@ -18,7 +18,13 @@ class RoomType extends Model
         'is_active',
     ];
 
-    public function rooms(){
+    public function rooms()
+    {
         return $this->hasMany(Room::class);
+    }
+
+    public function canBeDeleted()
+    {
+        return ! $this->rooms()->exist();
     }
 }

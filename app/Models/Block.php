@@ -31,4 +31,9 @@ class Block extends Model
     {
         return $this->hasMany(AdminScope::class);
     }
+
+    public function canBeDeleted()
+    {
+        return ! $this->rooms()->exist();
+    }
 }

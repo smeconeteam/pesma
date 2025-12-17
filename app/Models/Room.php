@@ -6,6 +6,7 @@ use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Room extends Model
 {
@@ -78,5 +79,20 @@ class Room extends Model
         return "{$dormPart}-{$blockPart}-{$typePart}-{$numberPart}";
     }
 
+    public function roomResidents(): HasMany
+    {
+        return $this->hasMany(RoomResident::class);
+    }
 
+    public function hasActiveResidents(): bool
+    {
+        return $this->roomResidents()
+            ->whereNull('check_out_date')
+            ->exists();
+    }
+
+    public function canBeDeleted(): bool
+    {
+        return ! $this->hasActiveResidents();
+    }
 }

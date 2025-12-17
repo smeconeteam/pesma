@@ -11,6 +11,8 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class RoomTypeResource extends Resource
@@ -136,10 +138,12 @@ class RoomTypeResource extends Resource
                     ])),
 
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn() => auth()->user()?->hasRole([
-                        'super_admin',
-                        'main_admin',
-                    ])),
+                    ->visible(
+                        fn(RoomType $record): bool =>
+                        auth()->user()?->hasRole(['super_admin', 'main_admin'])
+                            && ! $record->trashed()
+                            && ! $record->rooms()->exists()
+                    ),
 
                 Tables\Actions\RestoreAction::make()
                     ->visible(
@@ -151,10 +155,41 @@ class RoomTypeResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => auth()->user()?->hasRole([
-                            'super_admin',
-                            'main_admin',
-                        ])),
+                        ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin']))
+                        ->action(function (Collection $records) {
+
+                            $allowed = $records->filter(fn(RoomType $r) => ! $r->rooms()->exists());
+                            $blocked = $records->diff($allowed);
+
+                            if ($allowed->isEmpty()) {
+                                Notification::make()
+                                    ->title('Aksi Dibatalkan')
+                                    ->body('Tidak ada tipe kamar yang bisa dihapus. Tipe kamar yang sudah dipakai oleh kamar tidak dapat dihapus.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            foreach ($allowed as $r) {
+                                $r->delete();
+                            }
+
+                            $deleted = $allowed->count();
+
+                            if ($blocked->isNotEmpty()) {
+                                Notification::make()
+                                    ->title('Berhasil Sebagian')
+                                    ->body("Berhasil menghapus {$deleted} tipe kamar. Yang tidak bisa dihapus: " . $blocked->pluck('name')->join(', '))
+                                    ->warning()
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->title('Berhasil')
+                                    ->body("Berhasil menghapus {$deleted} tipe kamar.")
+                                    ->success()
+                                    ->send();
+                            }
+                        }),
                     Tables\Actions\RestoreBulkAction::make()
                         ->visible(fn() => auth()->user()?->hasRole('super_admin')),
                 ]),

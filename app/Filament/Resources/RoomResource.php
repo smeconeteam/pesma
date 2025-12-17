@@ -16,6 +16,9 @@ use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\RoomResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Collection;
+use Filament\Notifications\Notification;
+use App\Models\RoomResident;
 use App\Filament\Resources\RoomResource\RelationManagers;
 
 
@@ -323,7 +326,15 @@ class RoomResource extends Resource
                     ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin'])),
 
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin'])),
+                    ->visible(
+                        fn(Room $record): bool =>
+                        auth()->user()?->hasRole(['super_admin', 'main_admin'])
+                            && ! $record->trashed()
+                            && ! RoomResident::query()
+                                ->where('room_id', $record->id)
+                                ->whereNull('check_out_date')
+                                ->exists()
+                    ),
 
                 // Restore hanya super_admin
                 Tables\Actions\RestoreAction::make()
@@ -333,7 +344,47 @@ class RoomResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin'])),
+                        ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']))
+                        ->action(function (Collection $records) {
+
+                            $allowed = $records->filter(function (Room $room) {
+                                return ! RoomResident::query()
+                                    ->where('room_id', $room->id)
+                                    ->whereNull('check_out_date')
+                                    ->exists();
+                            });
+
+                            $blocked = $records->diff($allowed);
+
+                            if ($allowed->isEmpty()) {
+                                Notification::make()
+                                    ->title('Aksi Dibatalkan')
+                                    ->body('Tidak ada kamar yang bisa dihapus. Kamar yang masih memiliki penghuni aktif tidak dapat dihapus.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            foreach ($allowed as $room) {
+                                $room->delete();
+                            }
+
+                            $deleted = $allowed->count();
+
+                            if ($blocked->isNotEmpty()) {
+                                Notification::make()
+                                    ->title('Berhasil Sebagian')
+                                    ->body("Berhasil menghapus {$deleted} kamar. Yang tidak bisa dihapus: " . $blocked->pluck('code')->join(', '))
+                                    ->warning()
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->title('Berhasil')
+                                    ->body("Berhasil menghapus {$deleted} kamar.")
+                                    ->success()
+                                    ->send();
+                            }
+                        }),
 
                     Tables\Actions\RestoreBulkAction::make()
                         ->visible(fn() => auth()->user()?->hasRole('super_admin')),
