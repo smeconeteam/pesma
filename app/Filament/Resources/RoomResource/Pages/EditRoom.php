@@ -14,7 +14,16 @@ class EditRoom extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()
+            ->label('Hapus')
+                ->visible(fn (): bool =>
+                    auth()->user()?->hasRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin'])
+                    && ! $this->record->trashed()
+                    && ! RoomResident::query()
+                        ->where('room_id', $this->record->id)
+                        ->whereNull('check_out_date')
+                        ->exists()
+                ),
         ];
     }
 
