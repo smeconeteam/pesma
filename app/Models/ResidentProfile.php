@@ -19,10 +19,8 @@ class ResidentProfile extends Model
         'birth_place',
         'birth_date',
         'university_school',
-        'phone_country_id',
         'phone_number',
         'guardian_name',
-        'guardian_phone_country_id',
         'guardian_phone_number',
         'check_in_date',
         'check_out_date',
@@ -38,16 +36,6 @@ class ResidentProfile extends Model
     public function country(): BelongsTo
     {
         return $this->belongsTo(Country::class, 'country_id');
-    }
-
-    public function phoneCountry(): BelongsTo
-    {
-        return $this->belongsTo(Country::class, 'phone_country_id');
-    }
-
-    public function guardianPhoneCountry(): BelongsTo
-    {
-        return $this->belongsTo(Country::class, 'guardian_phone_country_id');
     }
 
     public function residentCategory(): BelongsTo

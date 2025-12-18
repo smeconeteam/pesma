@@ -80,16 +80,13 @@ class ResidentSeeder extends Seeder
             // 6) Attach role resident (pivot role_user)
             $user->roles()->syncWithoutDetaching([$residentRole->id]);
 
-            // 7) Buat/Update resident profile sesuai schema terbaru
+            // 7) Buat/Update resident profile (simplified)
             ResidentProfile::updateOrCreate(
                 ['user_id' => $user->id],
                 [
                     'resident_category_id' => $category->id,
-
-                    // kewarganegaraan
                     'citizenship_status' => 'WNI',
                     'country_id' => $indonesia->id,
-
                     'national_id' => '3200000000000001',
                     'student_id'  => 'NIM001',
                     'full_name'   => 'Resident 1',
@@ -97,22 +94,16 @@ class ResidentSeeder extends Seeder
                     'birth_place' => 'Bandung',
                     'birth_date'  => '2004-01-01',
                     'university_school' => 'Contoh University',
-
-                    // phone: simpan prefix via FK + nomor lokal tanpa 0 / tanpa +62
-                    'phone_country_id' => $indonesia->id,
-                    'phone_number' => '81234567890',
-
+                    'phone_number' => '081234567890',
                     'guardian_name' => 'Orang Tua',
-                    'guardian_phone_country_id' => $indonesia->id,
-                    'guardian_phone_number' => '81298765432',
-
+                    'guardian_phone_number' => '081298765432',
                     'check_in_date' => now()->toDateString(),
                     'check_out_date' => null,
                     'photo_path' => null,
                 ]
             );
 
-            // 8) Tempatkan ke kamar (langsung = opsi A)
+            // 8) Tempatkan ke kamar (langsung)
             RoomResident::firstOrCreate(
                 [
                     'room_id' => $room->id,

@@ -36,19 +36,11 @@ return new class extends Migration {
             $table->date('birth_date')->nullable();
             $table->string('university_school')->nullable();
 
-            // nomor hp: prefix negara + nomor lokal
-            $table->foreignId('phone_country_id')
-                ->nullable()
-                ->constrained('countries')
-                ->nullOnDelete();
+            // nomor telepon (simpan dengan format bebas: +62xxx atau 08xxx)
             $table->string('phone_number')->nullable();
 
             // wali
             $table->string('guardian_name')->nullable();
-            $table->foreignId('guardian_phone_country_id')
-                ->nullable()
-                ->constrained('countries')
-                ->nullOnDelete();
             $table->string('guardian_phone_number')->nullable();
 
             $table->date('check_in_date')->nullable();
@@ -63,8 +55,6 @@ return new class extends Migration {
             $table->index(['citizenship_status']);
             $table->index(['resident_category_id']);
             $table->index(['country_id']);
-            $table->index(['phone_country_id']);
-            $table->index(['guardian_phone_country_id']);
         });
     }
 
