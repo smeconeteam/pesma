@@ -26,7 +26,7 @@ class CreateResident extends CreateRecord
     protected function handleRecordCreation(array $data): Model
     {
         return DB::transaction(function () use ($data) {
-            $profile = $data['profile'] ?? [];
+            $profile = $data['residentProfile'] ?? $data['profile'] ?? [];
             $room    = $data['room'] ?? [];
 
             // 1) create user (name diambil dari full_name)

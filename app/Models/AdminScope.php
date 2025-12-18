@@ -17,6 +17,7 @@ class AdminScope extends Model
     ];
 
     protected $casts = [
+        'user_id'  => 'integer',
         'dorm_id' => 'integer',
         'block_id' => 'integer',
     ];

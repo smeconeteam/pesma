@@ -27,6 +27,8 @@ class EditResident extends EditRecord
         $profile = $record->residentProfile;
 
         $data['profile'] = [
+            'resident_category_id'  => $profile?->resident_category_id,
+            'is_international'      => $profile?->is_international,
             'national_id'           => $profile?->national_id,
             'student_id'            => $profile?->student_id,
             'full_name'             => $profile?->full_name ?? $record->name,
@@ -90,6 +92,8 @@ class EditResident extends EditRecord
             ResidentProfile::updateOrCreate(
                 ['user_id' => $record->id],
                 [
+                    'resident_category_id'  => $profileData['resident_category_id'] ?? null,
+                    'is_international'      => $profileData['is_international'] ?? null,
                     'national_id'           => $profileData['national_id'] ?? null,
                     'student_id'            => $profileData['student_id'] ?? null,
                     'full_name'             => $profileData['full_name'] ?? $record->name,
@@ -135,7 +139,7 @@ class EditResident extends EditRecord
                         'room_id'       => $newRoomId,
                         'user_id'       => $record->id,
                         'check_in_date' => $newCheckIn,
-                        'check_out_date'=> null,
+                        'check_out_date' => null,
                         'is_pic'        => $newIsPic,
                     ]);
                 }

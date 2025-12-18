@@ -3,18 +3,16 @@
 namespace App\Services;
 
 use App\Models\AdminScope;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class AdminPrivilegeService
 {
-    /**
-     * Cabut semua hak admin (branch_admin + block_admin) dan hapus admin_scopes.
-     */
     public function revokeAdmin(User $user): void
     {
         DB::transaction(function () use ($user) {
-            // cabut role admin (biarkan role resident tetap ada)
             $roleIds = $user->roles()
                 ->whereIn('name', ['branch_admin', 'block_admin'])
                 ->pluck('roles.id')
@@ -24,7 +22,6 @@ class AdminPrivilegeService
                 $user->roles()->detach($roleIds);
             }
 
-            // hapus scope admin
             AdminScope::query()
                 ->where('user_id', $user->id)
                 ->whereIn('type', ['branch', 'block'])
@@ -33,49 +30,76 @@ class AdminPrivilegeService
     }
 
     /**
-     * Revoke admin jika scope tidak cocok dengan domisili aktif sekarang.
-     * - Jika tidak punya kamar aktif -> revoke (lebih aman)
-     * - Jika dorm_id/block_id pada scope != dorm/block kamar aktif -> revoke
+     * Assign admin (branch/block) berdasarkan kamar aktif user saat ini.
+     * - hanya resident domestik (is_international=false)
+     * - scope dorm/block otomatis dari kamar aktif
+     * - cabut role admin lain terlebih dahulu (biar hanya 1 admin role)
      */
-    public function revokeIfScopeMismatch(User $user): void
+    public function assignAdmin(User $user, string $type): AdminScope
     {
-        // kalau tidak punya admin role, tidak perlu cek
-        $hasAdminRole = $user->roles()
-            ->whereIn('name', ['branch_admin', 'block_admin'])
+        if (! in_array($type, ['branch', 'block'], true)) {
+            throw ValidationException::withMessages([
+                'type' => 'Tipe admin tidak valid.',
+            ]);
+        }
+
+        // hanya domestik
+        $isDomestic = $user->residentProfile()
+            ->where('is_international', false)
             ->exists();
 
-        if (! $hasAdminRole) {
-            return;
+        if (! $isDomestic) {
+            throw ValidationException::withMessages([
+                'user_id' => 'Penghuni mancanegara tidak boleh menjadi admin.',
+            ]);
         }
 
+        // harus punya kamar aktif
         $active = $user->activeRoomResident()->with('room.block.dorm')->first();
 
-        // tidak punya kamar aktif -> cabut
         if (! $active?->room?->block?->dorm) {
-            $this->revokeAdmin($user);
-            return;
+            throw ValidationException::withMessages([
+                'user_id' => 'Penghuni harus memiliki kamar aktif untuk bisa diangkat menjadi admin.',
+            ]);
         }
 
-        $currentDormId  = (int) $active->room->block->dorm->id;
-        $currentBlockId = (int) $active->room->block->id;
+        $dormId  = (int) $active->room->block->dorm->id;
+        $blockId = (int) $active->room->block->id;
 
-        $scope = AdminScope::query()
-            ->where('user_id', $user->id)
-            ->whereIn('type', ['branch', 'block'])
-            ->first();
-
-        if (! $scope) {
-            // punya role admin tapi scope hilang => cabut biar konsisten
+        return DB::transaction(function () use ($user, $type, $dormId, $blockId) {
+            // pastikan hanya 1 admin role aktif
             $this->revokeAdmin($user);
-            return;
-        }
 
-        // mismatch dorm atau block -> revoke
-        $scopeDormId  = (int) ($scope->dorm_id ?? 0);
-        $scopeBlockId = (int) ($scope->block_id ?? 0);
+            $roleName = $type === 'branch' ? 'branch_admin' : 'block_admin';
+            $role = Role::firstOrCreate(['name' => $roleName]);
+            $user->roles()->syncWithoutDetaching([$role->id]);
 
-        if ($scopeDormId !== $currentDormId || $scopeBlockId !== $currentBlockId) {
-            $this->revokeAdmin($user);
-        }
+            // simpan scope; untuk branch admin tetap simpan block_id (agar pindah komplek => mismatch)
+            $scope = AdminScope::create([
+                'user_id'  => $user->id,
+                'type'     => $type,
+                'dorm_id'  => $dormId,
+                'block_id' => $blockId,
+            ]);
+
+            return $scope;
+        });
+    }
+
+    /**
+     * Update tipe admin dari scope yang sudah ada.
+     */
+    public function updateAdminScope(AdminScope $scope, string $type): AdminScope
+    {
+        return DB::transaction(function () use ($scope, $type) {
+            $user = $scope->user()->firstOrFail();
+
+            // re-assign total biar konsisten (cabut dulu lalu assign lagi)
+            $newScope = $this->assignAdmin($user, $type);
+
+            // hapus scope lama (kalau assignAdmin sudah hapus semua scope, ini aman)
+            $scope->refresh();
+            return $newScope;
+        });
     }
 }

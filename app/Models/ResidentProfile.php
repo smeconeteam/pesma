@@ -35,7 +35,7 @@ class ResidentProfile extends Model
 
     public function residentCategory(): BelongsTo
     {
-        return $this->belongsTo(ResidentCategory::class);
+        return $this->belongsTo(ResidentCategory::class, 'resident_category_id');
     }
 
     public function user(): BelongsTo

@@ -1,0 +1,220 @@
+<?php
+
+namespace App\Filament\Resources;
+
+use App\Filament\Resources\AdminAssignmentResource\Pages;
+use App\Models\AdminScope;
+use App\Models\User;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
+use App\Models\Dorm;
+use App\Models\Block;
+
+
+class AdminAssignmentResource extends Resource
+{
+    protected static ?string $model = AdminScope::class;
+
+    protected static ?string $navigationGroup = 'Pengaturan';
+    protected static ?string $navigationLabel = 'Admin';
+    protected static ?string $pluralLabel = 'Admin';
+    protected static ?string $modelLabel = 'Admin';
+    protected static ?int $navigationSort = 50;
+    protected static ?string $navigationIcon = null;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
+    }
+
+    public static function canEdit($record): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
+    }
+
+    public static function canDelete($record): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->whereIn('type', ['branch', 'block'])
+            ->whereHas('user.roles', fn(Builder $q) => $q->where('name', 'resident')) // hanya resident
+            ->whereHas('user.residentProfile', fn(Builder $q) => $q->where('is_international', false)) // bukan mancanegara
+            ->with([
+                'user.residentProfile',
+                'dorm',
+                'block',
+            ]);
+    }
+
+    public static function form(Form $form): Form
+    {
+        return $form->schema([
+            Forms\Components\Section::make('Pengangkatan Admin')
+                ->columns(2)
+                ->schema([
+                    Forms\Components\Select::make('user_id')
+                        ->label('Penghuni')
+                        ->required()
+                        ->searchable()
+                        ->preload()
+                        ->native(false)
+                        ->visible(fn(string $operation) => $operation === 'create')
+                        ->relationship(
+                            name: 'user',
+                            titleAttribute: 'email',
+                            modifyQueryUsing: fn(Builder $query) => $query
+                                ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
+                                ->whereHas('residentProfile', fn(Builder $q) => $q->where('is_international', false))
+                                ->whereHas('roomResidents', fn(Builder $q) => $q->whereNull('room_residents.check_out_date'))
+                                ->whereDoesntHave('adminScopes', fn(Builder $q) => $q->whereIn('type', ['branch', 'block']))
+                                ->with('residentProfile')
+                                ->orderBy('email')
+                        )
+                        ->getOptionLabelFromRecordUsing(function (User $record) {
+                            $name = $record->residentProfile?->full_name ?? $record->name;
+                            return "{$name} — {$record->email}";
+                        })
+                        ->helperText('Hanya penghuni domestik yang memiliki kamar aktif dan belum menjadi admin.'),
+
+                    Forms\Components\Placeholder::make('user_display')
+                        ->label('Penghuni')
+                        ->visible(fn(string $operation) => $operation === 'edit')
+                        ->content(function ($record) {
+                            $name = $record->user?->residentProfile?->full_name ?? $record->user?->name ?? '-';
+                            $email = $record->user?->email ?? '-';
+                            return "{$name} — {$email}";
+                        }),
+
+                    Forms\Components\Select::make('type')
+                        ->label('Role Admin')
+                        ->required()
+                        ->native(false)
+                        ->options([
+                            'branch' => 'Branch Admin (Admin Cabang/Asrama)',
+                            'block'  => 'Block Admin (Admin Komplek)',
+                        ]),
+                ]),
+        ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('user.residentProfile.full_name')
+                    ->label('Nama Penghuni')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('-'),
+
+                Tables\Columns\BadgeColumn::make('type')
+                    ->label('Role Admin')
+                    ->formatStateUsing(fn(string $state) => $state === 'branch' ? 'Admin Cabang' : 'Admin Komplek')
+                    ->colors([
+                        'warning' => 'branch',
+                        'success' => 'block',
+                    ]),
+
+                Tables\Columns\TextColumn::make('dorm.name')
+                    ->label('Asrama')
+                    ->placeholder('-')
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('block.name')
+                    ->label('Komplek')
+                    ->placeholder('-')
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Diangkat')
+                    ->dateTime('d M Y H:i')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                SelectFilter::make('type')
+                    ->label('Tipe Admin')
+                    ->options([
+                        'branch' => 'Branch Admin',
+                        'block'  => 'Block Admin',
+                    ])
+                    ->native(false),
+
+                Filter::make('scope')
+                    ->label('Lokasi')
+                    ->form([
+                        Forms\Components\Select::make('dorm_id')
+                            ->label('Asrama')
+                            ->options(fn() => Dorm::query()->orderBy('name')->pluck('name', 'id'))
+                            ->searchable()
+                            ->native(false)
+                            ->reactive()
+                            ->afterStateUpdated(fn(Forms\Set $set) => $set('block_id', null)),
+
+                        Forms\Components\Select::make('block_id')
+                            ->label('Komplek')
+                            ->options(
+                                fn(Forms\Get $get) => Block::query()
+                                    ->when($get('dorm_id'), fn(Builder $q, $dormId) => $q->where('dorm_id', $dormId))
+                                    ->orderBy('name')
+                                    ->pluck('name', 'id')
+                            )
+                            ->searchable()
+                            ->native(false)
+                            ->disabled(fn(Forms\Get $get) => blank($get('dorm_id'))),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['dorm_id'] ?? null, fn(Builder $q, $dormId) => $q->where('admin_scopes.dorm_id', $dormId))
+                            ->when($data['block_id'] ?? null, fn(Builder $q, $blockId) => $q->where('admin_scopes.block_id', $blockId));
+                    }),
+            ])
+            ->actions([
+                Tables\Actions\EditAction::make()->label('Edit'),
+
+                Tables\Actions\Action::make('revoke')
+                    ->label('Cabut Admin')
+                    ->icon('heroicon-o-user-minus')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->action(function (AdminScope $record) {
+                        app(\App\Services\AdminPrivilegeService::class)->revokeAdmin($record->user);
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('Hak admin dicabut')
+                            ->success()
+                            ->send();
+                    }),
+            ])
+            ->bulkActions([]);
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index'  => Pages\ListAdminAssignments::route('/'),
+            'create' => Pages\CreateAdminAssignment::route('/create'),
+            'edit'   => Pages\EditAdminAssignment::route('/{record}/edit'),
+        ];
+    }
+}
