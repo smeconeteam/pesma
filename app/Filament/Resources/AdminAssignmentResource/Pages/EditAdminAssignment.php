@@ -29,7 +29,7 @@ class EditAdminAssignment extends EditRecord
 
         // validasi domestik
         $isDomestic = $user->residentProfile()
-            ->where('is_international', false)
+            ->where('citizenship_status', 'WNI')
             ->exists();
 
         if (! $isDomestic) {

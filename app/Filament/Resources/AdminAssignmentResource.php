@@ -58,7 +58,7 @@ class AdminAssignmentResource extends Resource
         return parent::getEloquentQuery()
             ->whereIn('type', ['branch', 'block'])
             ->whereHas('user.roles', fn(Builder $q) => $q->where('name', 'resident')) // hanya resident
-            ->whereHas('user.residentProfile', fn(Builder $q) => $q->where('is_international', false)) // bukan mancanegara
+            ->whereHas('user.residentProfile', fn(Builder $q) => $q->where('citizenship_status', 'WNI')) // bukan mancanegara
             ->with([
                 'user.residentProfile',
                 'dorm',
@@ -84,7 +84,7 @@ class AdminAssignmentResource extends Resource
                             titleAttribute: 'email',
                             modifyQueryUsing: fn(Builder $query) => $query
                                 ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
-                                ->whereHas('residentProfile', fn(Builder $q) => $q->where('is_international', false))
+                                ->whereHas('residentProfile', fn(Builder $q) => $q->where('citizenship_status', 'WNI'))
                                 ->whereHas('roomResidents', fn(Builder $q) => $q->whereNull('room_residents.check_out_date'))
                                 ->whereDoesntHave('adminScopes', fn(Builder $q) => $q->whereIn('type', ['branch', 'block']))
                                 ->with('residentProfile')
@@ -110,8 +110,8 @@ class AdminAssignmentResource extends Resource
                         ->required()
                         ->native(false)
                         ->options([
-                            'branch' => 'Branch Admin (Admin Cabang/Asrama)',
-                            'block'  => 'Block Admin (Admin Komplek)',
+                            'branch' => 'Admin Cabang',
+                            'block'  => 'Admin Komplek',
                         ]),
                 ]),
         ]);
@@ -155,8 +155,8 @@ class AdminAssignmentResource extends Resource
                 SelectFilter::make('type')
                     ->label('Tipe Admin')
                     ->options([
-                        'branch' => 'Branch Admin',
-                        'block'  => 'Block Admin',
+                        'branch' => 'Admin Cabang',
+                        'block'  => 'Admin Komplek',
                     ])
                     ->native(false),
 

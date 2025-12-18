@@ -29,12 +29,6 @@ class AdminPrivilegeService
         });
     }
 
-    /**
-     * Assign admin (branch/block) berdasarkan kamar aktif user saat ini.
-     * - hanya resident domestik (is_international=false)
-     * - scope dorm/block otomatis dari kamar aktif
-     * - cabut role admin lain terlebih dahulu (biar hanya 1 admin role)
-     */
     public function assignAdmin(User $user, string $type): AdminScope
     {
         if (! in_array($type, ['branch', 'block'], true)) {
@@ -45,7 +39,7 @@ class AdminPrivilegeService
 
         // hanya domestik
         $isDomestic = $user->residentProfile()
-            ->where('is_international', false)
+            ->where('citizenship_status', 'WNI')
             ->exists();
 
         if (! $isDomestic) {
