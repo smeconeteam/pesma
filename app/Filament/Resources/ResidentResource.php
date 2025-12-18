@@ -7,6 +7,8 @@ use App\Models\Block;
 use App\Models\Dorm;
 use App\Models\Room;
 use App\Models\User;
+use App\Models\Role;
+use App\Models\AdminScope;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -18,6 +20,8 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use App\Models\RoomResident;
 use App\Models\ResidentCategory;
 use Filament\Notifications\Notification;
@@ -25,6 +29,7 @@ use Filament\Infolists\Infolist;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\IconEntry;
+use App\Services\AdminPrivilegeService;
 
 class ResidentResource extends Resource
 {
@@ -41,8 +46,11 @@ class ResidentResource extends Resource
             ->withoutGlobalScopes([SoftDeletingScope::class])
             ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
             ->with([
+                'roles',
+                'residentProfile',
                 'residentProfile.residentCategory',
                 'roomResidents.room',
+                'activeRoomResident.room.block.dorm',
             ]);
     }
 
@@ -299,6 +307,11 @@ class ResidentResource extends Resource
                     ->searchable()
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('email')
+                    ->label('email')
+                    ->searchable()
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('residentProfile.residentCategory.name')
                     ->label('Kategori')
                     ->sortable(),
@@ -371,6 +384,102 @@ class ResidentResource extends Resource
                         fn($record) =>
                         auth()->user()?->hasRole('super_admin') && $record?->trashed()
                     ),
+                Tables\Actions\Action::make('promoteAdmin')
+                    ->label('Angkat Admin')
+                    ->icon('heroicon-o-shield-check')
+                    ->visible(fn(User $record) => static::canManagePromotions() && ! static::isAdminUser($record))
+                    ->modalHeading('Pengangkatan Admin dari Penghuni')
+                    ->modalSubmitActionLabel('Angkat')
+                    ->form([
+                        Forms\Components\Placeholder::make('current_location')
+                            ->label('Domisili Saat Ini')
+                            ->content(function ($record) {
+                                $dorm  = $record->activeRoomResident?->room?->block?->dorm?->name ?? '-';
+                                $block = $record->activeRoomResident?->room?->block?->name ?? '-';
+                                $room  = $record->activeRoomResident?->room?->code ?? '-';
+                                return "Asrama: {$dorm} | Komplek: {$block} | Kamar: {$room}";
+                            }),
+
+                        Forms\Components\Select::make('target_role')
+                            ->label('Diangkat Menjadi')
+                            ->options([
+                                'branch_admin' => 'Admin Cabang (Asrama)',
+                                'block_admin'  => 'Admin Komplek',
+                            ])
+                            ->native(false)
+                            ->required(),
+                    ])
+                    ->action(function ($record, array $data) {
+                        /** @var \App\Models\User $record */
+
+                        // 1) harus resident non-mancanegara
+                        if (($record->residentProfile?->is_international ?? false) === true) {
+                            throw ValidationException::withMessages([
+                                'target_role' => 'Penghuni mancanegara tidak boleh diangkat menjadi admin.',
+                            ]);
+                        }
+
+                        // 2) harus punya kamar aktif (biar scope valid)
+                        $active = $record->activeRoomResident;
+                        $room   = $active?->room;
+                        $block  = $room?->block;
+                        $dorm   = $block?->dorm;
+
+                        if (! $active || ! $room || ! $block || ! $dorm) {
+                            throw ValidationException::withMessages([
+                                'target_role' => 'Penghuni harus memiliki kamar aktif untuk bisa diangkat menjadi admin.',
+                            ]);
+                        }
+
+                        DB::transaction(function () use ($record, $data, $dorm, $block) {
+                            $targetRole = $data['target_role'];
+
+                            // 3) attach role (tidak perlu cabut role resident)
+                            $role = Role::firstOrCreate(['name' => $targetRole]);
+                            $record->roles()->syncWithoutDetaching([$role->id]);
+
+                            // 4) set admin scope sesuai domisili
+                            if ($targetRole === 'branch_admin') {
+                                AdminScope::updateOrCreate(
+                                    ['user_id' => $record->id, 'type' => 'branch'],
+                                    ['dorm_id' => $dorm->id, 'block_id' => $block->id]
+                                );
+                            }
+
+                            if ($targetRole === 'block_admin') {
+                                AdminScope::updateOrCreate(
+                                    ['user_id' => $record->id, 'type' => 'block'],
+                                    ['dorm_id' => $dorm->id, 'block_id' => $block->id]
+                                );
+                            }
+                        });
+
+                        $record->unsetRelation('roles');
+                        $record->load('roles');
+
+                        Notification::make()
+                            ->title('Berhasil')
+                            ->body('Penghuni berhasil diangkat menjadi admin sesuai domisili aktifnya.')
+                            ->success()
+                            ->send();
+                    }),
+                Tables\Actions\Action::make('demoteAdmin')
+                    ->label('Cabut Admin')
+                    ->icon('heroicon-o-user-minus')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->visible(fn(User $record) => static::canManagePromotions() && static::isAdminUser($record))
+                    ->action(function (User $record) {
+                        app(AdminPrivilegeService::class)->revokeAdmin($record);
+
+                        $record->unsetRelation('roles');
+                        $record->load('roles');
+
+                        Notification::make()
+                            ->title('Hak admin dicabut')
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
@@ -426,6 +535,25 @@ class ResidentResource extends Resource
                         }),
                 ]),
         ]);
+    }
+
+    protected static function canManagePromotions(): bool
+    {
+        return auth()->user()?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
+    }
+
+    protected static function isAdminUser(User $record): bool
+    {
+        return $record->roles()
+            ->whereIn('name', ['branch_admin', 'block_admin'])
+            ->exists();
+        // kalau roles sudah eager load, ini cepat
+        if ($record->relationLoaded('roles')) {
+            return $record->roles->contains(fn($r) => in_array($r->name, ['branch_admin', 'block_admin'], true));
+        }
+
+        // fallback query
+        return $record->roles()->whereIn('name', ['branch_admin', 'block_admin'])->exists();
     }
 
     public static function shouldRegisterNavigation(): bool
