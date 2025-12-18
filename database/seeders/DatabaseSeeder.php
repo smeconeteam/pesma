@@ -23,8 +23,9 @@ class DatabaseSeeder extends Seeder
             AdminScopeSeeder::class,
             RoomTypeSeeder::class,
             RoomSeeder::class,
-            ResidentSeeder::class,
+            CountrySeeder::class,
             ResidentCategorySeeder::class,
+            ResidentSeeder::class,
         ]);
     }
 }

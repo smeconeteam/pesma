@@ -10,7 +10,8 @@ class ResidentProfile extends Model
     protected $fillable = [
         'user_id',
         'resident_category_id',
-        'is_international',
+        'citizenship_status',
+        'country_id',
         'national_id',
         'student_id',
         'full_name',
@@ -18,8 +19,10 @@ class ResidentProfile extends Model
         'birth_place',
         'birth_date',
         'university_school',
+        'phone_country_id',
         'phone_number',
         'guardian_name',
+        'guardian_phone_country_id',
         'guardian_phone_number',
         'check_in_date',
         'check_out_date',
@@ -27,11 +30,25 @@ class ResidentProfile extends Model
     ];
 
     protected $casts = [
-        'birth_date'    => 'date',
+        'birth_date' => 'date',
         'check_in_date' => 'date',
         'check_out_date' => 'date',
-        'is_international' => 'boolean',
     ];
+
+    public function country(): BelongsTo
+    {
+        return $this->belongsTo(Country::class, 'country_id');
+    }
+
+    public function phoneCountry(): BelongsTo
+    {
+        return $this->belongsTo(Country::class, 'phone_country_id');
+    }
+
+    public function guardianPhoneCountry(): BelongsTo
+    {
+        return $this->belongsTo(Country::class, 'guardian_phone_country_id');
+    }
 
     public function residentCategory(): BelongsTo
     {

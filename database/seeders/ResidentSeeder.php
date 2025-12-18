@@ -3,7 +3,9 @@
 namespace Database\Seeders;
 
 use App\Models\Block;
+use App\Models\Country;
 use App\Models\Dorm;
+use App\Models\ResidentCategory;
 use App\Models\ResidentProfile;
 use App\Models\Role;
 use App\Models\Room;
@@ -19,10 +21,26 @@ class ResidentSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function () {
-            // Pastikan role resident ada
+            // 1) Pastikan role resident ada
             $residentRole = Role::firstOrCreate(['name' => 'resident']);
 
-            // Pastikan ada 1 kamar untuk contoh
+            // 2) Pastikan Country Indonesia ada (untuk WNI wajib Indonesia)
+            $indonesia = Country::updateOrCreate(
+                ['iso2' => 'ID'],
+                [
+                    'iso3' => 'IDN',
+                    'name' => 'Indonesia',
+                    'calling_code' => '62',
+                ]
+            );
+
+            // 3) Pastikan kategori penghuni ada (default contoh: wisma)
+            $category = ResidentCategory::firstOrCreate(
+                ['name' => 'wisma'],
+                ['description' => 'Tarif normal']
+            );
+
+            // 4) Pastikan ada 1 kamar untuk contoh
             $dorm = Dorm::firstOrCreate(
                 ['name' => 'Cabang Utama'],
                 ['address' => 'Alamat contoh', 'description' => 'Seeder dorm']
@@ -49,7 +67,7 @@ class ResidentSeeder extends Seeder
                 ]
             );
 
-            // Buat user resident
+            // 5) Buat user resident
             $user = User::firstOrCreate(
                 ['email' => 'resident1@example.com'],
                 [
@@ -59,15 +77,19 @@ class ResidentSeeder extends Seeder
                 ]
             );
 
-            // Attach role resident (pivot role_user)
-            if (! $user->roles()->where('roles.id', $residentRole->id)->exists()) {
-                $user->roles()->attach($residentRole->id);
-            }
+            // 6) Attach role resident (pivot role_user)
+            $user->roles()->syncWithoutDetaching([$residentRole->id]);
 
-            // Buat/Update resident profile
+            // 7) Buat/Update resident profile sesuai schema terbaru
             ResidentProfile::updateOrCreate(
                 ['user_id' => $user->id],
                 [
+                    'resident_category_id' => $category->id,
+
+                    // kewarganegaraan
+                    'citizenship_status' => 'WNI',
+                    'country_id' => $indonesia->id,
+
                     'national_id' => '3200000000000001',
                     'student_id'  => 'NIM001',
                     'full_name'   => 'Resident 1',
@@ -75,16 +97,22 @@ class ResidentSeeder extends Seeder
                     'birth_place' => 'Bandung',
                     'birth_date'  => '2004-01-01',
                     'university_school' => 'Contoh University',
-                    'phone_number' => '081234567890',
+
+                    // phone: simpan prefix via FK + nomor lokal tanpa 0 / tanpa +62
+                    'phone_country_id' => $indonesia->id,
+                    'phone_number' => '81234567890',
+
                     'guardian_name' => 'Orang Tua',
-                    'guardian_phone_number' => '081298765432',
+                    'guardian_phone_country_id' => $indonesia->id,
+                    'guardian_phone_number' => '81298765432',
+
                     'check_in_date' => now()->toDateString(),
                     'check_out_date' => null,
                     'photo_path' => null,
                 ]
             );
 
-            // Tempatkan ke kamar (langsung = opsi A)
+            // 8) Tempatkan ke kamar (langsung = opsi A)
             RoomResident::firstOrCreate(
                 [
                     'room_id' => $room->id,
