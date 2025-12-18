@@ -10,8 +10,8 @@ return new class extends Migration {
         Schema::create('payment_methods', function (Blueprint $table) {
             $table->id();
 
-            // hanya jenisnya (qris/transfer/cash)
-            $table->string('kind'); // qris | transfer | cash
+            // 1 jenis hanya boleh 1 data
+            $table->enum('kind', ['qris', 'transfer', 'cash'])->unique();
 
             $table->text('instructions')->nullable();
 
@@ -23,7 +23,6 @@ return new class extends Migration {
             $table->timestamps();
             $table->softDeletes();
         });
-
     }
 
     public function down(): void
