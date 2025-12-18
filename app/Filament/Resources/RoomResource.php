@@ -481,6 +481,6 @@ class RoomResource extends Resource
             (string) $number
         );
 
-        $set('code', $code);
+        $set('code', strtolower($code));
     }
 }
