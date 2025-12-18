@@ -335,7 +335,8 @@ class ResidentResource extends Resource
                 TernaryFilter::make('is_active')
                     ->label('Status Aktif')
                     ->trueLabel('Aktif')
-                    ->falseLabel('Nonaktif'),
+                    ->falseLabel('Nonaktif')
+                    ->native(false),
 
                 SelectFilter::make('gender')
                     ->label('Gender')
@@ -344,7 +345,8 @@ class ResidentResource extends Resource
                         return $query->when($data['value'] ?? null, function (Builder $q, $value) {
                             $q->whereHas('residentProfile', fn(Builder $p) => $p->where('gender', $value));
                         });
-                    }),
+                    })
+                    ->native(false),
 
                 SelectFilter::make('dorm_id')
                     ->label('Cabang (Dorm)')
@@ -357,9 +359,8 @@ class ResidentResource extends Resource
                                     ->whereHas('room.block', fn(Builder $b) => $b->where('dorm_id', $dormId));
                             });
                         });
-                    }),
-
-                TrashedFilter::make(),
+                    })
+                    ->native(false),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()->label('Lihat'),

@@ -11,7 +11,8 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Collection;
+use Filament\Notifications\Notification;
 
 class BlockResource extends Resource
 {
@@ -74,7 +75,7 @@ class BlockResource extends Resource
                             ->rows(3)
                             ->columnSpan(2)
                             ->nullable(),
-                                                    
+
                         Forms\Components\Toggle::make('is_active')
                             ->label('Aktif')
                             ->default(true),
@@ -116,6 +117,14 @@ class BlockResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('is_active')
+                    ->label('Status Aktif')
+                    ->options([
+                        1 => 'Aktif',
+                        0 => 'Nonaktif',
+                    ])
+                    ->native(false),
+
                 Tables\Filters\SelectFilter::make('dorm_id')
                     ->label('Cabang')
                     ->relationship(
@@ -125,11 +134,26 @@ class BlockResource extends Resource
                         $query->where('is_active', true)
                             ->whereNull('deleted_at')
                     )
-                    ->visible(fn() => $user?->hasRole(['super_admin', 'main_admin'])),
+                    ->visible(fn() => $user?->hasRole(['super_admin', 'main_admin']))
+                    ->native(false),
 
-                ...($user?->hasRole('super_admin')
-                    ? [Tables\Filters\TrashedFilter::make()->label('Data Terhapus')]
-                    : []),
+                Tables\Filters\Filter::make('created_at_range')
+                    ->label('Tanggal Dibuat')
+                    ->form([
+                        Forms\Components\DatePicker::make('created_from')->label('Dari')->native(false),
+                        Forms\Components\DatePicker::make('created_until')->label('Sampai')->native(false),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['created_from'] ?? null, fn(Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
+                            ->when($data['created_until'] ?? null, fn(Builder $q, $date) => $q->whereDate('created_at', '<=', $date));
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if (! empty($data['created_from'])) $indicators[] = 'Dari: ' . $data['created_from'];
+                        if (! empty($data['created_until'])) $indicators[] = 'Sampai: ' . $data['created_until'];
+                        return $indicators;
+                    }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -141,10 +165,12 @@ class BlockResource extends Resource
                     ])),
 
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn() => auth()->user()?->hasRole([
-                        'super_admin',
-                        'main_admin',
-                    ])),
+                    ->visible(
+                        fn(Block $record): bool =>
+                        auth()->user()?->hasRole(['super_admin', 'main_admin'])
+                            && ! $record->trashed()
+                            && ! $record->rooms()->exists()
+                    ),
 
                 Tables\Actions\RestoreAction::make()
                     ->visible(
@@ -156,10 +182,41 @@ class BlockResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => auth()->user()?->hasRole([
-                            'super_admin',
-                            'main_admin',
-                        ])),
+                        ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin', 'branch_admin']))
+                        ->action(function (Collection $records) {
+
+                            $allowed = $records->filter(fn(Block $r) => ! $r->rooms()->exists());
+                            $blocked = $records->diff($allowed);
+
+                            if ($allowed->isEmpty()) {
+                                Notification::make()
+                                    ->title('Aksi Dibatalkan')
+                                    ->body('Tidak ada komplek yang bisa dihapus. Komplek yang memiliki kamar tidak dapat dihapus.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            foreach ($allowed as $r) {
+                                $r->delete();
+                            }
+
+                            $deleted = $allowed->count();
+
+                            if ($blocked->isNotEmpty()) {
+                                Notification::make()
+                                    ->title('Berhasil Sebagian')
+                                    ->body("Berhasil menghapus {$deleted} komplek. Yang tidak bisa dihapus: " . $blocked->pluck('name')->join(', '))
+                                    ->warning()
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->title('Berhasil')
+                                    ->body("Berhasil menghapus {$deleted} komplek.")
+                                    ->success()
+                                    ->send();
+                            }
+                        }),
                     Tables\Actions\RestoreBulkAction::make()
                         ->visible(fn() => auth()->user()?->hasRole('super_admin')),
                 ]),

@@ -3,15 +3,16 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\RoomTypeResource\Pages;
-use App\Filament\Resources\RoomTypeResource\RelationManagers;
 use App\Models\RoomType;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Collection;
 
 class RoomTypeResource extends Resource
 {
@@ -80,7 +81,7 @@ class RoomTypeResource extends Resource
 
                 Tables\Columns\TextColumn::make('default_monthly_rate')
                     ->label('Tarif Bulanan')
-                    ->money('IDR', true) // tampil sebagai Rupiah
+                    ->money('IDR', true)
                     ->sortable(),
 
                 Tables\Columns\IconColumn::make('is_active')
@@ -100,26 +101,47 @@ class RoomTypeResource extends Resource
                     ->options([
                         1 => 'Aktif',
                         0 => 'Nonaktif',
-                    ]),
+                    ])
+                    ->native(false),
 
-                ...(auth()->user()?->hasRole('super_admin')
-                    ? [Tables\Filters\TrashedFilter::make()->label('Data Terhapus')]
-                    : []),
+                Tables\Filters\Filter::make('created_at_range')
+                    ->label('Tanggal Dibuat')
+                    ->form([
+                        Forms\Components\DatePicker::make('created_from')->label('Dari')->native(false),
+                        Forms\Components\DatePicker::make('created_until')->label('Sampai')->native(false),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when($data['created_from'] ?? null, fn(Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
+                            ->when($data['created_until'] ?? null, fn(Builder $q, $date) => $q->whereDate('created_at', '<=', $date));
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+
+                        if (! empty($data['created_from'])) {
+                            $indicators[] = 'Dari: ' . $data['created_from'];
+                        }
+
+                        if (! empty($data['created_until'])) {
+                            $indicators[] = 'Sampai: ' . $data['created_until'];
+                        }
+
+                        return $indicators;
+                    }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
 
                 Tables\Actions\EditAction::make()
-                    ->visible(fn() => auth()->user()?->hasRole([
-                        'super_admin',
-                        'main_admin',
-                    ])),
+                    ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin'])),
 
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn() => auth()->user()?->hasRole([
-                        'super_admin',
-                        'main_admin',
-                    ])),
+                    ->visible(
+                        fn(RoomType $record): bool =>
+                        auth()->user()?->hasRole(['super_admin', 'main_admin'])
+                            && ! $record->trashed()
+                            && ! $record->rooms()->exists()
+                    ),
 
                 Tables\Actions\RestoreAction::make()
                     ->visible(
@@ -131,29 +153,62 @@ class RoomTypeResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => auth()->user()?->hasRole([
-                            'super_admin',
-                            'main_admin',
-                        ])),
+                        ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin']))
+                        ->action(function (Collection $records) {
+                            $allowed = $records->filter(fn(RoomType $r) => ! $r->rooms()->exists());
+                            $blocked = $records->diff($allowed);
+
+                            if ($allowed->isEmpty()) {
+                                Notification::make()
+                                    ->title('Aksi Dibatalkan')
+                                    ->body('Tidak ada tipe kamar yang bisa dihapus. Tipe kamar yang sudah dipakai oleh kamar tidak dapat dihapus.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            foreach ($allowed as $r) {
+                                $r->delete();
+                            }
+
+                            $deleted = $allowed->count();
+
+                            if ($blocked->isNotEmpty()) {
+                                Notification::make()
+                                    ->title('Berhasil Sebagian')
+                                    ->body("Berhasil menghapus {$deleted} tipe kamar. Yang tidak bisa dihapus: " . $blocked->pluck('name')->join(', '))
+                                    ->warning()
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->title('Berhasil')
+                                    ->body("Berhasil menghapus {$deleted} tipe kamar.")
+                                    ->success()
+                                    ->send();
+                            }
+                        }),
+
                     Tables\Actions\RestoreBulkAction::make()
                         ->visible(fn() => auth()->user()?->hasRole('super_admin')),
                 ]),
             ]);
     }
 
-    public static function getRelations(): array
+    public static function getEloquentQuery(): Builder
     {
-        return [
-            //
-        ];
+        $query = parent::getEloquentQuery();
+
+        // TrashedFilter butuh tanpa SoftDeletingScope supaya bisa menampilkan data soft-deleted
+        if (auth()->user()?->hasRole('super_admin')) {
+            $query->withoutGlobalScopes([SoftDeletingScope::class]);
+        }
+
+        return $query;
     }
 
     public static function canViewAny(): bool
     {
-        $user = auth()->user();
-
-        // Hanya super_admin & main_admin yang bisa melihat & mengelola tipe kamar
-        return $user?->hasRole(['super_admin', 'main_admin']) ?? false;
+        return auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false;
     }
 
     public static function canView($record): bool
@@ -163,28 +218,32 @@ class RoomTypeResource extends Resource
 
     public static function canCreate(): bool
     {
-        $user = auth()->user();
-
-        return $user?->hasRole(['super_admin', 'main_admin']) ?? false;
+        return auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        $user = auth()->user();
-
-        return $user?->hasRole(['super_admin', 'main_admin']) ?? false;
+        return auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false;
     }
 
     public static function canDelete($record): bool
     {
         $user = auth()->user();
 
-        return $user?->hasRole(['super_admin', 'main_admin']) ?? false;
+        if (! ($user?->hasRole(['super_admin', 'main_admin']) ?? false)) {
+            return false;
+        }
+
+        if (! $record instanceof RoomType) {
+            return false;
+        }
+
+        return ! $record->rooms()->exists();
     }
 
     public static function canDeleteAny(): bool
     {
-        return static::canDelete(null);
+        return auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false;
     }
 
     public static function getPages(): array
