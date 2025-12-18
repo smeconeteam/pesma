@@ -361,10 +361,6 @@ class ResidentResource extends Resource
                         });
                     })
                     ->native(false),
-
-                ...(auth()->user()?->hasRole('super_admin')
-                    ? [Tables\Filters\TrashedFilter::make()->label('Data Terhapus')->native(false)]
-                    : []),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()->label('Lihat'),

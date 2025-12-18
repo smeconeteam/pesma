@@ -112,10 +112,6 @@ class DormResource extends Resource
                         if (! empty($data['created_until'])) $indicators[] = 'Sampai: ' . $data['created_until'];
                         return $indicators;
                     }),
-
-                ...(auth()->user()?->hasRole('super_admin')
-                    ? [Tables\Filters\TrashedFilter::make()->label('Data Terhapus')->native(false)]
-                    : []),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
