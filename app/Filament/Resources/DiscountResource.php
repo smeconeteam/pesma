@@ -2,25 +2,26 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\BillingTypeResource\Pages;
-use App\Models\BillingType;
+use App\Filament\Resources\DiscountResource\Pages;
+use App\Models\Discount;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-
-class BillingTypeResource extends Resource
+class DiscountResource extends Resource
 {
-    protected static ?string $model = BillingType::class;
+    protected static ?string $model = Discount::class;
+
     protected static ?string $navigationGroup = 'Keuangan';
-    protected static ?string $navigationLabel = 'Jenis Tagihan';
-    protected static ?string $pluralLabel = 'Jenis Tagihan';
-    protected static ?string $modelLabel = 'Jenis Tagihan';
+    protected static ?string $navigationLabel = 'Diskon';
+    protected static ?string $pluralLabel = 'Diskon';
+    protected static ?string $modelLabel = 'Diskon';
 
     /** =========================
      *  ACCESS CONTROL (NO POLICY)
@@ -70,28 +71,58 @@ class BillingTypeResource extends Resource
     {
         return parent::getEloquentQuery()
             ->withoutGlobalScopes([SoftDeletingScope::class])
-            ->with(['dorms:id,name']); // biar kolom cabang tidak N+1
+            ->with(['dorms:id,name']);
     }
 
-    /** =========================
-     *  FORM
-     *  ========================= */
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Section::make('Informasi Jenis Tagihan')
+            Forms\Components\Section::make('Informasi Diskon')
                 ->schema([
                     Forms\Components\TextInput::make('name')
-                        ->label('Nama')
+                        ->label('Nama Diskon')
                         ->required()
                         ->maxLength(255),
 
-                    Forms\Components\TextInput::make('amount')
-                        ->label('Nominal')
+                    Forms\Components\Select::make('type')
+                        ->label('Tipe Diskon')
+                        ->required()
+                        ->options([
+                            'percent' => 'Persen (%)',
+                            'fixed' => 'Nominal (Rp)',
+                        ])
+                        ->native(false)
+                        ->live()
+                        ->afterStateUpdated(function (Set $set, $state) {
+                            // bersihkan field yang tidak relevan
+                            if ($state === 'percent') {
+                                $set('amount', null);
+                            } elseif ($state === 'fixed') {
+                                $set('percent', null);
+                            }
+                        }),
+
+                    Forms\Components\TextInput::make('percent')
+                        ->label('Persen')
+                        ->visible(fn (Get $get) => $get('type') === 'percent')
+                        ->required(fn (Get $get) => $get('type') === 'percent')
                         ->numeric()
                         ->minValue(0)
-                        ->required()
-                        ->prefix('Rp'),
+                        ->maxValue(100)
+                        ->suffix('%')
+                        ->rule('numeric'),
+
+                    Forms\Components\TextInput::make('amount')
+                        ->label('Nominal')
+                        ->visible(fn (Get $get) => $get('type') === 'fixed')
+                        ->required(fn (Get $get) => $get('type') === 'fixed')
+                        ->prefix('Rp')
+                        ->dehydrateStateUsing(function ($state) {
+                            $digits = preg_replace('/\D+/', '', (string) $state);
+                            return (int) ($digits ?: 0);
+                        })
+                        ->rule('integer')
+                        ->minValue(0),
 
                     Forms\Components\Textarea::make('description')
                         ->label('Deskripsi')
@@ -106,6 +137,11 @@ class BillingTypeResource extends Resource
                         ->label('Berlaku untuk semua cabang')
                         ->default(false)
                         ->live()
+                        ->afterStateUpdated(function (Set $set, $state) {
+                            if ($state) {
+                                $set('dorms', []);
+                            }
+                        }),
                 ])
                 ->columns(2),
 
@@ -126,14 +162,11 @@ class BillingTypeResource extends Resource
                         ->native(false)
                         ->visible(fn (Get $get) => ! (bool) $get('applies_to_all'))
                         ->required(fn (Get $get) => ! (bool) $get('applies_to_all'))
-                        ->helperText('Jika tidak berlaku untuk semua cabang, pilih cabang yang dituju.'),
+                        ->helperText('Pilih cabang jika diskon tidak berlaku untuk semua cabang.'),
                 ]),
         ]);
     }
 
-    /** =========================
-     *  TABLE
-     *  ========================= */
     public static function table(Table $table): Table
     {
         return $table
@@ -143,11 +176,25 @@ class BillingTypeResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('amount')
-                    ->label('Nominal')
-                    ->sortable()
-                    ->alignEnd()
-                    ->formatStateUsing(fn ($state) => 'Rp ' . number_format((int) $state, 0, ',', '.')),
+                Tables\Columns\TextColumn::make('type')
+                    ->label('Tipe')
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => $state === 'percent' ? 'Persen' : 'Nominal')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('value')
+                    ->label('Nilai')
+                    ->getStateUsing(function ($record): string {
+                        if ($record->type === 'percent') {
+                            $p = (float) ($record->percent ?? 0);
+                            // tampil tanpa 2 nol belakang kalau bulat
+                            $txt = fmod($p, 1.0) === 0.0 ? (string) (int) $p : rtrim(rtrim((string) $p, '0'), '.');
+                            return $txt . '%';
+                        }
+
+                        $amount = (int) ($record->amount ?? 0);
+                        return 'Rp ' . number_format($amount, 0, ',', '.');
+                    }),
 
                 Tables\Columns\TextColumn::make('cabang')
                     ->label('Cabang')
@@ -162,18 +209,11 @@ class BillingTypeResource extends Resource
                             ->values()
                             ->implode(', ');
                     })
-                    ->limit(50) // potong jika kepanjangan
+                    ->limit(60)
                     ->tooltip(function ($record): ?string {
-                        if ($record->applies_to_all) {
-                            return null;
-                        }
+                        if ($record->applies_to_all) return null;
 
-                        $full = $record->dorms
-                            ->pluck('name')
-                            ->filter()
-                            ->values()
-                            ->implode(', ');
-
+                        $full = $record->dorms->pluck('name')->filter()->values()->implode(', ');
                         return $full ?: null;
                     })
                     ->wrap(),
@@ -202,7 +242,6 @@ class BillingTypeResource extends Resource
                 Tables\Actions\RestoreAction::make()
                     ->visible(fn ($record) => $record->deleted_at !== null),
             ])
-
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
                 Tables\Actions\RestoreBulkAction::make(),
@@ -213,9 +252,9 @@ class BillingTypeResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListBillingTypes::route('/'),
-            'create' => Pages\CreateBillingType::route('/create'),
-            'edit'   => Pages\EditBillingType::route('/{record}/edit'),
+            'index'  => Pages\ListDiscounts::route('/'),
+            'create' => Pages\CreateDiscount::route('/create'),
+            'edit'   => Pages\EditDiscount::route('/{record}/edit'),
         ];
     }
 }

@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             ResidentSeeder::class,
             ResidentCategorySeeder::class,
             BillingTypeSeeder::class,
+            DiscountSeeder::class,
         ]);
     }
 }
