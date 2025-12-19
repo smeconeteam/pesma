@@ -12,17 +12,26 @@ class Discount extends Model
 
     protected $fillable = [
         'name',
-        'type',
+        'type',            // percent|fixed
         'percent',
         'amount',
+        'voucher_code',    // ✅ baru
+        'valid_from',      // ✅ baru (date)
+        'valid_until',     // ✅ baru (date)
         'applies_to_all',
         'is_active',
         'description',
     ];
 
     protected $casts = [
-        'percent' => 'decimal:2',
+        // pakai float supaya tidak dipaksa selalu 2 desimal di DB-level casting
+        'percent' => 'float',
         'amount' => 'integer',
+
+        // ✅ date casts
+        'valid_from' => 'date',
+        'valid_until' => 'date',
+
         'applies_to_all' => 'boolean',
         'is_active' => 'boolean',
     ];

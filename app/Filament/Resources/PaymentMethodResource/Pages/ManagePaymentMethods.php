@@ -25,6 +25,14 @@ class ManagePaymentMethods extends Page implements HasForms
 
     public ?array $data = [];
 
+    protected static ?string $title = 'Kelola Metode Pembayaran';
+
+    public function getHeading(): string
+    {
+        return 'Kelola Metode Pembayaran';
+    }
+
+
     /** true = bisa edit, false = read-only */
     public bool $isEditing = true;
 
