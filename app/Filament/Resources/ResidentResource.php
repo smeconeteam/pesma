@@ -27,11 +27,11 @@ class ResidentResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static ?string $navigationLabel = 'Penghuni';
-    protected static ?string $pluralLabel = 'Penghuni';
-    protected static ?string $modelLabel = 'Penghuni';
+    protected static ?string $navigationGroup = 'Penghuni';
+    protected static ?string $navigationLabel = 'Data Penghuni';
+    protected static ?string $pluralLabel = 'Data Penghuni';
+    protected static ?string $modelLabel = 'Data Penghuni';
     protected static ?int $navigationSort = 30;
-    protected static ?string $navigationIcon = 'heroicon-o-user-group';
 
     public static function shouldRegisterNavigation(): bool
     {
@@ -61,7 +61,7 @@ class ResidentResource extends Resource
     {
         return parent::getEloquentQuery()
             ->withoutGlobalScopes([SoftDeletingScope::class])
-            ->whereHas('roles', fn (Builder $q) => $q->where('name', 'resident'))
+            ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
             ->with([
                 'roles',
                 'residentProfile.residentCategory',
@@ -94,7 +94,6 @@ class ResidentResource extends Resource
                         ->default(true),
                 ]),
 
-            // ✅ INI KUNCI: semua field profile masuk relationship residentProfile
             Group::make()
                 ->relationship('residentProfile')
                 ->schema([
@@ -103,7 +102,7 @@ class ResidentResource extends Resource
                         ->schema([
                             Forms\Components\Select::make('resident_category_id')
                                 ->label('Kategori Penghuni')
-                                ->options(fn () => ResidentCategory::query()->orderBy('name')->pluck('name', 'id'))
+                                ->options(fn() => ResidentCategory::query()->orderBy('name')->pluck('name', 'id'))
                                 ->searchable()
                                 ->native(false)
                                 ->required(),
@@ -177,11 +176,11 @@ class ResidentResource extends Resource
 
                             Forms\Components\Select::make('country_id')
                                 ->label('Asal Negara')
-                                ->options(fn () => Country::query()->orderBy('name')->pluck('name', 'id'))
+                                ->options(fn() => Country::query()->orderBy('name')->pluck('name', 'id'))
                                 ->searchable()
                                 ->native(false)
-                                ->disabled(fn (Forms\Get $get) => $get('citizenship_status') === 'WNI')
-                                ->default(fn () => Country::query()->where('iso2', 'ID')->value('id'))
+                                ->disabled(fn(Forms\Get $get) => $get('citizenship_status') === 'WNI')
+                                ->default(fn() => Country::query()->where('iso2', 'ID')->value('id'))
                                 ->required(),
 
                             Forms\Components\TextInput::make('phone_number')
@@ -202,7 +201,8 @@ class ResidentResource extends Resource
                                 ->extraInputAttributes(['inputmode' => 'numeric', 'pattern' => '[0-9]*'])
                                 ->nullable(),
                         ]),
-                ]),
+                ])
+                ->columnSpanFull(),
 
             Forms\Components\Section::make('Penempatan Kamar')
                 ->description('Data ini akan membuat record di room_residents saat disimpan.')
@@ -210,7 +210,7 @@ class ResidentResource extends Resource
                 ->schema([
                     Forms\Components\Select::make('room_assignment.dorm_id')
                         ->label('Cabang (Dorm)')
-                        ->options(fn () => Dorm::query()->orderBy('name')->pluck('name', 'id'))
+                        ->options(fn() => Dorm::query()->orderBy('name')->pluck('name', 'id'))
                         ->searchable()
                         ->native(false)
                         ->reactive()
@@ -218,20 +218,22 @@ class ResidentResource extends Resource
                         ->afterStateUpdated(function (Forms\Set $set) {
                             $set('room_assignment.block_id', null);
                             $set('room_assignment.room_id', null);
-                        }),
+                        })
+                        ->required(false),
 
                     Forms\Components\Select::make('room_assignment.block_id')
                         ->label('Blok')
-                        ->options(fn (Forms\Get $get) => Block::query()
-                            ->when($get('room_assignment.dorm_id'), fn (Builder $q, $dormId) => $q->where('dorm_id', $dormId))
+                        ->options(fn(Forms\Get $get) => Block::query()
+                            ->when($get('room_assignment.dorm_id'), fn(Builder $q, $dormId) => $q->where('dorm_id', $dormId))
                             ->orderBy('name')
                             ->pluck('name', 'id'))
                         ->searchable()
                         ->native(false)
                         ->reactive()
                         ->dehydrated(false)
-                        ->disabled(fn (Forms\Get $get) => blank($get('room_assignment.dorm_id')))
-                        ->afterStateUpdated(fn (Forms\Set $set) => $set('room_assignment.room_id', null)),
+                        ->required(fn(Forms\Get $get) => filled($get('room_assignment.room_id')))
+                        ->disabled(fn(Forms\Get $get) => blank($get('room_assignment.dorm_id')))
+                        ->afterStateUpdated(fn(Forms\Set $set) => $set('room_assignment.room_id', null)),
 
                     Forms\Components\Select::make('room_assignment.room_id')
                         ->label('Kamar')
@@ -239,7 +241,9 @@ class ResidentResource extends Resource
                         ->searchable()
                         ->native(false)
                         ->reactive()
-                        ->disabled(fn (Forms\Get $get) => blank($get('room_assignment.block_id')) || blank($get('residentProfile.gender')))
+                        ->required(fn(Forms\Get $get) => filled($get('room_assignment.block_id')))
+
+                        ->disabled(fn(Forms\Get $get) => blank($get('room_assignment.block_id')) || blank($get('residentProfile.gender')))
                         ->options(function (Forms\Get $get) {
                             $blockId = $get('room_assignment.block_id');
                             $gender  = $get('residentProfile.gender');
@@ -293,6 +297,8 @@ class ResidentResource extends Resource
                     Forms\Components\Toggle::make('room_assignment.is_pic')
                         ->label('Jadikan PIC?')
                         ->default(false)
+                        ->required(fn(Forms\Get $get) => filled($get('room_assignment.room_id')))
+                        ->disabled(fn(Forms\Get $get) => blank($get('room_assignment.dorm_id')))
                         ->disabled(function (Forms\Get $get) {
                             $roomId = $get('room_assignment.room_id');
                             if (blank($roomId)) return true;
@@ -361,41 +367,41 @@ class ResidentResource extends Resource
                     ->options(['M' => 'Laki-laki', 'F' => 'Perempuan'])
                     ->query(function (Builder $query, array $data) {
                         return $query->when($data['value'] ?? null, function (Builder $q, $value) {
-                            $q->whereHas('residentProfile', fn (Builder $p) => $p->where('gender', $value));
+                            $q->whereHas('residentProfile', fn(Builder $p) => $p->where('gender', $value));
                         });
                     })
                     ->native(false),
 
                 SelectFilter::make('dorm_id')
                     ->label('Cabang (Dorm)')
-                    ->options(fn () => Dorm::query()->orderBy('name')->pluck('name', 'id')->toArray())
+                    ->options(fn() => Dorm::query()->orderBy('name')->pluck('name', 'id')->toArray())
                     ->searchable()
                     ->query(function (Builder $query, array $data) {
                         return $query->when($data['value'] ?? null, function (Builder $q, $dormId) {
                             $q->whereHas('roomResidents', function (Builder $rr) use ($dormId) {
                                 $rr->whereNull('room_residents.check_out_date')
-                                    ->whereHas('room.block', fn (Builder $b) => $b->where('dorm_id', $dormId));
+                                    ->whereHas('room.block', fn(Builder $b) => $b->where('dorm_id', $dormId));
                             });
                         });
                     }),
 
                 TrashedFilter::make()
-                    ->visible(fn () => auth()->user()?->hasRole('super_admin') ?? false),
+                    ->visible(fn() => auth()->user()?->hasRole('super_admin') ?? false),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
                     ->label('Lihat')
-                    ->url(fn (User $record) => static::getUrl('view', ['record' => $record])),
+                    ->url(fn(User $record) => static::getUrl('view', ['record' => $record])),
 
                 Tables\Actions\EditAction::make()->label('Edit'),
 
                 Tables\Actions\DeleteAction::make()
                     ->label('Hapus')
-                    ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'branch_admin']) ?? false),
+                    ->visible(fn() => auth()->user()?->hasAnyRole(['super_admin', 'branch_admin']) ?? false),
 
                 Tables\Actions\RestoreAction::make()
                     ->label('Restore')
-                    ->visible(fn (User $record) => (auth()->user()?->hasRole('super_admin') ?? false) && method_exists($record, 'trashed') && $record->trashed()),
+                    ->visible(fn(User $record) => (auth()->user()?->hasRole('super_admin') ?? false) && method_exists($record, 'trashed') && $record->trashed()),
             ])
             ->defaultSort('id', 'desc');
     }
