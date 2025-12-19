@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\ResidentResource\Pages;
 
-use App\Filament\Resources\ResidentResource;
+use Filament\Actions;
 use App\Models\Country;
+use App\Models\RoomResident;
 use Filament\Resources\Pages\EditRecord;
+use App\Filament\Resources\ResidentResource;
 
 class EditResident extends EditRecord
 {
@@ -34,5 +36,18 @@ class EditResident extends EditRecord
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\DeleteAction::make()
+                ->label('Hapus')
+                ->visible(
+                    fn(): bool =>
+                    ! $this->record->trashed()
+                        && ! RoomResident::query()->where('user_id', $this->record->id)->exists()
+                ),
+        ];
     }
 }

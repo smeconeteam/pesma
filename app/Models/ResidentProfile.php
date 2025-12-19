@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ResidentProfile extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'user_id',
         'resident_category_id',
@@ -25,6 +28,7 @@ class ResidentProfile extends Model
         'check_in_date',
         'check_out_date',
         'photo_path',
+        'status',
     ];
 
     protected $casts = [

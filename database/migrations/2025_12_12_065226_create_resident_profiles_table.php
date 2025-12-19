@@ -48,6 +48,7 @@ return new class extends Migration {
 
             $table->string('photo_path')->nullable();
 
+            $table->softDeletes();
             $table->timestamps();
 
             // indexes
