@@ -28,7 +28,6 @@ class ResidentProfile extends Model
         'check_in_date',
         'check_out_date',
         'photo_path',
-        'status',
     ];
 
     protected $casts = [

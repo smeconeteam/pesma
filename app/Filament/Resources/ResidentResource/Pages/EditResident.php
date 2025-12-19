@@ -2,25 +2,27 @@
 
 namespace App\Filament\Resources\ResidentResource\Pages;
 
-use Filament\Actions;
+use App\Filament\Resources\ResidentResource;
 use App\Models\Country;
 use App\Models\RoomResident;
+use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
-use App\Filament\Resources\ResidentResource;
 
 class EditResident extends EditRecord
 {
     protected static string $resource = ResidentResource::class;
 
-    protected function mutateFormDataBeforeFill(array $data): array
+    public function mount($record): void
     {
-        // Pastikan relationship data loaded
-        return $data;
+        parent::mount($record);
+
+        // ✅ pastikan profile ada supaya form tidak kosong saat edit
+        $this->record->residentProfile()->firstOrCreate([]);
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        // Handle WNI => auto set Indonesia
+        // WNI => auto Indonesia
         if (isset($data['residentProfile'])) {
             if (($data['residentProfile']['citizenship_status'] ?? 'WNI') === 'WNI') {
                 $indoId = Country::query()->where('iso2', 'ID')->value('id');
@@ -43,10 +45,9 @@ class EditResident extends EditRecord
         return [
             Actions\DeleteAction::make()
                 ->label('Hapus')
-                ->visible(
-                    fn(): bool =>
+                ->visible(fn (): bool =>
                     ! $this->record->trashed()
-                        && ! RoomResident::query()->where('user_id', $this->record->id)->exists()
+                    && ! RoomResident::query()->where('user_id', $this->record->id)->exists()
                 ),
         ];
     }

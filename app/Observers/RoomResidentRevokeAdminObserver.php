@@ -15,14 +15,14 @@ class RoomResidentRevokeAdminObserver
         }
 
         // cek mismatch berdasarkan kamar aktif terbaru
-        app(AdminPrivilegeService::class)->revokeIfScopeMismatch($roomResident->user);
+        app(AdminPrivilegeService::class)->revokeAdmin($roomResident->user);
     }
 
     public function updated(RoomResident $roomResident): void
     {
         // setiap update yang bisa mempengaruhi status aktif/pindah
         if ($roomResident->wasChanged(['room_id', 'check_in_date', 'check_out_date'])) {
-            app(AdminPrivilegeService::class)->revokeIfScopeMismatch($roomResident->user);
+            app(AdminPrivilegeService::class)->revokeAdmin($roomResident->user);
         }
     }
 }
