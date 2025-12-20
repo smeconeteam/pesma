@@ -6,6 +6,7 @@ use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Room extends Model
 {
@@ -53,30 +54,58 @@ class Room extends Model
             return null;
         }
 
-        // cabangjakarta
-        $dormPart = Str::of($dormName)
-            ->lower()
-            ->replace(['asrama', ' '], '')
-            ->toString();
+        $slug = function (string $value): string {
+            return Str::of($value)
+                ->lower()
+                ->replace('asrama', '')      // opsional: buang kata "asrama"
+                ->replace(['_', '.'], ' ')
+                ->squish()
+                ->replace(' ', '-')          // spasi -> dash
+                ->toString();
+        };
 
-        // KomplekA (BUKAN KomplekACimahi)
-        $blockPart = Str::of($blockName)
+        $dormPart = $slug($dormName);
+
+        $blockTwoWords = Str::of($blockName)
             ->trim()
+            ->squish()
             ->explode(' ')
             ->take(2)
-            ->implode('');
+            ->implode(' ');
 
-        // vip / reguler / vvip
-        $typePart = Str::of($roomTypeName)
-            ->before(' ')
-            ->lower()
-            ->toString();
+        $blockPart = $slug($blockTwoWords);
 
-        // 03
+        $typeFirstWord = Str::of($roomTypeName)->before(' ')->toString();
+        $typePart = $slug($typeFirstWord);
+
         $numberPart = str_pad((string) $number, 2, '0', STR_PAD_LEFT);
 
         return "{$dormPart}-{$blockPart}-{$typePart}-{$numberPart}";
     }
 
+    public function roomResidents(): HasMany
+    {
+        return $this->hasMany(RoomResident::class);
+    }
 
+    public function hasActiveResidents(): bool
+    {
+        return $this->roomResidents()
+            ->whereNull('check_out_date')
+            ->exists();
+    }
+
+    public function canBeDeleted(): bool
+    {
+        return ! $this->hasActiveResidents();
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function ($room) {
+            if ($room->code) {
+                $room->code = strtolower($room->code);
+            }
+        });
+    }
 }

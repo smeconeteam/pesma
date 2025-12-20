@@ -2,9 +2,10 @@
 
 namespace App\Filament\Resources\RoomResource\Pages;
 
-use Filament\Actions;
-use App\Models\RoomType;
 use App\Filament\Resources\RoomResource;
+use App\Models\RoomResident;
+use App\Models\RoomType;
+use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
 class EditRoom extends EditRecord
@@ -14,7 +15,16 @@ class EditRoom extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\DeleteAction::make()
+                ->label('Hapus')
+                ->visible(fn (): bool =>
+                    auth()->user()?->hasRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin'])
+                    && ! $this->record->trashed()
+                    && ! RoomResident::query()
+                        ->where('room_id', $this->record->id)
+                        ->whereNull('check_out_date')
+                        ->exists()
+                ),
         ];
     }
 
