@@ -93,11 +93,18 @@ class User extends Authenticatable implements FilamentUser
 
     public function residentProfile(): HasOne
     {
-        return $this->hasOne(ResidentProfile::class);
+        return $this->hasOne(ResidentProfile::class, 'user_id');
     }
-
+    
     public function roomResidents(): HasMany
     {
         return $this->hasMany(RoomResident::class);
+    }
+
+    public function activeRoomResident(): HasOne
+    {
+        return $this->hasOne(\App\Models\RoomResident::class)
+            ->whereNull('check_out_date')
+            ->latestOfMany('check_in_date');
     }
 }

@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\Institution;
 use App\Models\RoomResident;
 use App\Observers\RoomResidentObserver;
+use App\Observers\RoomResidentRevokeAdminObserver;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
@@ -32,5 +33,6 @@ class AppServiceProvider extends ServiceProvider
         }
         
         RoomResident::observe(RoomResidentObserver::class);
+        RoomResident::observe(RoomResidentRevokeAdminObserver::class);
     }
 }

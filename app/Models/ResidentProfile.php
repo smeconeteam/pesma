@@ -4,13 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ResidentProfile extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'user_id',
         'resident_category_id',
-        'is_international',
+        'citizenship_status',
+        'country_id',
         'national_id',
         'student_id',
         'full_name',
@@ -27,15 +31,19 @@ class ResidentProfile extends Model
     ];
 
     protected $casts = [
-        'birth_date'    => 'date',
+        'birth_date' => 'date',
         'check_in_date' => 'date',
         'check_out_date' => 'date',
-        'is_international' => 'boolean',
     ];
+
+    public function country(): BelongsTo
+    {
+        return $this->belongsTo(Country::class, 'country_id');
+    }
 
     public function residentCategory(): BelongsTo
     {
-        return $this->belongsTo(ResidentCategory::class);
+        return $this->belongsTo(ResidentCategory::class, 'resident_category_id');
     }
 
     public function user(): BelongsTo

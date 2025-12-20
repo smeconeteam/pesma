@@ -16,6 +16,12 @@ class AdminScope extends Model
         'block_id',
     ];
 
+    protected $casts = [
+        'user_id'  => 'integer',
+        'dorm_id' => 'integer',
+        'block_id' => 'integer',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class);
