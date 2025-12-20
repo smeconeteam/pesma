@@ -43,6 +43,9 @@ return new class extends Migration {
             $table->string('guardian_name')->nullable();
             $table->string('guardian_phone_number')->nullable();
 
+            // status
+            $table->enum('status', ['registered', 'active', 'inactive'])->default('registered');
+
             $table->date('check_in_date')->nullable();
             $table->date('check_out_date')->nullable();
 
