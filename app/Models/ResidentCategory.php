@@ -13,4 +13,9 @@ class ResidentCategory extends Model
     {
         return $this->hasMany(ResidentProfile::class);
     }
+
+    public function registrations(): HasMany
+    {
+        return $this->hasMany(Registration::class, 'resident_category_id');
+    }
 }
