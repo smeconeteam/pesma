@@ -111,6 +111,16 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(Registration::class, 'approved_by');
     }
 
+    public function roomHistories(): HasMany
+    {
+        return $this->hasMany(RoomHistory::class, 'user_id');
+    }
+
+    public function recordedRoomHistories(): HasMany
+    {
+        return $this->hasMany(RoomHistory::class, 'recorded_by');
+    }
+
     public function activeRoomResident(): HasOne
     {
         return $this->hasOne(\App\Models\RoomResident::class)

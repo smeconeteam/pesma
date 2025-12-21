@@ -30,4 +30,9 @@ class RoomResident extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function histories(): HasMany
+    {
+        return $this->hasMany(RoomHistory::class, 'room_resident_id');
+    }
 }

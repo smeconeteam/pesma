@@ -88,6 +88,11 @@ class Room extends Model
         return $this->hasMany(RoomResident::class);
     }
 
+    public function histories(): HasMany
+    {
+        return $this->hasMany(RoomHistory::class, 'room_id');
+    }
+
     public function hasActiveResidents(): bool
     {
         return $this->roomResidents()
