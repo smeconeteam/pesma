@@ -46,14 +46,37 @@ class RoomHistory extends Model
         return $this->belongsTo(User::class, 'recorded_by');
     }
 
+    // Scopes untuk query optimization
+    public function scopeWithRelations($query)
+    {
+        return $query->with([
+            'room.block.dorm',
+            'recordedBy',
+        ]);
+    }
+
+    public function scopeLatestFirst($query)
+    {
+        return $query->orderBy('check_in_date', 'desc');
+    }
+
     // Helper methods
     public function getDurationAttribute()
     {
-        if (!$this->check_out_date) {
-            return 'Masih menempati';
+        if (!$this->check_in_date) {
+            return '-';
         }
 
-        $days = $this->check_in_date->diffInDays($this->check_out_date);
+        if (!$this->check_out_date) {
+            $days = now()->diffInDays($this->check_in_date);
+        } else {
+            $days = $this->check_in_date->diffInDays($this->check_out_date);
+        }
+
+        if ($days === 0) {
+            return '< 1 hari';
+        }
+
         $months = floor($days / 30);
         $remainingDays = $days % 30;
 
@@ -72,5 +95,22 @@ class RoomHistory extends Model
             'checkout' => 'Keluar',
             default => '-',
         };
+    }
+
+    public function getRoomInfoAttribute()
+    {
+        if (!$this->relationLoaded('room')) {
+            return $this->room->code ?? '-';
+        }
+
+        $room = $this->room;
+        if (!$room) return '-';
+
+        $block = $room->relationLoaded('block') ? $room->block : null;
+        $dorm = $block && $block->relationLoaded('dorm') ? $block->dorm : null;
+
+        if (!$dorm || !$block) return $room->code;
+
+        return "{$dorm->name} - {$block->name} - {$room->code}";
     }
 }
