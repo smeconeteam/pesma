@@ -25,7 +25,6 @@ class RoomPlacementResource extends Resource
     protected static ?string $pluralLabel = 'Penempatan Kamar';
     protected static ?string $modelLabel = 'Penempatan Kamar';
     protected static ?int $navigationSort = 31;
-    protected static ?string $navigationIcon = 'heroicon-o-map-pin';
 
     public static function shouldRegisterNavigation(): bool
     {

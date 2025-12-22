@@ -47,8 +47,8 @@ class ResidentResource extends Resource
 
     public static function canCreate(): bool
     {
-        $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
+        // Tidak bisa create resident secara langsung
+        return false;
     }
 
     public static function canEdit(Model $record): bool
@@ -59,8 +59,14 @@ class ResidentResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
-            ->withoutGlobalScopes([SoftDeletingScope::class])
+        $query = parent::getEloquentQuery();
+
+        // Hanya remove soft delete scope jika user adalah super_admin
+        if (auth()->user()?->hasRole('super_admin')) {
+            $query->withoutGlobalScopes([SoftDeletingScope::class]);
+        }
+
+        return $query
             ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
             ->with([
                 'roles',
@@ -117,12 +123,7 @@ class ResidentResource extends Resource
                                 ->options(['M' => 'Laki-laki', 'F' => 'Perempuan'])
                                 ->native(false)
                                 ->required()
-                                ->reactive()
-                                ->afterStateUpdated(function (Forms\Set $set) {
-                                    // reset pilihan kamar jika gender berubah
-                                    $set('../../room_assignment.room_id', null);
-                                    $set('../../room_assignment.is_pic', false);
-                                }),
+                                ->disabled(),
 
                             Forms\Components\TextInput::make('national_id')
                                 ->label('NIK')
@@ -204,111 +205,29 @@ class ResidentResource extends Resource
                 ])
                 ->columnSpanFull(),
 
-            Forms\Components\Section::make('Penempatan Kamar')
-                ->description('Data ini akan membuat record di room_residents saat disimpan.')
+            Forms\Components\Section::make('Informasi Kamar')
+                ->description('Data penempatan kamar hanya bisa dikelola melalui menu Penempatan Kamar.')
                 ->columns(2)
                 ->schema([
-                    Forms\Components\Select::make('room_assignment.dorm_id')
-                        ->label('Cabang (Dorm)')
-                        ->options(fn() => Dorm::query()->orderBy('name')->pluck('name', 'id'))
-                        ->searchable()
-                        ->native(false)
-                        ->reactive()
-                        ->dehydrated(false)
-                        ->afterStateUpdated(function (Forms\Set $set) {
-                            $set('room_assignment.block_id', null);
-                            $set('room_assignment.room_id', null);
+                    Forms\Components\Placeholder::make('current_room_info')
+                        ->label('Kamar Saat Ini')
+                        ->content(function ($record) {
+                            if (!$record) return '-';
+
+                            $active = $record->roomResidents()
+                                ->whereNull('room_residents.check_out_date')
+                                ->latest('check_in_date')
+                                ->first();
+
+                            if (!$active || !$active->room) return '-';
+
+                            $room = $active->room;
+                            $block = $room->block;
+                            $dorm = $block->dorm;
+
+                            return "{$dorm->name} - {$block->name} - {$room->code}";
                         })
-                        ->required(false),
-
-                    Forms\Components\Select::make('room_assignment.block_id')
-                        ->label('Blok')
-                        ->options(fn(Forms\Get $get) => Block::query()
-                            ->when($get('room_assignment.dorm_id'), fn(Builder $q, $dormId) => $q->where('dorm_id', $dormId))
-                            ->orderBy('name')
-                            ->pluck('name', 'id'))
-                        ->searchable()
-                        ->native(false)
-                        ->reactive()
-                        ->dehydrated(false)
-                        ->required(fn(Forms\Get $get) => filled($get('room_assignment.room_id')))
-                        ->disabled(fn(Forms\Get $get) => blank($get('room_assignment.dorm_id')))
-                        ->afterStateUpdated(fn(Forms\Set $set) => $set('room_assignment.room_id', null)),
-
-                    Forms\Components\Select::make('room_assignment.room_id')
-                        ->label('Kamar')
-                        ->required()
-                        ->searchable()
-                        ->native(false)
-                        ->reactive()
-                        ->required(fn(Forms\Get $get) => filled($get('room_assignment.block_id')))
-
-                        ->disabled(fn(Forms\Get $get) => blank($get('room_assignment.block_id')) || blank($get('residentProfile.gender')))
-                        ->options(function (Forms\Get $get) {
-                            $blockId = $get('room_assignment.block_id');
-                            $gender  = $get('residentProfile.gender');
-                            if (blank($blockId) || blank($gender)) return [];
-
-                            $rooms = Room::query()
-                                ->where('block_id', $blockId)
-                                ->where('is_active', true)
-                                ->orderBy('code')
-                                ->get();
-
-                            $options = [];
-
-                            foreach ($rooms as $room) {
-                                $activeGender = RoomResident::query()
-                                    ->where('room_residents.room_id', $room->id)
-                                    ->whereNull('room_residents.check_out_date')
-                                    ->join('resident_profiles', 'resident_profiles.user_id', '=', 'room_residents.user_id')
-                                    ->value('resident_profiles.gender');
-
-                                // kamar kosong => ok, terisi => harus sama gender
-                                if ($activeGender && $activeGender !== $gender) continue;
-
-                                $labelGender = $activeGender
-                                    ? ($activeGender === 'M' ? 'Laki-laki' : 'Perempuan')
-                                    : 'Kosong';
-
-                                $options[$room->id] = "{$room->code} — {$labelGender}";
-                            }
-
-                            return $options;
-                        })
-                        ->afterStateUpdated(function ($state, Forms\Set $set) {
-                            if (blank($state)) return;
-
-                            $hasPic = RoomResident::query()
-                                ->where('room_id', $state)
-                                ->whereNull('check_out_date')
-                                ->where('is_pic', true)
-                                ->exists();
-
-                            if ($hasPic) $set('room_assignment.is_pic', false);
-                        }),
-
-                    Forms\Components\DatePicker::make('room_assignment.check_in_date')
-                        ->label('Tanggal Masuk')
-                        ->required()
-                        ->default(now()->toDateString())
-                        ->native(false),
-
-                    Forms\Components\Toggle::make('room_assignment.is_pic')
-                        ->label('Jadikan PIC?')
-                        ->default(false)
-                        ->required(fn(Forms\Get $get) => filled($get('room_assignment.room_id')))
-                        ->disabled(fn(Forms\Get $get) => blank($get('room_assignment.dorm_id')))
-                        ->disabled(function (Forms\Get $get) {
-                            $roomId = $get('room_assignment.room_id');
-                            if (blank($roomId)) return true;
-
-                            return RoomResident::query()
-                                ->where('room_id', $roomId)
-                                ->whereNull('check_out_date')
-                                ->where('is_pic', true)
-                                ->exists();
-                        }),
+                        ->columnSpanFull(),
                 ]),
         ]);
     }
@@ -386,6 +305,7 @@ class ResidentResource extends Resource
                     }),
 
                 TrashedFilter::make()
+                    ->label('Status Data')
                     ->visible(fn() => auth()->user()?->hasRole('super_admin') ?? false),
             ])
             ->actions([
@@ -410,7 +330,6 @@ class ResidentResource extends Resource
     {
         return [
             'index'  => Pages\ListResidents::route('/'),
-            'create' => Pages\CreateResident::route('/create'),
             'edit'   => Pages\EditResident::route('/{record}/edit'),
             'view'   => Pages\ViewResident::route('/{record}'),
         ];

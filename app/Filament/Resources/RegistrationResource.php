@@ -26,30 +26,33 @@ class RegistrationResource extends Resource
     protected static ?string $pluralLabel = 'Pendaftaran';
     protected static ?string $modelLabel = 'Pendaftaran';
     protected static ?int $navigationSort = 20;
-    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
     public static function shouldRegisterNavigation(): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
+        return $u?->hasAnyRole(['super_admin', 'branch_admin', 'block_admin']) ?? false;
     }
 
     public static function canViewAny(): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
+        return $u?->hasAnyRole(['super_admin', 'branch_admin', 'block_admin']) ?? false;
     }
 
     public static function canCreate(): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
+        return $u?->hasAnyRole(['super_admin', 'branch_admin', 'block_admin']) ?? false;
     }
 
     public static function canEdit(Model $record): bool
     {
         $u = auth()->user();
-        // Hanya bisa edit jika status masih pending
+        // Admin komplek dan cabang hanya bisa lihat, tidak bisa edit
+        if ($u?->hasAnyRole(['block_admin'])) {
+            return false;
+        }
+        // Super admin dan branch admin bisa edit jika status masih pending
         return $record->status === 'pending'
             && ($u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false);
     }
@@ -57,22 +60,13 @@ class RegistrationResource extends Resource
     public static function canDelete(Model $record): bool
     {
         $u = auth()->user();
+        // Admin komplek tidak bisa hapus
+        if ($u?->hasRole('block_admin')) {
+            return false;
+        }
         // Hanya bisa hapus jika status pending atau rejected
         return in_array($record->status, ['pending', 'rejected'])
             && ($u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false);
-    }
-
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()
-            ->with([
-                'residentCategory',
-                'country',
-                'preferredDorm',
-                'preferredRoomType',
-                'approvedBy',
-                'user',
-            ]);
     }
 
     public static function form(Form $form): Form
@@ -232,6 +226,9 @@ class RegistrationResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $user = auth()->user();
+        $canApproveReject = $user?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
+
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('full_name')
@@ -304,20 +301,32 @@ class RegistrationResource extends Resource
 
                 Tables\Actions\EditAction::make()
                     ->label('Edit')
-                    ->visible(fn(Registration $record) => $record->status === 'pending'),
+                    ->visible(
+                        fn(Registration $record) =>
+                        $record->status === 'pending' &&
+                            $canApproveReject
+                    ),
 
                 Tables\Actions\Action::make('approve')
                     ->label('Setujui')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(fn(Registration $record) => $record->status === 'pending')
+                    ->visible(
+                        fn(Registration $record) =>
+                        $record->status === 'pending' &&
+                            $canApproveReject
+                    )
                     ->url(fn(Registration $record) => static::getUrl('approve', ['record' => $record])),
 
                 Tables\Actions\Action::make('reject')
                     ->label('Tolak')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
-                    ->visible(fn(Registration $record) => $record->status === 'pending')
+                    ->visible(
+                        fn(Registration $record) =>
+                        $record->status === 'pending' &&
+                            $canApproveReject
+                    )
                     ->form([
                         Forms\Components\Textarea::make('rejection_reason')
                             ->label('Alasan Penolakan')
@@ -341,7 +350,8 @@ class RegistrationResource extends Resource
                     ->label('Hapus')
                     ->visible(
                         fn(Registration $record) =>
-                        in_array($record->status, ['pending', 'rejected'])
+                        in_array($record->status, ['pending', 'rejected']) &&
+                            $canApproveReject
                     ),
             ])
             ->defaultSort('created_at', 'desc');
