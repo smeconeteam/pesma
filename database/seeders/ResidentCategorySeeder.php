@@ -11,13 +11,13 @@ class ResidentCategorySeeder extends Seeder
     {
         $categories = [
             ['name' => 'Pondok', 'description' => 'Penghuni kategori pondok (tarif khusus + biaya pengembangan)'],
-            ['name' => 'Wisma',  'description' => 'Penghuni kategori wisma (tarif normal)'],
+            ['name' => 'Wisma', 'description' => 'Penghuni kategori wisma (tarif normal)'],
             ['name' => 'Asrama', 'description' => 'Penghuni kategori asrama (tarif normal)'],
-            ['name' => 'Kos',    'description' => 'Penghuni kategori kos (tarif normal)'],
+            ['name' => 'Kos', 'description' => 'Penghuni kategori kos (tarif normal)'],
         ];
 
         foreach ($categories as $cat) {
-            ResidentCategory::updateOrCreate(
+            ResidentCategory::firstOrCreate(
                 ['name' => $cat['name']],
                 ['description' => $cat['description']]
             );
