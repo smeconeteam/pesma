@@ -515,7 +515,7 @@ class RoomResource extends Resource
         return [
             'index'  => Pages\ListRooms::route('/'),
             'create' => Pages\CreateRoom::route('/create'),
-            'view'   => Pages\ViewRoom::route('/{record}'),
+            // 'view'   => Pages\ViewRoom::route('/{record}'),
             'edit'   => Pages\EditRoom::route('/{record}/edit'),
         ];
     }
