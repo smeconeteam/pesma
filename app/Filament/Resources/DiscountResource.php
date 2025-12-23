@@ -4,20 +4,23 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\DiscountResource\Pages;
 use App\Models\Discount;
+use App\Models\Dorm;
+use Closure;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Infolists\Infolist;
+use Filament\Infolists\Components\IconEntry;
+use Filament\Infolists\Components\Section as InfoSection;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Carbon;
-use Closure;
-use App\Models\Dorm;
-use Filament\Tables\Filters\SelectFilter;
-
 
 class DiscountResource extends Resource
 {
@@ -55,7 +58,7 @@ class DiscountResource extends Resource
     }
 
     /** =========================
-     *  HELPERS
+     *  HELPERS: VOUCHER AUTO
      *  ========================= */
     private static function buildVoucherCode(Get $get): ?string
     {
@@ -79,8 +82,8 @@ class DiscountResource extends Resource
 
         $raw = $name . '-' . $valuePart;
         $code = strtoupper(preg_replace('/[^A-Z0-9]+/i', '', $raw));
+        $code = substr($code, 0, 50);
 
-        $code = substr($code, 0, 50); // maxLength(50)
         return $code !== '' ? $code : null;
     }
 
@@ -118,37 +121,47 @@ class DiscountResource extends Resource
                         ->helperText('Jika kosong, otomatis menjadi gabungan nama + nominal/persen.')
                         ->live()
                         ->afterStateUpdated(function (Get $get, Set $set, $state) {
-                            // kalau user isi manual: uppercase saja
                             if (! blank($state)) {
                                 $set('voucher_code', strtoupper(trim((string) $state)));
                                 return;
                             }
 
-                            // kalau user kosongkan: auto generate
                             static::autoFillVoucherIfEmpty($get, $set);
                         })
-                        // ini hanya untuk normalize sebelum disimpan (tanpa akses $get)
-                        ->dehydrateStateUsing(fn ($state) => $state ? strtoupper(trim((string) $state)) : null)
+                        ->dehydrateStateUsing(function (Get $get, $state) {
+                            if (! blank($state)) {
+                                $processedState = strtoupper(trim((string) $state));
+                                return $processedState;
+                            }
+
+                            return static::buildVoucherCode($get);
+                        })
                         ->unique(ignoreRecord: true),
 
                     Forms\Components\DatePicker::make('valid_from')
                         ->label('Berlaku Mulai')
                         ->native(false)
                         ->closeOnDateSelection()
+                        ->displayFormat('d M Y')
+                        ->minDate(Carbon::today()) // ✅ tidak boleh kurang dari hari ini
                         ->live()
-                        ->helperText('Opsional.'),
+                        ->helperText('Tidak boleh kurang dari hari ini. Kosongkan jika tidak dibatasi.'),
 
                     Forms\Components\DatePicker::make('valid_until')
                         ->label('Berlaku Sampai')
                         ->native(false)
                         ->closeOnDateSelection()
+                        ->displayFormat('d M Y')
                         ->helperText('Harus >= tanggal mulai.')
                         ->rules([
                             fn (Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
                                 $from = $get('valid_from');
-                                if (! $from || ! $value) return;
 
-                                $fromDate = Carbon::parse($from)->startOfDay();
+                                if (! $from || ! $value) {
+                                    return;
+                                }
+
+                                $fromDate  = Carbon::parse($from)->startOfDay();
                                 $untilDate = Carbon::parse($value)->startOfDay();
 
                                 if ($untilDate->lt($fromDate)) {
@@ -162,7 +175,7 @@ class DiscountResource extends Resource
                         ->required()
                         ->options([
                             'percent' => 'Persen (%)',
-                            'fixed' => 'Nominal (Rp)',
+                            'fixed'   => 'Nominal (Rp)',
                         ])
                         ->native(false)
                         ->live()
@@ -244,6 +257,79 @@ class DiscountResource extends Resource
     }
 
     /** =========================
+     *  VIEW PAGE (INFOLIST) - TANPA toggleable()
+     *  ========================= */
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist->schema([
+            InfoSection::make('Detail Diskon')
+                ->schema([
+                    TextEntry::make('name')->label('Nama Diskon'),
+
+                    TextEntry::make('voucher_code')
+                        ->label('Kode Voucher')
+                        ->placeholder('-'),
+
+                    TextEntry::make('masa_berlaku')
+                        ->label('Masa Berlaku')
+                        ->state(function (Discount $record): string {
+                            $from = $record->valid_from;
+                            $until = $record->valid_until;
+
+                            if (! $from && ! $until) {
+                                return 'Selamanya';
+                            }
+
+                            $fmt = fn ($d) => $d ? Carbon::parse($d)->translatedFormat('d M Y') : '-';
+                            return $fmt($from) . ' s/d ' . $fmt($until);
+                        }),
+
+                    TextEntry::make('tipe_label')
+                        ->label('Tipe')
+                        ->state(fn (Discount $record) => $record->type === 'percent' ? 'Persen (%)' : 'Nominal (Rp)'),
+
+                    TextEntry::make('nilai_diskon')
+                        ->label('Nilai Diskon')
+                        ->state(function (Discount $record): string {
+                            if ($record->type === 'percent') {
+                                $p = (float) ($record->percent ?? 0);
+                                $txt = fmod($p, 1.0) === 0.0
+                                    ? (string) (int) $p
+                                    : rtrim(rtrim((string) $p, '0'), '.');
+
+                                return $txt . '%';
+                            }
+
+                            $amount = (int) ($record->amount ?? 0);
+                            return 'Rp ' . number_format($amount, 0, ',', '.');
+                        }),
+
+                    TextEntry::make('cabang')
+                        ->label('Cabang')
+                        ->state(function (Discount $record): string {
+                            if ($record->applies_to_all) {
+                                return 'Semua Cabang';
+                            }
+
+                            $txt = $record->dorms->pluck('name')->filter()->values()->implode(', ');
+                            return $txt !== '' ? $txt : '-';
+                        })
+                        ->columnSpanFull(),
+
+                    IconEntry::make('is_active')
+                        ->label('Aktif')
+                        ->boolean(),
+
+                    TextEntry::make('description')
+                        ->label('Deskripsi')
+                        ->placeholder('-')
+                        ->columnSpanFull(),
+                ])
+                ->columns(2),
+        ]);
+    }
+
+    /** =========================
      *  TABLE
      *  ========================= */
     public static function table(Table $table): Table
@@ -261,31 +347,15 @@ class DiscountResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('valid_range')
-                    ->label('Masa Berlaku')
-                    ->getStateUsing(function ($record): string {
-                        $from = $record->valid_from;
-                        $until = $record->valid_until;
-
-                        if (! $from && ! $until) return 'Selamanya';
-
-                        $fmt = fn ($d) => $d ? Carbon::parse($d)->format('d M Y') : '-';
-                        return $fmt($from) . ' s/d ' . $fmt($until);
-                    })
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('type')
-                    ->label('Tipe')
-                    ->badge()
-                    ->formatStateUsing(fn ($state) => $state === 'percent' ? 'Persen' : 'Nominal')
-                    ->sortable(),
-
                 Tables\Columns\TextColumn::make('value')
                     ->label('Nilai')
                     ->getStateUsing(function ($record): string {
                         if ($record->type === 'percent') {
                             $p = (float) ($record->percent ?? 0);
-                            $txt = fmod($p, 1.0) === 0.0 ? (string) (int) $p : rtrim(rtrim((string) $p, '0'), '.');
+                            $txt = fmod($p, 1.0) === 0.0
+                                ? (string) (int) $p
+                                : rtrim(rtrim((string) $p, '0'), '.');
+
                             return $txt . '%';
                         }
 
@@ -300,26 +370,17 @@ class DiscountResource extends Resource
                         return $record->dorms->pluck('name')->filter()->values()->implode(', ');
                     })
                     ->limit(60)
-                    ->tooltip(function ($record): ?string {
-                        if ($record->applies_to_all) return null;
-                        $full = $record->dorms->pluck('name')->filter()->values()->implode(', ');
-                        return $full ?: null;
-                    })
                     ->wrap(),
 
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('Aktif')
                     ->boolean()
                     ->sortable(),
-
-                Tables\Columns\TextColumn::make('deleted_at')
-                    ->label('Dihapus')
-                    ->dateTime('d M Y H:i')
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')->label('Aktif'),
                 Tables\Filters\TernaryFilter::make('applies_to_all')->label('Semua Cabang'),
+
                 SelectFilter::make('dorm_filter')
                     ->label('Cabang')
                     ->options(fn () => Dorm::query()
@@ -331,21 +392,27 @@ class DiscountResource extends Resource
                     ->searchable()
                     ->query(function (Builder $query, array $data) {
                         $dormId = $data['value'] ?? null;
-
-                        if (! $dormId) {
-                            return $query;
-                        }
+                        if (! $dormId) return $query;
 
                         return $query->where(function (Builder $q) use ($dormId) {
                             $q->where('applies_to_all', true)
-                            ->orWhereHas('dorms', fn (Builder $dq) => $dq->where('dorms.id', $dormId));
+                              ->orWhereHas('dorms', fn (Builder $dq) => $dq->where('dorms.id', $dormId));
                         });
                     }),
             ])
             ->actions([
-                Tables\Actions\EditAction::make()->visible(fn ($record) => $record->deleted_at === null),
-                Tables\Actions\DeleteAction::make()->visible(fn ($record) => $record->deleted_at === null),
-                Tables\Actions\RestoreAction::make()->visible(fn ($record) => $record->deleted_at !== null),
+                Tables\Actions\ViewAction::make()
+                    ->url(fn ($record) => static::getUrl('view', ['record' => $record]))
+                    ->openUrlInNewTab(false),
+
+                Tables\Actions\EditAction::make()
+                    ->visible(fn ($record) => $record->deleted_at === null),
+
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn ($record) => $record->deleted_at === null),
+
+                Tables\Actions\RestoreAction::make()
+                    ->visible(fn ($record) => $record->deleted_at !== null),
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
@@ -359,6 +426,7 @@ class DiscountResource extends Resource
         return [
             'index'  => Pages\ListDiscounts::route('/'),
             'create' => Pages\CreateDiscount::route('/create'),
+            'view'   => Pages\ViewDiscount::route('/{record}'),
             'edit'   => Pages\EditDiscount::route('/{record}/edit'),
         ];
     }

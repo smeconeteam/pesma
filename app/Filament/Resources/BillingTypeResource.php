@@ -97,6 +97,8 @@ class BillingTypeResource extends Resource
                 ->columns(2),
 
             Forms\Components\Section::make('Cakupan Cabang')
+                // ✅ CARA KE-2: jangan tampil saat view
+                ->visible(fn (string $operation): bool => $operation !== 'view')
                 ->schema([
                     // CREATE: boleh pilih banyak cabang
                     Forms\Components\Select::make('dorm_ids')
@@ -221,6 +223,8 @@ class BillingTypeResource extends Resource
                     }),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
+
                 Tables\Actions\EditAction::make()
                     ->visible(fn ($record) => $record->deleted_at === null),
 
