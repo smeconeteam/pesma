@@ -82,7 +82,7 @@ class User extends Authenticatable implements FilamentUser
     public function canAccessPanel(Panel $panel): bool
     {
         // Hanya role admin yang boleh login ke /admin
-        // Penghuni (resident) TIDAK boleh WOIIII
+        // Penghuni (resident) TIDAK boleh
         return $this->is_active && $this->hasAnyRole([
             'super_admin',
             'main_admin',
@@ -113,7 +113,8 @@ class User extends Authenticatable implements FilamentUser
 
     public function roomHistories(): HasMany
     {
-        return $this->hasMany(RoomHistory::class, 'user_id');
+        return $this->hasMany(RoomHistory::class, 'user_id')
+            ->orderBy('check_in_date', 'desc');
     }
 
     public function recordedRoomHistories(): HasMany

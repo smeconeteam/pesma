@@ -31,10 +31,9 @@ class TransferResident extends Page
     {
         $this->record = $record;
 
-        // Cek apakah punya kamar aktif
         if (!$record->activeRoomResident) {
             Notification::make()
-                ->title('Resident ini belum memiliki kamar aktif')
+                ->title('Penghuni ini belum memiliki kamar aktif')
                 ->warning()
                 ->send();
 
@@ -52,7 +51,7 @@ class TransferResident extends Page
 
         return $form
             ->schema([
-                Forms\Components\Section::make('Informasi Resident')
+                Forms\Components\Section::make('Informasi Penghuni')
                     ->columns(2)
                     ->schema([
                         Forms\Components\Placeholder::make('full_name')
@@ -93,7 +92,7 @@ class TransferResident extends Page
                             }),
 
                         Forms\Components\Select::make('new_block_id')
-                            ->label('Blok Baru')
+                            ->label('Komplek Baru')
                             ->options(fn(Forms\Get $get) => Block::query()
                                 ->when($get('new_dorm_id'), fn(Builder $q, $dormId) => $q->where('dorm_id', $dormId))
                                 ->orderBy('name')
@@ -121,7 +120,7 @@ class TransferResident extends Page
                                 $rooms = Room::query()
                                     ->where('block_id', $blockId)
                                     ->where('is_active', true)
-                                    ->where('id', '!=', $currentRoom->room_id) // Exclude kamar saat ini
+                                    ->where('id', '!=', $currentRoom->room_id)
                                     ->orderBy('code')
                                     ->get();
 
@@ -206,20 +205,20 @@ class TransferResident extends Page
             $isPic = (bool)($data['is_pic'] ?? false);
             $gender = $this->record->residentProfile->gender;
 
-            // 1) Checkout dari kamar lama
+            // 1) CHECKOUT DARI KAMAR LAMA
             $currentRoomResident->update([
                 'check_out_date' => $transferDate,
             ]);
 
-            // Update history kamar lama
+            // Update HANYA history kamar lama yang masih aktif
             RoomHistory::where('room_resident_id', $currentRoomResident->id)
                 ->whereNull('check_out_date')
                 ->update([
                     'check_out_date' => $transferDate,
-                    'movement_type' => 'checkout',
+                    'notes' => 'Pindah ke kamar lain',
                 ]);
 
-            // 2) Lock kamar baru
+            // 2) LOCK KAMAR BARU
             RoomResident::query()
                 ->where('room_id', $newRoomId)
                 ->whereNull('check_out_date')
@@ -259,8 +258,8 @@ class TransferResident extends Page
                 ]);
             }
 
-            // 3) Check in ke kamar baru
-            $newRoomResident = RoomResident::create([
+            // 3) CHECK IN KE KAMAR BARU (Observer akan otomatis buat history)
+            RoomResident::create([
                 'room_id' => $newRoomId,
                 'user_id' => $this->record->id,
                 'check_in_date' => $transferDate,
@@ -268,22 +267,32 @@ class TransferResident extends Page
                 'is_pic' => $isPic,
             ]);
 
-            // 4) Buat history untuk kamar baru
-            RoomHistory::create([
-                'user_id' => $this->record->id,
-                'room_id' => $newRoomId,
-                'room_resident_id' => $newRoomResident->id,
-                'check_in_date' => $transferDate,
-                'check_out_date' => null,
-                'is_pic' => $isPic,
-                'movement_type' => 'transfer',
-                'notes' => $data['notes'] ?? 'Pindah kamar',
-                'recorded_by' => auth()->id(),
+            // PENTING: JANGAN buat RoomHistory manual di sini
+            // Biarkan Observer yang handle (sudah ada di RoomResidentObserver)
+
+            // Update movement_type di history yang baru dibuat oleh observer
+            $latestHistory = RoomHistory::where('user_id', $this->record->id)
+                ->where('room_id', $newRoomId)
+                ->whereNull('check_out_date')
+                ->latest('id')
+                ->first();
+
+            if ($latestHistory) {
+                $latestHistory->update([
+                    'movement_type' => 'transfer',
+                    'notes' => $data['notes'] ?? 'Pindah kamar',
+                    'recorded_by' => auth()->id(),
+                ]);
+            }
+
+            // Status tetap active (TIDAK diubah jadi inactive)
+            $this->record->residentProfile->update([
+                'status' => 'active',
             ]);
         });
 
         Notification::make()
-            ->title('Resident berhasil dipindahkan')
+            ->title('Penghuni berhasil dipindahkan')
             ->success()
             ->send();
 

@@ -47,7 +47,6 @@ class ResidentResource extends Resource
 
     public static function canCreate(): bool
     {
-        // Tidak bisa create resident secara langsung
         return false;
     }
 
@@ -61,7 +60,6 @@ class ResidentResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        // Hanya remove soft delete scope jika user adalah super_admin
         if (auth()->user()?->hasRole('super_admin')) {
             $query->withoutGlobalScopes([SoftDeletingScope::class]);
         }
@@ -247,7 +245,7 @@ class ResidentResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\BadgeColumn::make('residentProfile.citizenship_status')
-                    ->label('WN')
+                    ->label('Kewarganegaraan')
                     ->colors(['success' => 'WNI', 'warning' => 'WNA'])
                     ->sortable(),
 
@@ -281,8 +279,22 @@ class ResidentResource extends Resource
                     ->trueLabel('Aktif')
                     ->falseLabel('Nonaktif'),
 
+                SelectFilter::make('status')
+                    ->label('Status Penghuni')
+                    ->options([
+                        'registered' => 'Terdaftar',
+                        'active' => 'Aktif',
+                        'inactive' => 'Nonaktif',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        return $query->when($data['value'] ?? null, function (Builder $q, $value) {
+                            $q->whereHas('residentProfile', fn(Builder $p) => $p->where('status', $value));
+                        });
+                    })
+                    ->native(false),
+
                 SelectFilter::make('gender')
-                    ->label('Gender')
+                    ->label('Jenis Kelamin')
                     ->options(['M' => 'Laki-laki', 'F' => 'Perempuan'])
                     ->query(function (Builder $query, array $data) {
                         return $query->when($data['value'] ?? null, function (Builder $q, $value) {
@@ -291,8 +303,29 @@ class ResidentResource extends Resource
                     })
                     ->native(false),
 
+                SelectFilter::make('citizenship_status')
+                    ->label('Kewarganegaraan')
+                    ->options(['WNI' => 'WNI', 'WNA' => 'WNA'])
+                    ->query(function (Builder $query, array $data) {
+                        return $query->when($data['value'] ?? null, function (Builder $q, $value) {
+                            $q->whereHas('residentProfile', fn(Builder $p) => $p->where('citizenship_status', $value));
+                        });
+                    })
+                    ->native(false),
+
+                SelectFilter::make('resident_category_id')
+                    ->label('Kategori Penghuni')
+                    ->options(fn() => ResidentCategory::query()->orderBy('name')->pluck('name', 'id')->toArray())
+                    ->searchable()
+                    ->query(function (Builder $query, array $data) {
+                        return $query->when($data['value'] ?? null, function (Builder $q, $categoryId) {
+                            $q->whereHas('residentProfile', fn(Builder $p) => $p->where('resident_category_id', $categoryId));
+                        });
+                    })
+                    ->native(false),
+
                 SelectFilter::make('dorm_id')
-                    ->label('Cabang (Dorm)')
+                    ->label('Cabang')
                     ->options(fn() => Dorm::query()->orderBy('name')->pluck('name', 'id')->toArray())
                     ->searchable()
                     ->query(function (Builder $query, array $data) {
@@ -302,7 +335,38 @@ class ResidentResource extends Resource
                                     ->whereHas('room.block', fn(Builder $b) => $b->where('dorm_id', $dormId));
                             });
                         });
-                    }),
+                    })
+                    ->native(false),
+
+                SelectFilter::make('block_id')
+                    ->label('Komplek')
+                    ->options(fn() => Block::query()->orderBy('name')->pluck('name', 'id')->toArray())
+                    ->searchable()
+                    ->query(function (Builder $query, array $data) {
+                        return $query->when($data['value'] ?? null, function (Builder $q, $blockId) {
+                            $q->whereHas('roomResidents', function (Builder $rr) use ($blockId) {
+                                $rr->whereNull('room_residents.check_out_date')
+                                    ->whereHas('room', fn(Builder $r) => $r->where('block_id', $blockId));
+                            });
+                        });
+                    })
+                    ->native(false),
+
+                TernaryFilter::make('has_room')
+                    ->label('Memiliki Kamar')
+                    ->placeholder('Semua')
+                    ->trueLabel('Sudah Ada Kamar')
+                    ->falseLabel('Belum Ada Kamar')
+                    ->queries(
+                        true: fn(Builder $query) => $query->whereHas(
+                            'roomResidents',
+                            fn(Builder $q) => $q->whereNull('check_out_date')
+                        ),
+                        false: fn(Builder $query) => $query->whereDoesntHave(
+                            'roomResidents',
+                            fn(Builder $q) => $q->whereNull('check_out_date')
+                        ),
+                    ),
 
                 TrashedFilter::make()
                     ->label('Status Data')

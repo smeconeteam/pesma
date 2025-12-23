@@ -2,15 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Support\Str;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Room extends Model
 {
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
 
     protected $fillable = [
         'block_id',
@@ -22,65 +21,21 @@ class Room extends Model
         'is_active',
     ];
 
-    public function block()
+    protected $casts = [
+        'capacity' => 'integer',
+        'monthly_rate' => 'integer',
+        'is_active' => 'boolean',
+    ];
+
+    // Relations
+    public function block(): BelongsTo
     {
         return $this->belongsTo(Block::class);
     }
 
-    public function roomType()
+    public function roomType(): BelongsTo
     {
-        return $this->belongsTo(RoomType::class);
-    }
-
-    public function dorm()
-    {
-        return $this->hasOneThrough(
-            Dorm::class,
-            Block::class,
-            'id',      // FK di blocks (blocks.id)
-            'id',      // FK di dorms  (dorms.id)
-            'block_id', // FK lokal rooms.block_id
-            'dorm_id'  // FK di blocks.dorm_id
-        );
-    }
-
-    public static function generateCode(
-        ?string $dormName,
-        ?string $blockName,
-        ?string $roomTypeName,
-        ?string $number
-    ): ?string {
-        if (! $dormName || ! $blockName || ! $roomTypeName || ! $number) {
-            return null;
-        }
-
-        $slug = function (string $value): string {
-            return Str::of($value)
-                ->lower()
-                ->replace('asrama', '')      // opsional: buang kata "asrama"
-                ->replace(['_', '.'], ' ')
-                ->squish()
-                ->replace(' ', '-')          // spasi -> dash
-                ->toString();
-        };
-
-        $dormPart = $slug($dormName);
-
-        $blockTwoWords = Str::of($blockName)
-            ->trim()
-            ->squish()
-            ->explode(' ')
-            ->take(2)
-            ->implode(' ');
-
-        $blockPart = $slug($blockTwoWords);
-
-        $typeFirstWord = Str::of($roomTypeName)->before(' ')->toString();
-        $typePart = $slug($typeFirstWord);
-
-        $numberPart = str_pad((string) $number, 2, '0', STR_PAD_LEFT);
-
-        return "{$dormPart}-{$blockPart}-{$typePart}-{$numberPart}";
+        return $this->belongsTo(RoomType::class, 'room_type_id');
     }
 
     public function roomResidents(): HasMany
@@ -88,29 +43,41 @@ class Room extends Model
         return $this->hasMany(RoomResident::class);
     }
 
-    public function histories(): HasMany
+    public function activeResidents(): HasMany
     {
-        return $this->hasMany(RoomHistory::class, 'room_id');
+        return $this->hasMany(RoomResident::class)
+            ->whereNull('check_out_date');
     }
 
-    public function hasActiveResidents(): bool
+    // Helper methods
+    public function getAvailableCapacityAttribute(): int
     {
-        return $this->roomResidents()
-            ->whereNull('check_out_date')
-            ->exists();
+        $activeCount = $this->activeResidents()->count();
+        return max(0, ($this->capacity ?? 0) - $activeCount);
     }
 
-    public function canBeDeleted(): bool
+    public function getActiveGenderAttribute(): ?string
     {
-        return ! $this->hasActiveResidents();
+        return RoomResident::query()
+            ->where('room_residents.room_id', $this->id)
+            ->whereNull('room_residents.check_out_date')
+            ->join('resident_profiles', 'resident_profiles.user_id', '=', 'room_residents.user_id')
+            ->value('resident_profiles.gender');
     }
 
-    protected static function booted(): void
+    public function canAcceptGender(string $gender): bool
     {
-        static::saving(function ($room) {
-            if ($room->code) {
-                $room->code = strtolower($room->code);
-            }
-        });
+        $activeGender = $this->getActiveGenderAttribute();
+
+        // Jika kosong, bisa terima gender apapun
+        if (!$activeGender) return true;
+
+        // Jika sudah ada penghuni, harus sama gendernya
+        return $activeGender === $gender;
+    }
+
+    public function isFull(): bool
+    {
+        return $this->getAvailableCapacityAttribute() <= 0;
     }
 }
