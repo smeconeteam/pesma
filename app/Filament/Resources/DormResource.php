@@ -6,13 +6,14 @@ use App\Filament\Resources\DormResource\Pages;
 use App\Models\Dorm;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Collection;
-use Filament\Notifications\Notification;
 
 class DormResource extends Resource
 {
@@ -103,13 +104,20 @@ class DormResource extends Resource
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
-                            ->when($data['created_from'] ?? null, fn(Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
-                            ->when($data['created_until'] ?? null, fn(Builder $q, $date) => $q->whereDate('created_at', '<=', $date));
+                            ->when($data['created_from'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
+                            ->when($data['created_until'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '<=', $date));
                     })
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
-                        if (! empty($data['created_from'])) $indicators[] = 'Dari: ' . $data['created_from'];
-                        if (! empty($data['created_until'])) $indicators[] = 'Sampai: ' . $data['created_until'];
+
+                        if (! empty($data['created_from'])) {
+                            $indicators[] = 'Dari: ' . $data['created_from'];
+                        }
+
+                        if (! empty($data['created_until'])) {
+                            $indicators[] = 'Sampai: ' . $data['created_until'];
+                        }
+
                         return $indicators;
                     }),
             ])
@@ -117,31 +125,29 @@ class DormResource extends Resource
                 Tables\Actions\ViewAction::make(),
 
                 Tables\Actions\EditAction::make()
-                    ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin'])),
+                    ->visible(fn () => auth()->user()?->hasRole(['super_admin', 'main_admin'])),
 
                 Tables\Actions\DeleteAction::make()
                     ->visible(
-                        fn(Dorm $record): bool =>
-                        auth()->user()?->hasRole(['super_admin', 'main_admin'])
+                        fn (Dorm $record): bool =>
+                            auth()->user()?->hasRole(['super_admin', 'main_admin'])
                             && ! $record->trashed()
                             && ! $record->blocks()->exists()
                     ),
 
                 Tables\Actions\RestoreAction::make()
                     ->visible(
-                        fn(Dorm $record): bool =>
-                        auth()->user()?->hasRole(['super_admin'])
+                        fn (Dorm $record): bool =>
+                            auth()->user()?->hasRole(['super_admin'])
                             && $record->trashed()
                     ),
-
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin']))
+                        ->visible(fn () => auth()->user()?->hasRole(['super_admin', 'main_admin']))
                         ->action(function (Collection $records) {
-
-                            $allowed = $records->filter(fn(Dorm $r) => ! $r->blocks()->exists());
+                            $allowed = $records->filter(fn (Dorm $r) => ! $r->blocks()->exists());
                             $blocked = $records->diff($allowed);
 
                             if ($allowed->isEmpty()) {
@@ -150,6 +156,7 @@ class DormResource extends Resource
                                     ->body('Tidak ada cabang yang bisa dihapus. Cabang yang memiliki komplek tidak dapat dihapus.')
                                     ->danger()
                                     ->send();
+
                                 return;
                             }
 
@@ -173,8 +180,9 @@ class DormResource extends Resource
                                     ->send();
                             }
                         }),
+
                     Tables\Actions\RestoreBulkAction::make()
-                        ->visible(fn() => auth()->user()?->hasRole(['super_admin'])),
+                        ->visible(fn () => auth()->user()?->hasRole(['super_admin'])),
                 ]),
             ]);
     }
@@ -187,11 +195,13 @@ class DormResource extends Resource
             return parent::getEloquentQuery()->whereRaw('1 = 0');
         }
 
+        // ✅ super_admin boleh lihat/restore yang terhapus (TrashedFilter yang atur tampilan default)
         if ($user->hasRole('super_admin')) {
             return parent::getEloquentQuery()
                 ->withoutGlobalScopes([SoftDeletingScope::class]);
         }
 
+        // main_admin tetap pakai SoftDeletingScope (jadi yang terhapus tidak muncul)
         if ($user->hasRole('main_admin')) {
             return parent::getEloquentQuery();
         }

@@ -4,10 +4,9 @@ namespace App\Filament\Resources\RoomTypeResource\Pages;
 
 use App\Filament\Resources\RoomTypeResource;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
 use Filament\Resources\Components\Tab;
+use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ListRoomTypes extends ListRecords
 {
@@ -24,15 +23,12 @@ class ListRoomTypes extends ListRecords
     {
         $tabs = [
             'aktif' => Tab::make('Data Aktif')
-                ->modifyQueryUsing(fn(Builder $query) => $query),
+                ->modifyQueryUsing(fn (Builder $query) => $query->withoutTrashed()),
         ];
 
         if (auth()->user()?->hasRole('super_admin')) {
             $tabs['terhapus'] = Tab::make('Data Terhapus')
-                ->modifyQueryUsing(
-                    fn(Builder $query) =>
-                    $query->withoutGlobalScopes([SoftDeletingScope::class])->onlyTrashed()
-                );
+                ->modifyQueryUsing(fn (Builder $query) => $query->onlyTrashed());
         }
 
         return $tabs;
