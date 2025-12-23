@@ -211,22 +211,25 @@
 
     <script>
     (function () {
-        const citizenship = document.getElementById('citizenship_status');
-        const country     = document.getElementById('country_id');
-        const indoId      = @json($indoCountryId);
+    const citizenship = document.getElementById('citizenship_status');
+    const country     = document.getElementById('country_id');
+    const indoId      = @json($indoCountryId);
 
-        function syncCountry() {
-            const isWni = citizenship.value === 'WNI';
-            if (isWni && indoId) {
+    function syncCountry() {
+        const isWni = citizenship.value === 'WNI';
+
+        // WNI: otomatis isi Indonesia kalau belum pernah dipilih user
+        if (isWni && indoId) {
+            // kalau user belum memilih negara (atau masih kosong), set ke Indonesia
+            if (!country.value) {
                 country.value = String(indoId);
-                country.setAttribute('disabled', 'disabled');
-            } else {
-                country.removeAttribute('disabled');
             }
         }
+        
+    }
 
-        citizenship.addEventListener('change', syncCountry);
-        syncCountry();
-    })();
-    </script>
+    citizenship.addEventListener('change', syncCountry);
+    syncCountry();
+})();
+</script>
 </x-guest-layout>
