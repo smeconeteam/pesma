@@ -53,7 +53,7 @@
             </h1>
         </div>
 
-        <div {{ $attributes->merge(['class' => 'mt-6 w-full overflow-hidden bg-white px-6 py-4 shadow-md sm:max-w-md sm:rounded-lg']) }}>
+        <div {{ $attributes->merge(['class' => 'mt-6 w-full overflow-hidden bg-white px-6 py-4 shadow-md max-w-md rounded-lg md:max-w-5xl md:rounded-none']) }}>
             {{ $slot }}
         </div>
     </div>

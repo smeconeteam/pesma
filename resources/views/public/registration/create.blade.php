@@ -1,5 +1,5 @@
-<x-app-layout>
-    <div class="max-w-4xl mx-auto px-4 py-10">
+<x-guest-layout>
+    <div class="w-full mx-auto px-4 py-10">
         <div class="mb-6">
             <h1 class="text-2xl font-semibold">Pendaftaran Penghuni</h1>
             <p class="text-gray-600 mt-1">Isi data berikut. Setelah dikirim, admin akan meninjau dan menyetujui pendaftaran.</p>
@@ -229,4 +229,4 @@
         syncCountry();
     })();
     </script>
-</x-app-layout>
+</x-guest-layout>
