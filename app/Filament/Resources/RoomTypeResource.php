@@ -137,29 +137,43 @@ class RoomTypeResource extends Resource
                 Tables\Actions\ViewAction::make(),
 
                 Tables\Actions\EditAction::make()
-                    ->visible(fn () => auth()->user()?->hasRole(['super_admin', 'main_admin'])),
+                    ->visible(function (RoomType $record) {
+                        $user = auth()->user();
+
+                        // Cek role dulu
+                        if (!$user?->hasRole(['super_admin', 'main_admin'])) {
+                            return false;
+                        }
+
+                        // ✅ Cek apakah record sudah dihapus (soft delete)
+                        if (method_exists($record, 'trashed') && $record->trashed()) {
+                            return false;
+                        }
+
+                        return true;
+                    }),
 
                 Tables\Actions\DeleteAction::make()
                     ->visible(
-                        fn (RoomType $record): bool =>
-                            auth()->user()?->hasRole(['super_admin', 'main_admin'])
+                        fn(RoomType $record): bool =>
+                        auth()->user()?->hasRole(['super_admin', 'main_admin'])
                             && ! $record->trashed()
                             && ! $record->rooms()->exists()
                     ),
 
                 Tables\Actions\RestoreAction::make()
                     ->visible(
-                        fn (RoomType $record): bool =>
-                            auth()->user()?->hasRole(['super_admin'])
+                        fn(RoomType $record): bool =>
+                        auth()->user()?->hasRole(['super_admin'])
                             && $record->trashed()
                     ),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn () => auth()->user()?->hasRole(['super_admin', 'main_admin']))
+                        ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin']))
                         ->action(function (Collection $records) {
-                            $allowed = $records->filter(fn (RoomType $r) => ! $r->rooms()->exists());
+                            $allowed = $records->filter(fn(RoomType $r) => ! $r->rooms()->exists());
                             $blocked = $records->diff($allowed);
 
                             if ($allowed->isEmpty()) {
@@ -193,7 +207,7 @@ class RoomTypeResource extends Resource
                         }),
 
                     Tables\Actions\RestoreBulkAction::make()
-                        ->visible(fn () => auth()->user()?->hasRole('super_admin')),
+                        ->visible(fn() => auth()->user()?->hasRole('super_admin')),
                 ]),
             ]);
     }

@@ -62,7 +62,16 @@ class BlockResource extends Resource
                             ->required()
                             ->searchable()
                             ->preload()
-                            ->native(false),
+                            ->native(false)
+                            // Disable jika komplek sudah punya kamar
+                            ->disabled(fn($record) => $record && $record->rooms()->exists())
+                            ->dehydrated(fn($record) => ! ($record && $record->rooms()->exists()))
+                            ->helperText(
+                                fn($record) =>
+                                $record && $record->rooms()->exists()
+                                    ? 'Cabang tidak dapat diubah karena komplek ini sudah memiliki kamar.'
+                                    : null
+                            ),
 
                         Forms\Components\TextInput::make('name')
                             ->label('Nama Komplek')
@@ -75,7 +84,7 @@ class BlockResource extends Resource
                             ->rows(3)
                             ->columnSpan(2)
                             ->nullable(),
-                                                    
+
                         Forms\Components\Toggle::make('is_active')
                             ->label('Aktif')
                             ->default(true),
@@ -141,10 +150,21 @@ class BlockResource extends Resource
                 Tables\Actions\ViewAction::make(),
 
                 Tables\Actions\EditAction::make()
-                    ->visible(fn() => auth()->user()?->hasRole([
-                        'super_admin',
-                        'main_admin',
-                    ])),
+                    ->visible(function (Block $record) {
+                        $user = auth()->user();
+
+                        // ✅ Cek role dulu
+                        if (!$user?->hasRole(['super_admin', 'main_admin'])) {
+                            return false;
+                        }
+
+                        // ✅ Cek apakah record sudah dihapus (soft delete)
+                        if (method_exists($record, 'trashed') && $record->trashed()) {
+                            return false;
+                        }
+
+                        return true;
+                    }),
 
                 Tables\Actions\DeleteAction::make()
                     ->visible(
@@ -273,7 +293,17 @@ class BlockResource extends Resource
     public static function canEdit($record): bool
     {
         $user = auth()->user();
-        return $user?->hasRole(['super_admin', 'main_admin']) ?? false;
+
+        if (!$user?->hasRole(['super_admin', 'main_admin'])) {
+            return false;
+        }
+
+        // Cek apakah record sudah dihapus (soft delete)
+        if (method_exists($record, 'trashed') && $record->trashed()) {
+            return false;
+        }
+
+        return true;
     }
 
     public static function canDelete($record): bool

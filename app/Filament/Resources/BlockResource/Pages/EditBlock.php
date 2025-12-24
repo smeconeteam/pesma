@@ -4,6 +4,7 @@ namespace App\Filament\Resources\BlockResource\Pages;
 
 use App\Filament\Resources\BlockResource;
 use Filament\Actions;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 
 class EditBlock extends EditRecord
@@ -14,11 +15,12 @@ class EditBlock extends EditRecord
     {
         return [
             Actions\DeleteAction::make()
-             ->label('Hapus')
-                ->visible(fn (): bool =>
+                ->label('Hapus')
+                ->visible(
+                    fn(): bool =>
                     auth()->user()?->hasRole(['super_admin', 'main_admin', 'branch_admin'])
-                    && ! $this->record->trashed()
-                    && ! $this->record->rooms()->exists()
+                        && ! $this->record->trashed()
+                        && ! $this->record->rooms()->exists()
                 ),
         ];
     }
@@ -26,5 +28,20 @@ class EditBlock extends EditRecord
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
+    }
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        // Jika komplek sudah punya kamar, jangan izinkan ganti cabang
+        if ($this->record->rooms()->exists()) {
+            $data['dorm_id'] = $this->record->dorm_id;
+
+            Notification::make()
+                ->title('Peringatan')
+                ->body('Cabang tidak dapat diubah karena komplek ini sudah memiliki kamar.')
+                ->warning()
+                ->send();
+        }
+
+        return $data;
     }
 }

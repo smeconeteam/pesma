@@ -100,29 +100,43 @@ class DormResource extends Resource
                 Tables\Actions\ViewAction::make(),
 
                 Tables\Actions\EditAction::make()
-                    ->visible(fn () => auth()->user()?->hasRole(['super_admin', 'main_admin'])),
+                    ->visible(function (Dorm $record) {
+                        $user = auth()->user();
+
+                        // Cek role dulu
+                        if (!$user?->hasRole(['super_admin', 'main_admin'])) {
+                            return false;
+                        }
+
+                        // Cek apakah record sudah dihapus (soft delete)
+                        if (method_exists($record, 'trashed') && $record->trashed()) {
+                            return false;
+                        }
+
+                        return true;
+                    }),
 
                 Tables\Actions\DeleteAction::make()
                     ->visible(
-                        fn (Dorm $record): bool =>
-                            auth()->user()?->hasRole(['super_admin', 'main_admin'])
+                        fn(Dorm $record): bool =>
+                        auth()->user()?->hasRole(['super_admin', 'main_admin'])
                             && ! $record->trashed()
                             && ! $record->blocks()->exists()
                     ),
 
                 Tables\Actions\RestoreAction::make()
                     ->visible(
-                        fn (Dorm $record): bool =>
-                            auth()->user()?->hasRole(['super_admin'])
+                        fn(Dorm $record): bool =>
+                        auth()->user()?->hasRole(['super_admin'])
                             && $record->trashed()
                     ),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn () => auth()->user()?->hasRole(['super_admin', 'main_admin']))
+                        ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin']))
                         ->action(function (Collection $records) {
-                            $allowed = $records->filter(fn (Dorm $r) => ! $r->blocks()->exists());
+                            $allowed = $records->filter(fn(Dorm $r) => ! $r->blocks()->exists());
                             $blocked = $records->diff($allowed);
 
                             if ($allowed->isEmpty()) {
@@ -157,7 +171,7 @@ class DormResource extends Resource
                         }),
 
                     Tables\Actions\RestoreBulkAction::make()
-                        ->visible(fn () => auth()->user()?->hasRole(['super_admin'])),
+                        ->visible(fn() => auth()->user()?->hasRole(['super_admin'])),
                 ]),
             ]);
     }
