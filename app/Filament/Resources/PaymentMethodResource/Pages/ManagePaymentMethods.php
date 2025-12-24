@@ -23,20 +23,27 @@ class ManagePaymentMethods extends Page implements HasForms
 
     protected static string $view = 'filament.resources.payment-method-resource.pages.manage-payment-methods';
 
+    protected static ?string $title = 'Kelola Metode Pembayaran';
+
     public ?array $data = [];
 
-    protected static ?string $title = 'Kelola Metode Pembayaran';
+    /** ✅ Defaultnya VIEW (read-only) */
+    public bool $isEditing = false;
 
     public function getHeading(): string
     {
         return 'Kelola Metode Pembayaran';
     }
 
-
-    /** true = bisa edit, false = read-only */
-    public bool $isEditing = true;
-
     public function mount(): void
+    {
+        $this->reloadData();
+
+        // ✅ Pastikan selalu masuk mode view saat pertama buka halaman
+        $this->isEditing = false;
+    }
+
+    private function reloadData(): void
     {
         $this->data = $this->getDefaultState();
 
@@ -81,10 +88,6 @@ class ManagePaymentMethods extends Page implements HasForms
         }
 
         $this->form->fill($this->data);
-
-        // Optional: kalau kamu mau defaultnya langsung read-only jika data sudah ada,
-        // kamu bisa aktifkan ini:
-        // $this->isEditing = false;
     }
 
     protected function getDefaultState(): array
@@ -194,39 +197,55 @@ class ManagePaymentMethods extends Page implements HasForms
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('toggleSave')
-                ->label(fn () => $this->isEditing ? 'Simpan' : 'Edit')
-                ->icon(fn () => $this->isEditing ? 'heroicon-m-check' : 'heroicon-m-pencil-square')
-                ->color(fn () => $this->isEditing ? 'primary' : 'gray')
-                ->action('toggleEditOrSave'),
+            // ✅ Tombol Edit (muncul saat view)
+            Action::make('edit')
+                ->label('Edit')
+                ->icon('heroicon-m-pencil-square')
+                ->color('gray')
+                ->visible(fn () => ! $this->isEditing)
+                ->action(function () {
+                    $this->isEditing = true;
+
+                    Notification::make()
+                        ->title('Mode edit diaktifkan.')
+                        ->info()
+                        ->send();
+                }),
+
+            // ✅ Tombol Simpan (muncul saat edit)
+            Action::make('save')
+                ->label('Simpan')
+                ->icon('heroicon-m-check')
+                ->color('primary')
+                ->visible(fn () => $this->isEditing)
+                ->action(function () {
+                    $this->saveData();
+
+                    $this->isEditing = false;
+
+                    Notification::make()
+                        ->title('Data tersimpan. Mode view aktif.')
+                        ->success()
+                        ->send();
+                }),
+
+            // ✅ Tombol Batal (muncul saat edit)
+            Action::make('cancel')
+                ->label('Batal')
+                ->icon('heroicon-m-x-mark')
+                ->color('danger')
+                ->visible(fn () => $this->isEditing)
+                ->requiresConfirmation()
+                ->action(function () {
+                    $this->reloadData();
+                    $this->isEditing = false;
+
+                    Notification::make()
+                        ->title('Perubahan dibatalkan.')
+                        ->warning()
+                        ->send();
+                }),
         ];
-    }
-
-    /**
-     * 1x klik saat edit  => simpan + jadi read-only
-     * 1x klik saat view  => masuk mode edit
-     */
-    public function toggleEditOrSave(): void
-    {
-        if (! $this->isEditing) {
-            $this->isEditing = true;
-
-            Notification::make()
-                ->title('Mode edit diaktifkan.')
-                ->info()
-                ->send();
-
-            return;
-        }
-
-        $this->saveData();
-
-        $this->isEditing = false;
-
-        Notification::make()
-            ->title('Data tersimpan. Mode read-only aktif.')
-            ->success()
-            ->send();
     }
 
     private function saveData(): void
@@ -261,7 +280,6 @@ class ManagePaymentMethods extends Page implements HasForms
             // Bersihkan rekening lama
             $transferModel->bankAccounts()->delete();
 
-            // Data rekening baru
             $accounts = collect($transfer['bank_accounts'] ?? [])
                 ->map(fn ($row) => [
                     'bank_name' => $row['bank_name'] ?? null,
@@ -274,7 +292,6 @@ class ManagePaymentMethods extends Page implements HasForms
                 ->all();
 
             if (! empty($accounts)) {
-                // createMany otomatis isi payment_method_id
                 $transferModel->bankAccounts()->createMany($accounts);
             }
 
