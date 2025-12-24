@@ -13,6 +13,22 @@ class ListRegistrations extends ListRecords
 {
     protected static string $resource = RegistrationResource::class;
 
+    public function mount(): void
+    {
+        // Pastikan user punya akses
+        abort_unless(static::getResource()::canAccess(), 403);
+
+        // Redirect branch_admin dan block_admin langsung ke halaman create
+        $user = auth()->user();
+
+        if ($user?->hasAnyRole(['branch_admin', 'block_admin'])) {
+            redirect()->to(static::getResource()::getUrl('create'));
+            return;
+        }
+
+        parent::mount();
+    }
+
     protected function getHeaderActions(): array
     {
         return [

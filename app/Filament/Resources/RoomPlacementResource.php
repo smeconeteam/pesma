@@ -29,13 +29,13 @@ class RoomPlacementResource extends Resource
     public static function shouldRegisterNavigation(): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'branch_admin', 'block_admin']) ?? false;
+        return $u?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
     }
 
     public static function canViewAny(): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'branch_admin', 'block_admin']) ?? false;
+        return $u?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
     }
 
     public static function getEloquentQuery(): Builder

@@ -147,7 +147,7 @@ class TransferResident extends Page
                                         ? ($activeGender === 'M' ? 'Laki-laki' : 'Perempuan')
                                         : 'Kosong';
 
-                                    $options[$room->id] = "{$room->code} — {$labelGender} (Tersisa: {$available})";
+                                    $options[$room->id] = "{$room->code} – {$labelGender} (Tersisa: {$available})";
                                 }
 
                                 return $options;
@@ -168,7 +168,11 @@ class TransferResident extends Page
                             ->label('Tanggal Pindah')
                             ->required()
                             ->default(now()->toDateString())
-                            ->native(false),
+                            ->native(false)
+                            ->displayFormat('d/m/Y')
+                            ->format('Y-m-d')
+                            ->minDate(now())
+                            ->helperText('Minimal hari ini'),
 
                         Forms\Components\Toggle::make('is_pic')
                             ->label('Jadikan PIC di Kamar Baru?')
@@ -210,7 +214,7 @@ class TransferResident extends Page
                 'check_out_date' => $transferDate,
             ]);
 
-            // Update HANYA history kamar lama yang masih aktif
+            // Update history kamar lama yang masih aktif
             RoomHistory::where('room_resident_id', $currentRoomResident->id)
                 ->whereNull('check_out_date')
                 ->update([
@@ -258,7 +262,8 @@ class TransferResident extends Page
                 ]);
             }
 
-            // 3) CHECK IN KE KAMAR BARU (Observer akan otomatis buat history)
+            // 3) CHECK IN KE KAMAR BARU
+            // Observer akan otomatis membuat RoomHistory
             RoomResident::create([
                 'room_id' => $newRoomId,
                 'user_id' => $this->record->id,
@@ -267,10 +272,7 @@ class TransferResident extends Page
                 'is_pic' => $isPic,
             ]);
 
-            // PENTING: JANGAN buat RoomHistory manual di sini
-            // Biarkan Observer yang handle (sudah ada di RoomResidentObserver)
-
-            // Update movement_type di history yang baru dibuat oleh observer
+            // 4) Update movement_type di history yang baru dibuat oleh observer
             $latestHistory = RoomHistory::where('user_id', $this->record->id)
                 ->where('room_id', $newRoomId)
                 ->whereNull('check_out_date')
@@ -285,7 +287,7 @@ class TransferResident extends Page
                 ]);
             }
 
-            // Status tetap active (TIDAK diubah jadi inactive)
+            // Status tetap active
             $this->record->residentProfile->update([
                 'status' => 'active',
             ]);

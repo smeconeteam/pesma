@@ -13,6 +13,14 @@ class CreateRegistration extends CreateRecord
 
     protected function getRedirectUrl(): string
     {
+        $user = auth()->user();
+
+        // Branch admin dan block admin redirect ke create lagi
+        if ($user?->hasAnyRole(['branch_admin', 'block_admin'])) {
+            return $this->getResource()::getUrl('create');
+        }
+
+        // Super admin dan main admin redirect ke index
         return $this->getResource()::getUrl('index');
     }
 
@@ -44,5 +52,13 @@ class CreateRegistration extends CreateRecord
             ->body('Status: Menunggu persetujuan')
             ->success()
             ->send();
+    }
+
+    public function mount(): void
+    {
+        // Pastikan user punya akses create
+        abort_unless(static::getResource()::canCreate(), 403);
+
+        parent::mount();
     }
 }

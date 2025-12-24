@@ -162,11 +162,19 @@ class ApproveRegistration extends Page
 
                                     if ($activeGender && $activeGender !== $gender) continue;
 
+                                    $activeCount = RoomResident::query()
+                                        ->where('room_id', $room->id)
+                                        ->whereNull('check_out_date')
+                                        ->count();
+
+                                    $capacity = $room->capacity ?? 0;
+                                    $available = $capacity - $activeCount;
+
                                     $labelGender = $activeGender
                                         ? ($activeGender === 'M' ? 'Laki-laki' : 'Perempuan')
                                         : 'Kosong';
 
-                                    $options[$room->id] = "{$room->code} — {$labelGender}";
+                                    $options[$room->id] = "{$room->code} – {$labelGender} (Tersisa: {$available})";
                                 }
 
                                 return $options;
@@ -187,7 +195,11 @@ class ApproveRegistration extends Page
                             ->label('Tanggal Masuk')
                             ->required(fn(Forms\Get $get) => $get('status') === 'active')
                             ->default(now()->toDateString())
-                            ->native(false),
+                            ->native(false)
+                            ->displayFormat('d/m/Y')
+                            ->format('Y-m-d')
+                            ->minDate(now())
+                            ->helperText('Minimal hari ini'),
 
                         Forms\Components\Toggle::make('is_pic')
                             ->label('Jadikan PIC?')
@@ -295,8 +307,8 @@ class ApproveRegistration extends Page
                     ]);
                 }
 
-                // Buat RoomResident
-                $roomResident = RoomResident::create([
+                // Buat RoomResident (Observer akan otomatis buat RoomHistory)
+                RoomResident::create([
                     'room_id' => $roomId,
                     'user_id' => $user->id,
                     'check_in_date' => $checkIn,
@@ -304,18 +316,20 @@ class ApproveRegistration extends Page
                     'is_pic' => $isPic,
                 ]);
 
-                // Buat RoomHistory otomatis
-                RoomHistory::create([
-                    'user_id' => $user->id,
-                    'room_id' => $roomId,
-                    'room_resident_id' => $roomResident->id,
-                    'check_in_date' => $checkIn,
-                    'check_out_date' => null,
-                    'is_pic' => $isPic,
-                    'movement_type' => 'new',
-                    'notes' => 'Penempatan awal saat approval pendaftaran',
-                    'recorded_by' => auth()->id(),
-                ]);
+                // Update movement_type di history yang baru dibuat oleh observer
+                $latestHistory = RoomHistory::where('user_id', $user->id)
+                    ->where('room_id', $roomId)
+                    ->whereNull('check_out_date')
+                    ->latest('id')
+                    ->first();
+
+                if ($latestHistory) {
+                    $latestHistory->update([
+                        'movement_type' => 'new',
+                        'notes' => 'Penempatan awal saat approval pendaftaran',
+                        'recorded_by' => auth()->id(),
+                    ]);
+                }
             }
 
             // 5) Update Registration

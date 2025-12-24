@@ -36,13 +36,13 @@ class ResidentResource extends Resource
     public static function shouldRegisterNavigation(): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
+        return $u?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']) ?? false;
     }
 
     public static function canViewAny(): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
+        return $u?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']) ?? false;
     }
 
     public static function canCreate(): bool
@@ -53,18 +53,21 @@ class ResidentResource extends Resource
     public static function canEdit(Model $record): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
+        return $u?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
     }
 
     public static function getEloquentQuery(): Builder
     {
+        $user = auth()->user();
+
         $query = parent::getEloquentQuery();
 
-        if (auth()->user()?->hasRole('super_admin')) {
+        // Super admin bisa akses semua data termasuk yang terhapus
+        if ($user?->hasRole('super_admin')) {
             $query->withoutGlobalScopes([SoftDeletingScope::class]);
         }
 
-        return $query
+        $query = $query
             ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
             ->with([
                 'roles',
@@ -72,6 +75,41 @@ class ResidentResource extends Resource
                 'residentProfile.country',
                 'roomResidents.room.block.dorm',
             ]);
+
+        if (!$user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        // Super admin dan main admin bisa akses semua
+        if ($user->hasRole(['super_admin', 'main_admin'])) {
+            return $query;
+        }
+
+        // Branch admin hanya bisa akses penghuni di cabangnya
+        if ($user->hasRole('branch_admin')) {
+            return $query->whereHas('roomResidents', function (Builder $rr) use ($user) {
+                $rr->whereNull('room_residents.check_out_date')
+                    ->whereHas(
+                        'room.block',
+                        fn(Builder $b) =>
+                        $b->whereIn('dorm_id', $user->branchDormIds())
+                    );
+            });
+        }
+
+        // Block admin hanya bisa akses penghuni di kompleknya
+        if ($user->hasRole('block_admin')) {
+            return $query->whereHas('roomResidents', function (Builder $rr) use ($user) {
+                $rr->whereNull('room_residents.check_out_date')
+                    ->whereHas(
+                        'room',
+                        fn(Builder $r) =>
+                        $r->whereIn('block_id', $user->blockIds())
+                    );
+            });
+        }
+
+        return $query->whereRaw('1 = 0');
     }
 
     public static function form(Form $form): Form
@@ -377,11 +415,13 @@ class ResidentResource extends Resource
                     ->label('Lihat')
                     ->url(fn(User $record) => static::getUrl('view', ['record' => $record])),
 
-                Tables\Actions\EditAction::make()->label('Edit'),
+                Tables\Actions\EditAction::make()
+                    ->label('Edit')
+                    ->visible(fn() => auth()->user()?->hasAnyRole(['super_admin', 'main_admin']) ?? false),
 
                 Tables\Actions\DeleteAction::make()
                     ->label('Hapus')
-                    ->visible(fn() => auth()->user()?->hasAnyRole(['super_admin', 'branch_admin']) ?? false),
+                    ->visible(fn() => auth()->user()?->hasAnyRole(['super_admin', 'main_admin']) ?? false),
 
                 Tables\Actions\RestoreAction::make()
                     ->label('Restore')

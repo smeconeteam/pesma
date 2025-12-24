@@ -30,43 +30,53 @@ class RegistrationResource extends Resource
     public static function shouldRegisterNavigation(): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'branch_admin', 'block_admin']) ?? false;
+        // Semua admin bisa lihat menu
+        return $u?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']) ?? false;
+    }
+
+    public static function canAccess(): bool
+    {
+        $u = auth()->user();
+        // Semua admin bisa akses resource ini
+        return $u?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']) ?? false;
     }
 
     public static function canViewAny(): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'branch_admin', 'block_admin']) ?? false;
+        // Hanya super_admin dan main_admin yang bisa lihat list/tabel
+        return $u?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
     }
 
     public static function canCreate(): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'branch_admin', 'block_admin']) ?? false;
+        // Semua admin bisa create (termasuk branch_admin dan block_admin)
+        return $u?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']) ?? false;
     }
 
     public static function canEdit(Model $record): bool
     {
         $u = auth()->user();
-        // Admin komplek dan cabang hanya bisa lihat, tidak bisa edit
-        if ($u?->hasAnyRole(['block_admin'])) {
-            return false;
-        }
-        // Super admin dan branch admin bisa edit jika status masih pending
+        // Hanya super_admin dan main_admin bisa edit, dan hanya jika status masih pending
         return $record->status === 'pending'
-            && ($u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false);
+            && ($u?->hasAnyRole(['super_admin', 'main_admin']) ?? false);
     }
 
     public static function canDelete(Model $record): bool
     {
         $u = auth()->user();
-        // Admin komplek tidak bisa hapus
-        if ($u?->hasRole('block_admin')) {
-            return false;
-        }
+        // Hanya super_admin dan main_admin bisa hapus
         // Hanya bisa hapus jika status pending atau rejected
         return in_array($record->status, ['pending', 'rejected'])
-            && ($u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false);
+            && ($u?->hasAnyRole(['super_admin', 'main_admin']) ?? false);
+    }
+
+    public static function canView(Model $record): bool
+    {
+        $u = auth()->user();
+        // Hanya super_admin dan main_admin bisa view detail
+        return $u?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
     }
 
     public static function form(Form $form): Form
@@ -137,6 +147,10 @@ class RegistrationResource extends Resource
                     Forms\Components\DatePicker::make('birth_date')
                         ->label('Tanggal Lahir')
                         ->native(false)
+                        ->displayFormat('d/m/Y')
+                        ->format('Y-m-d')
+                        ->maxDate(now()->subYears(6))
+                        ->helperText('Minimal usia 6 tahun')
                         ->nullable(),
 
                     Forms\Components\TextInput::make('university_school')
@@ -218,7 +232,11 @@ class RegistrationResource extends Resource
                     Forms\Components\DatePicker::make('planned_check_in_date')
                         ->label('Rencana Tanggal Masuk')
                         ->native(false)
+                        ->displayFormat('d/m/Y')
+                        ->format('Y-m-d')
+                        ->minDate(now())
                         ->default(now()->addDays(7))
+                        ->helperText('Minimal hari ini')
                         ->nullable(),
                 ]),
         ]);
@@ -227,7 +245,7 @@ class RegistrationResource extends Resource
     public static function table(Table $table): Table
     {
         $user = auth()->user();
-        $canApproveReject = $user?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
+        $canApproveReject = $user?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
 
         return $table
             ->columns([
