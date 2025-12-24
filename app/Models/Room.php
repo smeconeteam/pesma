@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Room extends Model
 {
@@ -79,5 +80,22 @@ class Room extends Model
     public function isFull(): bool
     {
         return $this->getAvailableCapacityAttribute() <= 0;
+    }
+
+    public static function generateCode(
+        string $dormName,
+        string $blockName,
+        string $roomTypeName,
+        string $number
+    ): string {
+        $dormSlug = Str::slug($dormName);
+        $blockSlug = Str::slug($blockName);
+        $roomTypeSlug = Str::slug($roomTypeName);
+
+        // Pastikan nomor kamar terformat dengan baik (misal: 01, 02, dst)
+        $number = str_pad($number, 2, '0', STR_PAD_LEFT);
+
+        // Format: {dorm}-{block}-{room_type}-{number}
+        return "{$dormSlug}-{$blockSlug}-{$roomTypeSlug}-{$number}";
     }
 }
