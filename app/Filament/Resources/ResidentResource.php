@@ -7,8 +7,6 @@ use App\Models\Block;
 use App\Models\Country;
 use App\Models\Dorm;
 use App\Models\ResidentCategory;
-use App\Models\Room;
-use App\Models\RoomResident;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -18,7 +16,6 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
-use Filament\Tables\Filters\TrashedFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -36,13 +33,13 @@ class ResidentResource extends Resource
     public static function shouldRegisterNavigation(): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']) ?? false;
+        return $u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
     }
 
     public static function canViewAny(): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']) ?? false;
+        return $u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
     }
 
     public static function canCreate(): bool
@@ -50,66 +47,42 @@ class ResidentResource extends Resource
         return false;
     }
 
+    /**
+     * ✅ FIX: Jika record sudah dihapus (soft delete / trashed), maka tidak bisa diedit.
+     */
     public static function canEdit(Model $record): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
+
+        $allowed = $u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
+        if (! $allowed) {
+            return false;
+        }
+
+        // kalau model punya SoftDeletes dan statusnya trashed => blok edit
+        if (method_exists($record, 'trashed') && $record->trashed()) {
+            return false;
+        }
+
+        return true;
     }
 
     public static function getEloquentQuery(): Builder
     {
-        $user = auth()->user();
-
         $query = parent::getEloquentQuery();
 
-        // Super admin bisa akses semua data termasuk yang terhapus
-        if ($user?->hasRole('super_admin')) {
+        if (auth()->user()?->hasRole('super_admin')) {
             $query->withoutGlobalScopes([SoftDeletingScope::class]);
         }
 
-        $query = $query
-            ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
+        return $query
+            ->whereHas('roles', fn (Builder $q) => $q->where('name', 'resident'))
             ->with([
                 'roles',
                 'residentProfile.residentCategory',
                 'residentProfile.country',
                 'roomResidents.room.block.dorm',
             ]);
-
-        if (!$user) {
-            return $query->whereRaw('1 = 0');
-        }
-
-        // Super admin dan main admin bisa akses semua
-        if ($user->hasRole(['super_admin', 'main_admin'])) {
-            return $query;
-        }
-
-        // Branch admin hanya bisa akses penghuni di cabangnya
-        if ($user->hasRole('branch_admin')) {
-            return $query->whereHas('roomResidents', function (Builder $rr) use ($user) {
-                $rr->whereNull('room_residents.check_out_date')
-                    ->whereHas(
-                        'room.block',
-                        fn(Builder $b) =>
-                        $b->whereIn('dorm_id', $user->branchDormIds())
-                    );
-            });
-        }
-
-        // Block admin hanya bisa akses penghuni di kompleknya
-        if ($user->hasRole('block_admin')) {
-            return $query->whereHas('roomResidents', function (Builder $rr) use ($user) {
-                $rr->whereNull('room_residents.check_out_date')
-                    ->whereHas(
-                        'room',
-                        fn(Builder $r) =>
-                        $r->whereIn('block_id', $user->blockIds())
-                    );
-            });
-        }
-
-        return $query->whereRaw('1 = 0');
     }
 
     public static function form(Form $form): Form
@@ -144,7 +117,7 @@ class ResidentResource extends Resource
                         ->schema([
                             Forms\Components\Select::make('resident_category_id')
                                 ->label('Kategori Penghuni')
-                                ->options(fn() => ResidentCategory::query()->orderBy('name')->pluck('name', 'id'))
+                                ->options(fn () => ResidentCategory::query()->orderBy('name')->pluck('name', 'id'))
                                 ->searchable()
                                 ->native(false)
                                 ->required(),
@@ -206,18 +179,20 @@ class ResidentResource extends Resource
                                 ->afterStateUpdated(function ($state, Forms\Set $set) {
                                     if ($state === 'WNI') {
                                         $indoId = Country::query()->where('iso2', 'ID')->value('id');
-                                        if ($indoId) $set('country_id', $indoId);
+                                        if ($indoId) {
+                                            $set('country_id', $indoId);
+                                        }
                                     }
                                 })
                                 ->required(),
 
                             Forms\Components\Select::make('country_id')
                                 ->label('Asal Negara')
-                                ->options(fn() => Country::query()->orderBy('name')->pluck('name', 'id'))
+                                ->options(fn () => Country::query()->orderBy('name')->pluck('name', 'id'))
                                 ->searchable()
                                 ->native(false)
-                                ->disabled(fn(Forms\Get $get) => $get('citizenship_status') === 'WNI')
-                                ->default(fn() => Country::query()->where('iso2', 'ID')->value('id'))
+                                ->disabled(fn (Forms\Get $get) => $get('citizenship_status') === 'WNI')
+                                ->default(fn () => Country::query()->where('iso2', 'ID')->value('id'))
                                 ->required(),
 
                             Forms\Components\TextInput::make('phone_number')
@@ -248,18 +223,22 @@ class ResidentResource extends Resource
                     Forms\Components\Placeholder::make('current_room_info')
                         ->label('Kamar Saat Ini')
                         ->content(function ($record) {
-                            if (!$record) return '-';
+                            if (! $record) {
+                                return '-';
+                            }
 
                             $active = $record->roomResidents()
                                 ->whereNull('room_residents.check_out_date')
                                 ->latest('check_in_date')
                                 ->first();
 
-                            if (!$active || !$active->room) return '-';
+                            if (! $active || ! $active->room) {
+                                return '-';
+                            }
 
-                            $room = $active->room;
+                            $room  = $active->room;
                             $block = $room->block;
-                            $dorm = $block->dorm;
+                            $dorm  = $block->dorm;
 
                             return "{$dorm->name} - {$block->name} - {$room->code}";
                         })
@@ -312,11 +291,6 @@ class ResidentResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                TernaryFilter::make('is_active')
-                    ->label('Status Aktif')
-                    ->trueLabel('Aktif')
-                    ->falseLabel('Nonaktif'),
-
                 SelectFilter::make('status')
                     ->label('Status Penghuni')
                     ->options([
@@ -326,7 +300,7 @@ class ResidentResource extends Resource
                     ])
                     ->query(function (Builder $query, array $data) {
                         return $query->when($data['value'] ?? null, function (Builder $q, $value) {
-                            $q->whereHas('residentProfile', fn(Builder $p) => $p->where('status', $value));
+                            $q->whereHas('residentProfile', fn (Builder $p) => $p->where('status', $value));
                         });
                     })
                     ->native(false),
@@ -336,7 +310,7 @@ class ResidentResource extends Resource
                     ->options(['M' => 'Laki-laki', 'F' => 'Perempuan'])
                     ->query(function (Builder $query, array $data) {
                         return $query->when($data['value'] ?? null, function (Builder $q, $value) {
-                            $q->whereHas('residentProfile', fn(Builder $p) => $p->where('gender', $value));
+                            $q->whereHas('residentProfile', fn (Builder $p) => $p->where('gender', $value));
                         });
                     })
                     ->native(false),
@@ -346,31 +320,31 @@ class ResidentResource extends Resource
                     ->options(['WNI' => 'WNI', 'WNA' => 'WNA'])
                     ->query(function (Builder $query, array $data) {
                         return $query->when($data['value'] ?? null, function (Builder $q, $value) {
-                            $q->whereHas('residentProfile', fn(Builder $p) => $p->where('citizenship_status', $value));
+                            $q->whereHas('residentProfile', fn (Builder $p) => $p->where('citizenship_status', $value));
                         });
                     })
                     ->native(false),
 
                 SelectFilter::make('resident_category_id')
                     ->label('Kategori Penghuni')
-                    ->options(fn() => ResidentCategory::query()->orderBy('name')->pluck('name', 'id')->toArray())
+                    ->options(fn () => ResidentCategory::query()->orderBy('name')->pluck('name', 'id')->toArray())
                     ->searchable()
                     ->query(function (Builder $query, array $data) {
                         return $query->when($data['value'] ?? null, function (Builder $q, $categoryId) {
-                            $q->whereHas('residentProfile', fn(Builder $p) => $p->where('resident_category_id', $categoryId));
+                            $q->whereHas('residentProfile', fn (Builder $p) => $p->where('resident_category_id', $categoryId));
                         });
                     })
                     ->native(false),
 
                 SelectFilter::make('dorm_id')
                     ->label('Cabang')
-                    ->options(fn() => Dorm::query()->orderBy('name')->pluck('name', 'id')->toArray())
+                    ->options(fn () => Dorm::query()->orderBy('name')->pluck('name', 'id')->toArray())
                     ->searchable()
                     ->query(function (Builder $query, array $data) {
                         return $query->when($data['value'] ?? null, function (Builder $q, $dormId) {
                             $q->whereHas('roomResidents', function (Builder $rr) use ($dormId) {
                                 $rr->whereNull('room_residents.check_out_date')
-                                    ->whereHas('room.block', fn(Builder $b) => $b->where('dorm_id', $dormId));
+                                    ->whereHas('room.block', fn (Builder $b) => $b->where('dorm_id', $dormId));
                             });
                         });
                     })
@@ -378,13 +352,13 @@ class ResidentResource extends Resource
 
                 SelectFilter::make('block_id')
                     ->label('Komplek')
-                    ->options(fn() => Block::query()->orderBy('name')->pluck('name', 'id')->toArray())
+                    ->options(fn () => Block::query()->orderBy('name')->pluck('name', 'id')->toArray())
                     ->searchable()
                     ->query(function (Builder $query, array $data) {
                         return $query->when($data['value'] ?? null, function (Builder $q, $blockId) {
                             $q->whereHas('roomResidents', function (Builder $rr) use ($blockId) {
                                 $rr->whereNull('room_residents.check_out_date')
-                                    ->whereHas('room', fn(Builder $r) => $r->where('block_id', $blockId));
+                                    ->whereHas('room', fn (Builder $r) => $r->where('block_id', $blockId));
                             });
                         });
                     })
@@ -396,36 +370,46 @@ class ResidentResource extends Resource
                     ->trueLabel('Sudah Ada Kamar')
                     ->falseLabel('Belum Ada Kamar')
                     ->queries(
-                        true: fn(Builder $query) => $query->whereHas(
+                        true: fn (Builder $query) => $query->whereHas(
                             'roomResidents',
-                            fn(Builder $q) => $q->whereNull('check_out_date')
+                            fn (Builder $q) => $q->whereNull('check_out_date')
                         ),
-                        false: fn(Builder $query) => $query->whereDoesntHave(
+                        false: fn (Builder $query) => $query->whereDoesntHave(
                             'roomResidents',
-                            fn(Builder $q) => $q->whereNull('check_out_date')
+                            fn (Builder $q) => $q->whereNull('check_out_date')
                         ),
                     ),
-
-                TrashedFilter::make()
-                    ->label('Status Data')
-                    ->visible(fn() => auth()->user()?->hasRole('super_admin') ?? false),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
                     ->label('Lihat')
-                    ->url(fn(User $record) => static::getUrl('view', ['record' => $record])),
+                    ->url(fn (User $record) => static::getUrl('view', ['record' => $record])),
 
+                /**
+                 * ✅ FIX: Edit action disembunyikan jika record sudah trashed.
+                 */
                 Tables\Actions\EditAction::make()
                     ->label('Edit')
-                    ->visible(fn() => auth()->user()?->hasAnyRole(['super_admin', 'main_admin']) ?? false),
+                    ->visible(function (User $record) {
+                        $u = auth()->user();
+                        $allowed = $u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
+
+                        if (! $allowed) {
+                            return false;
+                        }
+
+                        return ! (method_exists($record, 'trashed') && $record->trashed());
+                    }),
 
                 Tables\Actions\DeleteAction::make()
                     ->label('Hapus')
-                    ->visible(fn() => auth()->user()?->hasAnyRole(['super_admin', 'main_admin']) ?? false),
+                    ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'branch_admin']) ?? false),
 
                 Tables\Actions\RestoreAction::make()
                     ->label('Restore')
-                    ->visible(fn(User $record) => (auth()->user()?->hasRole('super_admin') ?? false) && method_exists($record, 'trashed') && $record->trashed()),
+                    ->visible(fn (User $record) => (auth()->user()?->hasRole('super_admin') ?? false)
+                        && method_exists($record, 'trashed')
+                        && $record->trashed()),
             ])
             ->defaultSort('id', 'desc');
     }
@@ -433,9 +417,9 @@ class ResidentResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListResidents::route('/'),
-            'edit'   => Pages\EditResident::route('/{record}/edit'),
-            'view'   => Pages\ViewResident::route('/{record}'),
+            'index' => Pages\ListResidents::route('/'),
+            'edit'  => Pages\EditResident::route('/{record}/edit'),
+            'view'  => Pages\ViewResident::route('/{record}'),
         ];
     }
 }

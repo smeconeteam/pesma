@@ -5,8 +5,8 @@ namespace App\Filament\Resources\ResidentResource\Pages;
 use App\Filament\Resources\ResidentResource;
 use App\Models\User;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
 use Filament\Resources\Components\Tab;
+use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
 
 class ListResidents extends ListRecords
@@ -29,25 +29,27 @@ class ListResidents extends ListRecords
 
         $tabs = [
             'aktif' => Tab::make('Data Aktif')
-                ->badge(
-                    fn() =>
-                    User::whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
-                        ->count()
+                ->modifyQueryUsing(function (Builder $query) {
+                    // ✅ pastikan hanya data yang belum terhapus
+                    return $query->whereNull('users.deleted_at');
+                })
+                ->badge(fn () => User::query()
+                    ->whereHas('roles', fn (Builder $q) => $q->where('name', 'resident'))
+                    ->whereNull('users.deleted_at')
+                    ->count()
                 ),
         ];
 
         if ($isSuperAdmin) {
             $tabs['terhapus'] = Tab::make('Data Terhapus')
                 ->modifyQueryUsing(function (Builder $query) {
-                    // Query sudah include soft deleted karena withoutGlobalScopes
-                    // Kita hanya filter yang deleted_at tidak null
+                    // ✅ hanya data yang terhapus
                     return $query->whereNotNull('users.deleted_at');
                 })
-                ->badge(
-                    fn() =>
-                    User::whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
-                        ->onlyTrashed()
-                        ->count()
+                ->badge(fn () => User::query()
+                    ->whereHas('roles', fn (Builder $q) => $q->where('name', 'resident'))
+                    ->onlyTrashed()
+                    ->count()
                 )
                 ->badgeColor('danger');
         }

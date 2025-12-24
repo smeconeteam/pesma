@@ -136,24 +136,6 @@ class BlockResource extends Resource
                     )
                     ->visible(fn() => $user?->hasRole(['super_admin', 'main_admin']))
                     ->native(false),
-
-                Tables\Filters\Filter::make('created_at_range')
-                    ->label('Tanggal Dibuat')
-                    ->form([
-                        Forms\Components\DatePicker::make('created_from')->label('Dari')->native(false),
-                        Forms\Components\DatePicker::make('created_until')->label('Sampai')->native(false),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when($data['created_from'] ?? null, fn(Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
-                            ->when($data['created_until'] ?? null, fn(Builder $q, $date) => $q->whereDate('created_at', '<=', $date));
-                    })
-                    ->indicateUsing(function (array $data): array {
-                        $indicators = [];
-                        if (! empty($data['created_from'])) $indicators[] = 'Dari: ' . $data['created_from'];
-                        if (! empty($data['created_until'])) $indicators[] = 'Sampai: ' . $data['created_until'];
-                        return $indicators;
-                    }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

@@ -287,18 +287,6 @@ class RoomResource extends Resource
 
                         return $indicators;
                     }),
-
-                Tables\Filters\Filter::make('created_at_range')
-                    ->label('Tanggal Dibuat')
-                    ->form([
-                        Forms\Components\DatePicker::make('created_from')->label('Dari')->native(false),
-                        Forms\Components\DatePicker::make('created_until')->label('Sampai')->native(false),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when($data['created_from'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
-                            ->when($data['created_until'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '<=', $date));
-                    }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
