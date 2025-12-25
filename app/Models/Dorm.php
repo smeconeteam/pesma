@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
 
 class Dorm extends Model
 {
@@ -32,5 +34,15 @@ class Dorm extends Model
     public function adminScopes()
     {
         return $this->hasMany(AdminScope::class);
+    }
+
+    public function registrations(): HasMany
+    {
+        return $this->hasMany(Registration::class, 'preferred_dorm_id');
+    }
+
+    public function canBeDeleted()
+    {
+        return ! $this->blocks()->exists();
     }
 }

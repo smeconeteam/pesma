@@ -6,11 +6,14 @@ use App\Filament\Resources\DormResource\Pages;
 use App\Models\Dorm;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Collection;
 
 class DormResource extends Resource
 {
@@ -90,22 +93,35 @@ class DormResource extends Resource
                     ->options([
                         1 => 'Aktif',
                         0 => 'Nonaktif',
-                    ]),
-                ...(auth()->user()?->hasRole('super_admin')
-                    ? [Tables\Filters\TrashedFilter::make()->label('Data Terhapus')]
-                    : []),
+                    ])
+                    ->native(false),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
 
                 Tables\Actions\EditAction::make()
-                    ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin'])),
+                    ->visible(function (Dorm $record) {
+                        $user = auth()->user();
+
+                        // Cek role dulu
+                        if (!$user?->hasRole(['super_admin', 'main_admin'])) {
+                            return false;
+                        }
+
+                        // Cek apakah record sudah dihapus (soft delete)
+                        if (method_exists($record, 'trashed') && $record->trashed()) {
+                            return false;
+                        }
+
+                        return true;
+                    }),
 
                 Tables\Actions\DeleteAction::make()
                     ->visible(
                         fn(Dorm $record): bool =>
                         auth()->user()?->hasRole(['super_admin', 'main_admin'])
                             && ! $record->trashed()
+                            && ! $record->blocks()->exists()
                     ),
 
                 Tables\Actions\RestoreAction::make()
@@ -114,12 +130,46 @@ class DormResource extends Resource
                         auth()->user()?->hasRole(['super_admin'])
                             && $record->trashed()
                     ),
-
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin'])),
+                        ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin']))
+                        ->action(function (Collection $records) {
+                            $allowed = $records->filter(fn(Dorm $r) => ! $r->blocks()->exists());
+                            $blocked = $records->diff($allowed);
+
+                            if ($allowed->isEmpty()) {
+                                Notification::make()
+                                    ->title('Aksi Dibatalkan')
+                                    ->body('Tidak ada cabang yang bisa dihapus. Cabang yang memiliki komplek tidak dapat dihapus.')
+                                    ->danger()
+                                    ->send();
+
+                                return;
+                            }
+
+                            foreach ($allowed as $r) {
+                                $r->delete();
+                            }
+
+                            $deleted = $allowed->count();
+
+                            if ($blocked->isNotEmpty()) {
+                                Notification::make()
+                                    ->title('Berhasil Sebagian')
+                                    ->body("Berhasil menghapus {$deleted} cabang. Yang tidak bisa dihapus: " . $blocked->pluck('name')->join(', '))
+                                    ->warning()
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->title('Berhasil')
+                                    ->body("Berhasil menghapus {$deleted} cabang.")
+                                    ->success()
+                                    ->send();
+                            }
+                        }),
+
                     Tables\Actions\RestoreBulkAction::make()
                         ->visible(fn() => auth()->user()?->hasRole(['super_admin'])),
                 ]),
@@ -134,11 +184,13 @@ class DormResource extends Resource
             return parent::getEloquentQuery()->whereRaw('1 = 0');
         }
 
+        // ✅ super_admin boleh lihat/restore yang terhapus (TrashedFilter yang atur tampilan default)
         if ($user->hasRole('super_admin')) {
             return parent::getEloquentQuery()
                 ->withoutGlobalScopes([SoftDeletingScope::class]);
         }
 
+        // main_admin tetap pakai SoftDeletingScope (jadi yang terhapus tidak muncul)
         if ($user->hasRole('main_admin')) {
             return parent::getEloquentQuery();
         }

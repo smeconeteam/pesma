@@ -11,7 +11,8 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Collection;
+use Filament\Notifications\Notification;
 
 class BlockResource extends Resource
 {
@@ -61,7 +62,16 @@ class BlockResource extends Resource
                             ->required()
                             ->searchable()
                             ->preload()
-                            ->native(false),
+                            ->native(false)
+                            // Disable jika komplek sudah punya kamar
+                            ->disabled(fn($record) => $record && $record->rooms()->exists())
+                            ->dehydrated(fn($record) => ! ($record && $record->rooms()->exists()))
+                            ->helperText(
+                                fn($record) =>
+                                $record && $record->rooms()->exists()
+                                    ? 'Cabang tidak dapat diubah karena komplek ini sudah memiliki kamar.'
+                                    : null
+                            ),
 
                         Forms\Components\TextInput::make('name')
                             ->label('Nama Komplek')
@@ -74,7 +84,7 @@ class BlockResource extends Resource
                             ->rows(3)
                             ->columnSpan(2)
                             ->nullable(),
-                                                    
+
                         Forms\Components\Toggle::make('is_active')
                             ->label('Aktif')
                             ->default(true),
@@ -116,6 +126,14 @@ class BlockResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('is_active')
+                    ->label('Status Aktif')
+                    ->options([
+                        1 => 'Aktif',
+                        0 => 'Nonaktif',
+                    ])
+                    ->native(false),
+
                 Tables\Filters\SelectFilter::make('dorm_id')
                     ->label('Cabang')
                     ->relationship(
@@ -125,26 +143,36 @@ class BlockResource extends Resource
                         $query->where('is_active', true)
                             ->whereNull('deleted_at')
                     )
-                    ->visible(fn() => $user?->hasRole(['super_admin', 'main_admin'])),
-
-                ...($user?->hasRole('super_admin')
-                    ? [Tables\Filters\TrashedFilter::make()->label('Data Terhapus')]
-                    : []),
+                    ->visible(fn() => $user?->hasRole(['super_admin', 'main_admin']))
+                    ->native(false),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
 
                 Tables\Actions\EditAction::make()
-                    ->visible(fn() => auth()->user()?->hasRole([
-                        'super_admin',
-                        'main_admin',
-                    ])),
+                    ->visible(function (Block $record) {
+                        $user = auth()->user();
+
+                        // ✅ Cek role dulu
+                        if (!$user?->hasRole(['super_admin', 'main_admin'])) {
+                            return false;
+                        }
+
+                        // ✅ Cek apakah record sudah dihapus (soft delete)
+                        if (method_exists($record, 'trashed') && $record->trashed()) {
+                            return false;
+                        }
+
+                        return true;
+                    }),
 
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn() => auth()->user()?->hasRole([
-                        'super_admin',
-                        'main_admin',
-                    ])),
+                    ->visible(
+                        fn(Block $record): bool =>
+                        auth()->user()?->hasRole(['super_admin', 'main_admin'])
+                            && ! $record->trashed()
+                            && ! $record->rooms()->exists()
+                    ),
 
                 Tables\Actions\RestoreAction::make()
                     ->visible(
@@ -156,10 +184,41 @@ class BlockResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => auth()->user()?->hasRole([
-                            'super_admin',
-                            'main_admin',
-                        ])),
+                        ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin', 'branch_admin']))
+                        ->action(function (Collection $records) {
+
+                            $allowed = $records->filter(fn(Block $r) => ! $r->rooms()->exists());
+                            $blocked = $records->diff($allowed);
+
+                            if ($allowed->isEmpty()) {
+                                Notification::make()
+                                    ->title('Aksi Dibatalkan')
+                                    ->body('Tidak ada komplek yang bisa dihapus. Komplek yang memiliki kamar tidak dapat dihapus.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            foreach ($allowed as $r) {
+                                $r->delete();
+                            }
+
+                            $deleted = $allowed->count();
+
+                            if ($blocked->isNotEmpty()) {
+                                Notification::make()
+                                    ->title('Berhasil Sebagian')
+                                    ->body("Berhasil menghapus {$deleted} komplek. Yang tidak bisa dihapus: " . $blocked->pluck('name')->join(', '))
+                                    ->warning()
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->title('Berhasil')
+                                    ->body("Berhasil menghapus {$deleted} komplek.")
+                                    ->success()
+                                    ->send();
+                            }
+                        }),
                     Tables\Actions\RestoreBulkAction::make()
                         ->visible(fn() => auth()->user()?->hasRole('super_admin')),
                 ]),
@@ -234,7 +293,17 @@ class BlockResource extends Resource
     public static function canEdit($record): bool
     {
         $user = auth()->user();
-        return $user?->hasRole(['super_admin', 'main_admin']) ?? false;
+
+        if (!$user?->hasRole(['super_admin', 'main_admin'])) {
+            return false;
+        }
+
+        // Cek apakah record sudah dihapus (soft delete)
+        if (method_exists($record, 'trashed') && $record->trashed()) {
+            return false;
+        }
+
+        return true;
     }
 
     public static function canDelete($record): bool

@@ -4,21 +4,22 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ResidentResource\Pages;
 use App\Models\Block;
+use App\Models\Country;
 use App\Models\Dorm;
+use App\Models\ResidentCategory;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Components\Group;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
-use Filament\Tables\Filters\TrashedFilter;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Models\RoomResident;
-use App\Models\ResidentCategory;
 use App\Models\Room;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components\Section;
@@ -28,16 +29,23 @@ use Filament\Infolists\Components\IconEntry;
 class ResidentResource extends Resource
 {
     protected static ?string $model = User::class;
-    protected static ?string $navigationLabel = 'Penghuni';
-    protected static ?string $pluralLabel = 'Penghuni';
-    protected static ?string $modelLabel = 'Penghuni';
+
+    protected static ?string $navigationGroup = 'Penghuni';
+    protected static ?string $navigationLabel = 'Data Penghuni';
+    protected static ?string $pluralLabel = 'Data Penghuni';
+    protected static ?string $modelLabel = 'Data Penghuni';
     protected static ?int $navigationSort = 30;
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
-            ->withoutGlobalScopes([SoftDeletingScope::class])
+        $query = parent::getEloquentQuery();
+
+        if (auth()->user()?->hasRole('super_admin')) {
+            $query->withoutGlobalScopes([SoftDeletingScope::class]);
+        }
+
+        return $query
             ->whereHas('roles', fn (Builder $q) => $q->where('name', 'resident'))
             ->with([
                 'residentProfile.residentCategory',
@@ -45,10 +53,6 @@ class ResidentResource extends Resource
             ]);
     }
 
-    /**
-     * OPTIONAL: Batasi dorm/block sesuai scope admin.
-     * Sesuaikan relasi sesuai project kamu (misal: $user->adminScopes()).
-     */
     protected static function getAccessibleDormIds(): ?array
     {
         $u = auth()->user();
@@ -110,14 +114,12 @@ class ResidentResource extends Resource
                         ->label('Aktif')
                         ->default(true),
 
-                    // ✅ UBAH: residentProfile.full_name -> profile.full_name
                     Forms\Components\TextInput::make('profile.full_name')
                         ->label('Nama Lengkap')
                         ->required()
                         ->maxLength(255)
                         ->columnSpanFull(),
 
-                    // ✅ UBAH: residentProfile.resident_category_id -> profile.resident_category_id
                     Forms\Components\Select::make('profile.resident_category_id')
                         ->label('Kategori Penghuni')
                         ->options(fn () => ResidentCategory::query()->orderBy('name')->pluck('name', 'id'))
@@ -130,12 +132,10 @@ class ResidentResource extends Resource
                             $set('room.is_pic', false);
                         }),
 
-                    // ✅ UBAH: residentProfile.is_international -> profile.is_international
                     Forms\Components\Toggle::make('profile.is_international')
                         ->label('Penghuni Luar Negeri?')
                         ->default(false),
 
-                    // (sisanya profile.* kamu sudah benar)
                     Forms\Components\TextInput::make('profile.national_id')
                         ->label('NIK')
                         ->maxLength(16)
@@ -250,7 +250,7 @@ class ResidentResource extends Resource
                         ->disabled(fn (Forms\Get $get) =>
                             blank($get('block_id')) ||
                             blank($get('profile.gender')) ||
-                            blank($get('profile.resident_category_id')) // ✅ FIX
+                            blank($get('profile.resident_category_id'))
                         )
                         ->helperText(function (Forms\Get $get) {
                             if (blank($get('profile.gender'))) return 'Pilih jenis kelamin dulu.';
@@ -259,15 +259,15 @@ class ResidentResource extends Resource
                         })
                         ->options(function (Forms\Get $get) {
                             $blockId    = $get('block_id');
-                            $gender     = $get('profile.gender'); // M/F
-                            $categoryId = $get('profile.resident_category_id'); // ✅ FIX
+                            $gender     = $get('profile.gender');
+                            $categoryId = $get('profile.resident_category_id');
 
                             if (blank($blockId) || blank($gender) || blank($categoryId)) return [];
 
                             $rooms = Room::query()
-                                ->where('block_id', $blockId)   // ✅ tidak akan bocor ke cabang lain
+                                ->where('block_id', $blockId)
                                 ->where('is_active', true)
-                                ->with('residentCategory')      // ✅ agar bisa tampil nama kategori
+                                ->with('residentCategory')
                                 ->orderBy('code')
                                 ->get();
 
@@ -294,7 +294,6 @@ class ResidentResource extends Resource
                                     ? ($activeGender === 'M' ? 'Laki-laki' : 'Perempuan')
                                     : 'Kosong';
 
-                                // ✅ tampilkan kategori kamar (nama)
                                 $categoryLabel = $room->residentCategory?->name ?? 'Belum ditentukan';
 
                                 $label = ($room->code ?? '-') . ($room->number ? " ({$room->number})" : '');
@@ -305,7 +304,7 @@ class ResidentResource extends Resource
 
                             return $options;
                         }),
-                    // sisanya (tanggal masuk, pic) biarkan seperti kamu
+
                     Forms\Components\DatePicker::make('room.check_in_date')
                         ->label('Tanggal Masuk')
                         ->required()
@@ -412,11 +411,21 @@ class ResidentResource extends Resource
                         });
                     }),
 
-                TrashedFilter::make(),
+                Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()->label('Lihat'),
-                Tables\Actions\EditAction::make()->label('Edit'),
+                Tables\Actions\EditAction::make()->label('Edit')
+                    ->visible(function (User $record) {
+                        $u = auth()->user();
+                        $allowed = $u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
+
+                        if (! $allowed) {
+                            return false;
+                        }
+
+                        return ! (method_exists($record, 'trashed') && $record->trashed());
+                    }),
                 Tables\Actions\DeleteAction::make()
                     ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'branch_admin'])),
                 Tables\Actions\RestoreAction::make()
@@ -493,22 +502,32 @@ class ResidentResource extends Resource
 
     public static function canCreate(): bool
     {
-        $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
+        return false;
     }
 
     public static function canEdit(Model $record): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
+
+        $allowed = $u?->hasAnyRole(['super_admin', 'branch_admin']) ?? false;
+        if (! $allowed) {
+            return false;
+        }
+
+        // kalau model punya SoftDeletes dan statusnya trashed => blok edit
+        if (method_exists($record, 'trashed') && $record->trashed()) {
+            return false;
+        }
+
+        return true;
     }
 
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListResidents::route('/'),
-            'create' => Pages\CreateResident::route('/create'),
-            'edit'   => Pages\EditResident::route('/{record}/edit'),
+            'index' => Pages\ListResidents::route('/'),
+            'edit'  => Pages\EditResident::route('/{record}/edit'),
+            'view'  => Pages\ViewResident::route('/{record}'),
         ];
     }
 }

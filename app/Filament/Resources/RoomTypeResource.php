@@ -3,15 +3,18 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\RoomTypeResource\Pages;
-use App\Filament\Resources\RoomTypeResource\RelationManagers;
 use App\Models\RoomType;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Collection;
 
 class RoomTypeResource extends Resource
 {
@@ -31,35 +34,62 @@ class RoomTypeResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Informasi Tipe Kamar')
                     ->schema([
-                        Forms\Components\TextInput::make('name')
-                            ->label('Nama Tipe')
+                        // 1) Nama (VIP) - FULL
+                        Forms\Components\TextInput::make('base_name')
+                            ->label('Nama (mis. VIP)')
                             ->required()
                             ->maxLength(255)
-                            ->columnSpan(2),
+                            ->columnSpanFull()
+                            // ✅ penting: update hanya setelah selesai ngetik (blur), bukan tiap ketikan
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
+                                $set('name', static::buildAutoName($state, $get('default_capacity')));
+                            }),
 
-                        Forms\Components\Textarea::make('description')
-                            ->label('Deskripsi')
-                            ->rows(3)
-                            ->nullable()
-                            ->columnSpan(2),
-
+                        // 2) Kapasitas Default - KIRI
                         Forms\Components\TextInput::make('default_capacity')
                             ->label('Kapasitas Default')
                             ->numeric()
                             ->minValue(1)
                             ->required()
-                            ->helperText('Jumlah penghuni default dalam satu kamar.'),
+                            ->helperText('Jumlah penghuni default dalam satu kamar.')
+                            ->columnSpan(1)
+                            // ✅ update hanya setelah blur
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function (Set $set, Get $get, $state) {
+                                $set('name', static::buildAutoName($get('base_name'), $state));
+                            }),
 
+                        // 3) Tarif Bulanan Default - KANAN
                         Forms\Components\TextInput::make('default_monthly_rate')
                             ->label('Tarif Bulanan Default')
                             ->numeric()
                             ->minValue(0)
                             ->required()
-                            ->prefix('Rp'),
+                            ->prefix('Rp')
+                            ->columnSpan(1),
 
+                        // 4) Nama Tipe (Otomatis) - FULL
+                        Forms\Components\TextInput::make('name')
+                            ->label('Nama Tipe (Otomatis)')
+                            ->disabled()
+                            ->dehydrated(true)
+                            ->required()
+                            ->maxLength(255)
+                            ->columnSpanFull(),
+
+                        // 5) Deskripsi - FULL
+                        Forms\Components\Textarea::make('description')
+                            ->label('Deskripsi')
+                            ->rows(3)
+                            ->nullable()
+                            ->columnSpanFull(),
+
+                        // 6) Aktif
                         Forms\Components\Toggle::make('is_active')
                             ->label('Aktif')
-                            ->default(true),
+                            ->default(true)
+                            ->columnSpan(1),
                     ])
                     ->columns(2),
             ]);
@@ -80,7 +110,7 @@ class RoomTypeResource extends Resource
 
                 Tables\Columns\TextColumn::make('default_monthly_rate')
                     ->label('Tarif Bulanan')
-                    ->money('IDR', true) // tampil sebagai Rupiah
+                    ->money('IDR', true)
                     ->sortable(),
 
                 Tables\Columns\IconColumn::make('is_active')
@@ -100,26 +130,36 @@ class RoomTypeResource extends Resource
                     ->options([
                         1 => 'Aktif',
                         0 => 'Nonaktif',
-                    ]),
-
-                ...(auth()->user()?->hasRole('super_admin')
-                    ? [Tables\Filters\TrashedFilter::make()->label('Data Terhapus')]
-                    : []),
+                    ])
+                    ->native(false),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
 
                 Tables\Actions\EditAction::make()
-                    ->visible(fn() => auth()->user()?->hasRole([
-                        'super_admin',
-                        'main_admin',
-                    ])),
+                    ->visible(function (RoomType $record) {
+                        $user = auth()->user();
+
+                        // Cek role dulu
+                        if (!$user?->hasRole(['super_admin', 'main_admin'])) {
+                            return false;
+                        }
+
+                        // ✅ Cek apakah record sudah dihapus (soft delete)
+                        if (method_exists($record, 'trashed') && $record->trashed()) {
+                            return false;
+                        }
+
+                        return true;
+                    }),
 
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn() => auth()->user()?->hasRole([
-                        'super_admin',
-                        'main_admin',
-                    ])),
+                    ->visible(
+                        fn(RoomType $record): bool =>
+                        auth()->user()?->hasRole(['super_admin', 'main_admin'])
+                            && ! $record->trashed()
+                            && ! $record->rooms()->exists()
+                    ),
 
                 Tables\Actions\RestoreAction::make()
                     ->visible(
@@ -131,60 +171,56 @@ class RoomTypeResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => auth()->user()?->hasRole([
-                            'super_admin',
-                            'main_admin',
-                        ])),
+                        ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin']))
+                        ->action(function (Collection $records) {
+                            $allowed = $records->filter(fn(RoomType $r) => ! $r->rooms()->exists());
+                            $blocked = $records->diff($allowed);
+
+                            if ($allowed->isEmpty()) {
+                                Notification::make()
+                                    ->title('Aksi Dibatalkan')
+                                    ->body('Tidak ada tipe kamar yang bisa dihapus. Tipe kamar yang sudah dipakai oleh kamar tidak dapat dihapus.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            foreach ($allowed as $r) {
+                                $r->delete();
+                            }
+
+                            $deleted = $allowed->count();
+
+                            if ($blocked->isNotEmpty()) {
+                                Notification::make()
+                                    ->title('Berhasil Sebagian')
+                                    ->body("Berhasil menghapus {$deleted} tipe kamar. Yang tidak bisa dihapus: " . $blocked->pluck('name')->join(', '))
+                                    ->warning()
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->title('Berhasil')
+                                    ->body("Berhasil menghapus {$deleted} tipe kamar.")
+                                    ->success()
+                                    ->send();
+                            }
+                        }),
+
                     Tables\Actions\RestoreBulkAction::make()
                         ->visible(fn() => auth()->user()?->hasRole('super_admin')),
                 ]),
             ]);
     }
 
-    public static function getRelations(): array
+    public static function getEloquentQuery(): Builder
     {
-        return [
-            //
-        ];
-    }
+        $query = parent::getEloquentQuery();
 
-    public static function canViewAny(): bool
-    {
-        $user = auth()->user();
+        if (auth()->user()?->hasRole('super_admin')) {
+            $query->withoutGlobalScopes([SoftDeletingScope::class]);
+        }
 
-        // Hanya super_admin & main_admin yang bisa melihat & mengelola tipe kamar
-        return $user?->hasRole(['super_admin', 'main_admin']) ?? false;
-    }
-
-    public static function canView($record): bool
-    {
-        return static::canViewAny();
-    }
-
-    public static function canCreate(): bool
-    {
-        $user = auth()->user();
-
-        return $user?->hasRole(['super_admin', 'main_admin']) ?? false;
-    }
-
-    public static function canEdit($record): bool
-    {
-        $user = auth()->user();
-
-        return $user?->hasRole(['super_admin', 'main_admin']) ?? false;
-    }
-
-    public static function canDelete($record): bool
-    {
-        $user = auth()->user();
-
-        return $user?->hasRole(['super_admin', 'main_admin']) ?? false;
-    }
-
-    public static function canDeleteAny(): bool
-    {
-        return static::canDelete(null);
+        return $query;
     }
 
     public static function getPages(): array
@@ -194,5 +230,18 @@ class RoomTypeResource extends Resource
             'create' => Pages\CreateRoomType::route('/create'),
             'edit'   => Pages\EditRoomType::route('/{record}/edit'),
         ];
+    }
+
+    // ✅ buat public supaya bisa dipakai di Create/Edit pages untuk hitung ulang saat submit
+    public static function buildAutoName(?string $baseName, $capacity): string
+    {
+        $baseName = trim((string) $baseName);
+        $capacity = (int) ($capacity ?? 0);
+
+        if ($baseName === '' || $capacity <= 0) {
+            return '';
+        }
+
+        return "{$baseName} {$capacity} orang";
     }
 }

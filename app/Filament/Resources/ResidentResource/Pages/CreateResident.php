@@ -70,7 +70,7 @@ class CreateResident extends CreateRecord
             // ====== VALIDASI KATEGORI KAMAR + AUTO-LOCK ======
             $this->ensureRoomCategoryValidAndLock($roomModel, (int) $categoryId);
 
-            // ====== VALIDASI GENDER KAMAR (punyamu) ======
+            // ====== VALIDASI GENDER KAMAR ======
             $activeGender = RoomResident::query()
                 ->where('room_residents.room_id', $roomId)
                 ->whereNull('room_residents.check_out_date')
@@ -83,7 +83,7 @@ class CreateResident extends CreateRecord
                 ]);
             }
 
-            // ====== VALIDASI PIC (punyamu, tapi lebih aman exclude user baru) ======
+            // ====== VALIDASI PIC ======
             if ($wantPic) {
                 $hasPic = RoomResident::query()
                     ->where('room_residents.room_id', $roomId)
@@ -125,8 +125,6 @@ class CreateResident extends CreateRecord
                 'phone_number'          => $profile['phone_number'] ?? null,
                 'guardian_name'         => $profile['guardian_name'] ?? null,
                 'guardian_phone_number' => $profile['guardian_phone_number'] ?? null,
-                'check_in_date'         => $checkIn,
-                'check_out_date'        => null,
                 'photo_path'            => $profile['photo_path'] ?? null,
             ]);
 

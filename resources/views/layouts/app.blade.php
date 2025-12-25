@@ -6,11 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{institution()->dormitory_name ?? config('app.name', 'Laravel') }}</title>
+    <title>{{ $institution?->dormitory_name ?? config('app.name') }}</title>
 
-    @if (institution() && institution()->logo_path)
+    @if ($institution?->logo_path)
         @php
-            $favicon = Storage::url(institution()->logo_path);
+            $favicon = Storage::url($institution->logo_path);
         @endphp
 
         <!-- Favicon -->

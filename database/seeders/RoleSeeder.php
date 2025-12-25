@@ -20,7 +20,6 @@ class RoleSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function () {
-
             /**
              * =========================================================
              * 1) ROLES
@@ -143,39 +142,50 @@ class RoleSeeder extends Seeder
                 ->get();
 
             foreach ($users as $index => $user) {
+                // ===== LOCK ROOM =====
+                $room = Room::query()->lockForUpdate()->findOrFail($room->id);
+
+                // ===== AUTO-LOCK KATEGORI ROOM (hanya jika NULL) =====
+                if (is_null($room->resident_category_id)) {
+                    $room->resident_category_id = $category->id;
+                    $room->save();
+                }
+
                 // ===== Resident Profile =====
                 $profile = ResidentProfile::updateOrCreate(
                     ['user_id' => $user->id],
                     [
                         'resident_category_id' => $category->id,
                         'is_international' => false,
-                        'national_id' => '32000000000000' . ($index + 1),
+                        'national_id' => '32000000000000' . str_pad($index + 1, 2, '0', STR_PAD_LEFT),
                         'student_id'  => 'NIM' . str_pad($index + 1, 3, '0', STR_PAD_LEFT),
                         'full_name'   => $user->name,
                         'gender'      => 'M', // samakan agar tidak konflik
                         'birth_place' => 'Bandung',
                         'birth_date'  => '2003-01-01',
                         'university_school' => 'Contoh University',
-                        'phone_number' => '0812345678' . $index,
+                        'phone_number' => '0812345678' . str_pad($index, 2, '0', STR_PAD_LEFT),
                         'guardian_name' => 'Orang Tua',
-                        'guardian_phone_number' => '0812987654' . $index,
-                        'check_in_date' => now()->toDateString(),
-                        'check_out_date' => null,
+                        'guardian_phone_number' => '0812987654' . str_pad($index, 2, '0', STR_PAD_LEFT),
                         'photo_path' => null,
                     ]
                 );
 
-                // ===== LOCK ROOM =====
-                $room = Room::query()->lockForUpdate()->findOrFail($room->id);
-
-                // ===== AUTO-LOCK KATEGORI ROOM =====
-                if (is_null($room->resident_category_id)) {
-                    $room->resident_category_id = $category->id;
-                    $room->save();
-                }
-
                 // ===== PIC: hanya penghuni pertama =====
-                $isPic = $index === 0;
+                $isPic = ($index === 0);
+
+                // Jika bukan penghuni pertama, cek apakah sudah ada PIC
+                if ($isPic) {
+                    $hasPic = RoomResident::query()
+                        ->where('room_id', $room->id)
+                        ->whereNull('check_out_date')
+                        ->where('is_pic', true)
+                        ->exists();
+
+                    if ($hasPic) {
+                        $isPic = false;
+                    }
+                }
 
                 // ===== ROOM RESIDENT =====
                 RoomResident::firstOrCreate(

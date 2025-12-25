@@ -2,16 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Support\Str;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Room extends Model
 {
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
 
     protected $fillable = [
         'block_id',
@@ -24,7 +23,24 @@ class Room extends Model
         'is_active',
     ];
 
-     public function residentCategory(): BelongsTo
+    protected $casts = [
+        'capacity' => 'integer',
+        'monthly_rate' => 'integer',
+        'is_active' => 'boolean',
+    ];
+
+    // Relations
+    public function block(): BelongsTo
+    {
+        return $this->belongsTo(Block::class);
+    }
+
+    public function roomType(): BelongsTo
+    {
+        return $this->belongsTo(RoomType::class, 'room_type_id');
+    }
+
+    public function residentCategory(): BelongsTo
     {
         return $this->belongsTo(ResidentCategory::class, 'resident_category_id');
     }
@@ -39,67 +55,63 @@ class Room extends Model
         return $this->roomResidents()->whereNull('check_out_date');
     }
 
+    public function activeResidents(): HasMany
+    {
+        return $this->hasMany(RoomResident::class)
+            ->whereNull('check_out_date');
+    }
+
+    // Helper methods
     public function isEmpty(): bool
     {
         return ! $this->activeRoomResidents()->exists();
     }
 
-    public function block()
+    public function getAvailableCapacityAttribute(): int
     {
-        return $this->belongsTo(Block::class);
+        $activeCount = $this->activeResidents()->count();
+        return max(0, ($this->capacity ?? 0) - $activeCount);
     }
 
-    public function roomType()
+    public function getActiveGenderAttribute(): ?string
     {
-        return $this->belongsTo(RoomType::class);
+        return RoomResident::query()
+            ->where('room_residents.room_id', $this->id)
+            ->whereNull('room_residents.check_out_date')
+            ->join('resident_profiles', 'resident_profiles.user_id', '=', 'room_residents.user_id')
+            ->value('resident_profiles.gender');
     }
 
-    public function dorm()
+    public function canAcceptGender(string $gender): bool
     {
-        return $this->hasOneThrough(
-            Dorm::class,
-            Block::class,
-            'id',      // FK di blocks (blocks.id)
-            'id',      // FK di dorms  (dorms.id)
-            'block_id', // FK lokal rooms.block_id
-            'dorm_id'  // FK di blocks.dorm_id
-        );
+        $activeGender = $this->getActiveGenderAttribute();
+
+        // Jika kosong, bisa terima gender apapun
+        if (!$activeGender) return true;
+
+        // Jika sudah ada penghuni, harus sama gendernya
+        return $activeGender === $gender;
+    }
+
+    public function isFull(): bool
+    {
+        return $this->getAvailableCapacityAttribute() <= 0;
     }
 
     public static function generateCode(
-        ?string $dormName,
-        ?string $blockName,
-        ?string $roomTypeName,
-        ?string $number
-    ): ?string {
-        if (! $dormName || ! $blockName || ! $roomTypeName || ! $number) {
-            return null;
-        }
+        string $dormName,
+        string $blockName,
+        string $roomTypeName,
+        string $number
+    ): string {
+        $dormSlug = Str::slug($dormName);
+        $blockSlug = Str::slug($blockName);
+        $roomTypeSlug = Str::slug($roomTypeName);
 
-        // cabangjakarta
-        $dormPart = Str::of($dormName)
-            ->lower()
-            ->replace(['asrama', ' '], '')
-            ->toString();
+        // Pastikan nomor kamar terformat dengan baik (misal: 01, 02, dst)
+        $number = str_pad($number, 2, '0', STR_PAD_LEFT);
 
-        // KomplekA (BUKAN KomplekACimahi)
-        $blockPart = Str::of($blockName)
-            ->trim()
-            ->explode(' ')
-            ->take(2)
-            ->implode('');
-
-        // vip / reguler / vvip
-        $typePart = Str::of($roomTypeName)
-            ->before(' ')
-            ->lower()
-            ->toString();
-
-        // 03
-        $numberPart = str_pad((string) $number, 2, '0', STR_PAD_LEFT);
-
-        return "{$dormPart}-{$blockPart}-{$typePart}-{$numberPart}";
+        // Format: {dorm}-{block}-{room_type}-{number}
+        return "{$dormSlug}-{$blockSlug}-{$roomTypeSlug}-{$number}";
     }
-
-
 }

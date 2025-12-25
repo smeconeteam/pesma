@@ -6,6 +6,7 @@ use App\Filament\Resources\ResidentResource;
 use App\Models\ResidentProfile;
 use App\Models\Room;
 use App\Models\RoomResident;
+use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -16,9 +17,12 @@ class EditResident extends EditRecord
 {
     protected static string $resource = ResidentResource::class;
 
-    protected function getRedirectUrl(): string
+    public function mount($record): void
     {
-        return $this->getResource()::getUrl('index');
+        parent::mount($record);
+
+        // ✅ pastikan profile ada supaya form tidak kosong saat edit
+        $this->record->residentProfile()->firstOrCreate([]);
     }
 
     protected function mutateFormDataBeforeFill(array $data): array
@@ -28,7 +32,7 @@ class EditResident extends EditRecord
         $profile = $record->residentProfile;
 
         $data['profile'] = [
-            'resident_category_id'  => $profile?->resident_category_id, // ✅ TAMBAH
+            'resident_category_id'  => $profile?->resident_category_id,
             'is_international'      => (bool) ($profile?->is_international ?? false),
             'national_id'           => $profile?->national_id,
             'student_id'            => $profile?->student_id,
@@ -108,7 +112,7 @@ class EditResident extends EditRecord
             ResidentProfile::updateOrCreate(
                 ['user_id' => $record->id],
                 [
-                    'resident_category_id'  => $categoryId, // ✅ TAMBAH
+                    'resident_category_id'  => $categoryId,
                     'is_international'      => (bool) ($profileData['is_international'] ?? false),
                     'national_id'           => $profileData['national_id'] ?? null,
                     'student_id'            => $profileData['student_id'] ?? null,
@@ -213,6 +217,23 @@ class EditResident extends EditRecord
 
             return $record;
         });
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\DeleteAction::make()
+                ->label('Hapus')
+                ->visible(fn (): bool =>
+                    ! $this->record->trashed()
+                    && ! RoomResident::query()->where('user_id', $this->record->id)->exists()
+                ),
+        ];
     }
 
     private function ensureRoomCategoryValidAndLock(Room $room, int $residentCategoryId): void

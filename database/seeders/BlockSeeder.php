@@ -8,43 +8,33 @@ use Illuminate\Database\Seeder;
 
 class BlockSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        $pusat   = Dorm::where('name', 'Asrama Pusat')->first();
-        $cimahi  = Dorm::where('name', 'Asrama Cabang Cimahi')->first();
-        $jakarta = Dorm::where('name', 'Asrama Cabang Jakarta')->first();
+        $grendeng = Dorm::where('name', 'Cabang Grendeng')->first();
+        $banyumas = Dorm::where('name', 'Cabang Banyumas')->first();
+        $sokaraja = Dorm::where('name', 'Cabang Sokaraja')->first();
 
-        if ($pusat) {
-            Block::create([
-                'dorm_id'     => $pusat->id,
-                'name'        => 'Komplek A Pusat',
-                'description' => 'Komplek utama di asrama pusat.',
-            ]);
+        $blocks = [
+            // Grendeng
+            ['dorm_id' => $grendeng?->id, 'name' => 'Komplek Sejahtera', 'description' => 'Komplek utama'],
+            ['dorm_id' => $grendeng?->id, 'name' => 'Komplek Barokah', 'description' => 'Komplek tambahan'],
 
-            Block::create([
-                'dorm_id'     => $pusat->id,
-                'name'        => 'Komplek B Pusat',
-                'description' => 'Komplek tambahan di asrama pusat.',
-            ]);
-        }
+            // Banyumas
+            ['dorm_id' => $banyumas?->id, 'name' => 'Komplek Kaya', 'description' => 'Komplek putra A'],
+            ['dorm_id' => $banyumas?->id, 'name' => 'Komplek Melati', 'description' => 'Komplek putra B'],
 
-        if ($cimahi) {
-            Block::create([
-                'dorm_id'     => $cimahi->id,
-                'name'        => 'Komplek A Cimahi',
-                'description' => 'Komplek pertama di cabang Cimahi.',
-            ]);
-        }
+            // Sokaraja
+            ['dorm_id' => $sokaraja?->id, 'name' => 'Komplek Mawar', 'description' => 'Komplek putri A'],
+            ['dorm_id' => $sokaraja?->id, 'name' => 'Komplek Kenanga', 'description' => 'Komplek putri B'],
+        ];
 
-        if ($jakarta) {
-            Block::create([
-                'dorm_id'     => $jakarta->id,
-                'name'        => 'Komplek A Jakarta',
-                'description' => 'Komplek mahasiswa kerja sama kampus Jakarta.',
-            ]);
+        foreach ($blocks as $block) {
+            if ($block['dorm_id']) {
+                Block::firstOrCreate(
+                    ['dorm_id' => $block['dorm_id'], 'name' => $block['name']],
+                    ['description' => $block['description']]
+                );
+            }
         }
     }
 }

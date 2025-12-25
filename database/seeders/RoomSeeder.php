@@ -12,59 +12,38 @@ class RoomSeeder extends Seeder
 {
     public function run(): void
     {
-        $roomTypes = RoomType::query()
-            ->where('is_active', true)
-            ->get();
+        $blocks = Block::with(['dorm'])->get();
+        $roomTypes = RoomType::all();
 
-        if ($roomTypes->isEmpty()) {
-            $roomTypes = RoomType::all();
+        if ($roomTypes->isEmpty() || $blocks->isEmpty()) {
+            return;
         }
-
-        // ambil blocks + dorm
-        $blocks = Block::with(['dorm'])
-            ->get()
-            ->filter(fn($block) => $block->dorm !== null);
 
         foreach ($blocks as $block) {
             $dorm = $block->dorm;
+            if (!$dorm) continue;
 
-            $dormPart = Str::of($dorm->name)
-                ->slug('')
-                ->lower()
-                ->toString();
+            // Generate room code prefix
+            $dormSlug = Str::slug($dorm->name);
+            $blockSlug = Str::slug($block->name);
 
-            $blockPart = null;
-
-            if (isset($block->code) && filled($block->code)) {
-                $blockPart = Str::upper((string) $block->code);
-            } else {
-                $first = Str::of($block->name)->trim()->substr(0, 1)->toString();
-                $blockPart = Str::upper($first ?: 'X');
-            }
-
+            // Buat 2-3 kamar per room type per block
             foreach ($roomTypes as $roomType) {
-                $typePart = Str::of($roomType->name)->before(' ')->upper()->toString();
-                if ($typePart === '') {
-                    $typePart = 'TYPE';
-                }
+                $typeSlug = Str::slug($roomType->name);
 
-                for ($i = 1; $i <= 3; $i++) {
-                    $number = str_pad((string) $i, 2, '0', STR_PAD_LEFT);
-                    $code = "{$dormPart}-{$blockPart}-{$typePart}-{$number}";
+                for ($i = 1; $i <= 2; $i++) {
+                    $number = str_pad($i, 2, '0', STR_PAD_LEFT);
+                    $code = "{$dormSlug}-{$blockSlug}-{$typeSlug}-{$number}";
 
-                    Room::updateOrCreate(
+                    Room::firstOrCreate(
                         ['code' => $code],
                         [
-                            'block_id'     => $block->id,
+                            'block_id' => $block->id,
                             'room_type_id' => $roomType->id,
-                            'number'       => $number,
-
-                            'capacity'     => null,
-                            'monthly_rate' => null,
-                            'capacity'     => $roomType->default_capacity,
+                            'number' => $number,
+                            'capacity' => $roomType->default_capacity,
                             'monthly_rate' => $roomType->default_monthly_rate,
-
-                            'is_active'    => true,
+                            'is_active' => true,
                         ]
                     );
                 }
