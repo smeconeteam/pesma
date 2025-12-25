@@ -2,16 +2,13 @@
 
 namespace Database\Seeders;
 
-use App\Models\Block;
 use App\Models\Country;
-use App\Models\Dorm;
 use App\Models\ResidentCategory;
 use App\Models\ResidentProfile;
 use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomHistory;
 use App\Models\RoomResident;
-use App\Models\RoomType;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +25,6 @@ class ResidentSeeder extends Seeder
             $superAdmin = User::where('email', 'superadmin@example.com')->first();
 
             if (!$residentRole || !$indonesia || !$superAdmin) {
-                $this->command->warn('Role resident, Country Indonesia, atau Super Admin tidak ditemukan. Skip seeder.');
                 return;
             }
 
@@ -41,7 +37,8 @@ class ResidentSeeder extends Seeder
                     'password' => Hash::make('123456789'),
                     'profile' => [
                         'resident_category_id' => ResidentCategory::where('name', 'Pondok')->value('id'),
-                        'is_international' => false,
+                        'citizenship_status' => 'WNI',
+                        'country_id' => $indonesia->id,
                         'national_id' => '3302120101040001',
                         'student_id' => '2023010001',
                         'full_name' => 'Muhammad Rizki Ananda',
@@ -52,10 +49,10 @@ class ResidentSeeder extends Seeder
                         'phone_number' => '081234561001',
                         'guardian_name' => 'Bapak Ananda Wijaya',
                         'guardian_phone_number' => '081298761001',
+                        'status' => 'active',
                     ],
                     'room_code' => 'cabang-grendeng-komplek-sejahtera-reguler-4-01',
                     'check_in_date' => now()->subMonths(6)->toDateString(),
-                    'check_out_date' => null,
                     'is_pic' => true,
                 ],
 
@@ -65,7 +62,8 @@ class ResidentSeeder extends Seeder
                     'password' => Hash::make('123456789'),
                     'profile' => [
                         'resident_category_id' => ResidentCategory::where('name', 'Pondok')->value('id'),
-                        'is_international' => false,
+                        'citizenship_status' => 'WNI',
+                        'country_id' => $indonesia->id,
                         'national_id' => '3302121503040002',
                         'student_id' => '2023010002',
                         'full_name' => 'Dedi Kurniawan Saputra',
@@ -76,10 +74,10 @@ class ResidentSeeder extends Seeder
                         'phone_number' => '081234561002',
                         'guardian_name' => 'Bapak Kurniawan',
                         'guardian_phone_number' => '081298761002',
+                        'status' => 'active',
                     ],
                     'room_code' => 'cabang-grendeng-komplek-sejahtera-reguler-4-01',
                     'check_in_date' => now()->subMonths(5)->toDateString(),
-                    'check_out_date' => null,
                     'is_pic' => false,
                 ],
 
@@ -89,7 +87,8 @@ class ResidentSeeder extends Seeder
                     'password' => Hash::make('123456789'),
                     'profile' => [
                         'resident_category_id' => ResidentCategory::where('name', 'Asrama')->value('id'),
-                        'is_international' => false,
+                        'citizenship_status' => 'WNI',
+                        'country_id' => $indonesia->id,
                         'national_id' => '3302122008040003',
                         'student_id' => '2023010003',
                         'full_name' => 'Agus Santoso Pratama',
@@ -100,10 +99,10 @@ class ResidentSeeder extends Seeder
                         'phone_number' => '081234561003',
                         'guardian_name' => 'Bapak Santoso',
                         'guardian_phone_number' => '081298761003',
+                        'status' => 'active',
                     ],
                     'room_code' => 'cabang-grendeng-komplek-sejahtera-subsidi-01',
                     'check_in_date' => now()->subMonths(8)->toDateString(),
-                    'check_out_date' => null,
                     'is_pic' => true,
                 ],
 
@@ -114,7 +113,8 @@ class ResidentSeeder extends Seeder
                     'password' => Hash::make('123456789'),
                     'profile' => [
                         'resident_category_id' => ResidentCategory::where('name', 'Wisma')->value('id'),
-                        'is_international' => false,
+                        'citizenship_status' => 'WNI',
+                        'country_id' => $indonesia->id,
                         'national_id' => '3302121005040004',
                         'student_id' => '2023010004',
                         'full_name' => 'Fahmi Hidayat Ramadhan',
@@ -125,10 +125,10 @@ class ResidentSeeder extends Seeder
                         'phone_number' => '081234561004',
                         'guardian_name' => 'Bapak Hidayat',
                         'guardian_phone_number' => '081298761004',
+                        'status' => 'active',
                     ],
                     'room_code' => 'cabang-banyumas-komplek-kaya-megah-01',
                     'check_in_date' => now()->subMonths(4)->toDateString(),
-                    'check_out_date' => null,
                     'is_pic' => true,
                 ],
 
@@ -138,7 +138,8 @@ class ResidentSeeder extends Seeder
                     'password' => Hash::make('123456789'),
                     'profile' => [
                         'resident_category_id' => ResidentCategory::where('name', 'Wisma')->value('id'),
-                        'is_international' => false,
+                        'citizenship_status' => 'WNI',
+                        'country_id' => $indonesia->id,
                         'national_id' => '3302122512040005',
                         'student_id' => '2023010005',
                         'full_name' => 'Imam Maulana Ibrahim',
@@ -149,10 +150,10 @@ class ResidentSeeder extends Seeder
                         'phone_number' => '081234561005',
                         'guardian_name' => 'Bapak Ibrahim',
                         'guardian_phone_number' => '081298761005',
+                        'status' => 'active',
                     ],
                     'room_code' => 'cabang-banyumas-komplek-kaya-megah-01',
                     'check_in_date' => now()->subMonths(4)->toDateString(),
-                    'check_out_date' => null,
                     'is_pic' => false,
                 ],
 
@@ -163,7 +164,8 @@ class ResidentSeeder extends Seeder
                     'password' => Hash::make('123456789'),
                     'profile' => [
                         'resident_category_id' => ResidentCategory::where('name', 'Pondok')->value('id'),
-                        'is_international' => false,
+                        'citizenship_status' => 'WNI',
+                        'country_id' => $indonesia->id,
                         'national_id' => '3302124505050001',
                         'student_id' => '2023020001',
                         'full_name' => 'Nur Azizah Rahmawati',
@@ -174,10 +176,10 @@ class ResidentSeeder extends Seeder
                         'phone_number' => '081234562001',
                         'guardian_name' => 'Ibu Rahmawati',
                         'guardian_phone_number' => '081298762001',
+                        'status' => 'active',
                     ],
                     'room_code' => 'cabang-sokaraja-komplek-mawar-reguler-4-01',
                     'check_in_date' => now()->subMonths(7)->toDateString(),
-                    'check_out_date' => null,
                     'is_pic' => true,
                 ],
 
@@ -187,7 +189,8 @@ class ResidentSeeder extends Seeder
                     'password' => Hash::make('123456789'),
                     'profile' => [
                         'resident_category_id' => ResidentCategory::where('name', 'Pondok')->value('id'),
-                        'is_international' => false,
+                        'citizenship_status' => 'WNI',
+                        'country_id' => $indonesia->id,
                         'national_id' => '3302123107050002',
                         'student_id' => '2023020002',
                         'full_name' => 'Fitri Handayani Putri',
@@ -198,10 +201,10 @@ class ResidentSeeder extends Seeder
                         'phone_number' => '081234562002',
                         'guardian_name' => 'Ibu Handayani',
                         'guardian_phone_number' => '081298762002',
+                        'status' => 'active',
                     ],
                     'room_code' => 'cabang-sokaraja-komplek-mawar-reguler-4-01',
                     'check_in_date' => now()->subMonths(6)->toDateString(),
-                    'check_out_date' => null,
                     'is_pic' => false,
                 ],
 
@@ -211,7 +214,8 @@ class ResidentSeeder extends Seeder
                     'password' => Hash::make('123456789'),
                     'profile' => [
                         'resident_category_id' => ResidentCategory::where('name', 'Wisma')->value('id'),
-                        'is_international' => false,
+                        'citizenship_status' => 'WNI',
+                        'country_id' => $indonesia->id,
                         'national_id' => '3302121408050003',
                         'student_id' => '2023020003',
                         'full_name' => 'Dewi Lestari Sari',
@@ -222,10 +226,10 @@ class ResidentSeeder extends Seeder
                         'phone_number' => '081234562003',
                         'guardian_name' => 'Bapak Lestari',
                         'guardian_phone_number' => '081298762003',
+                        'status' => 'active',
                     ],
                     'room_code' => 'cabang-sokaraja-komplek-mawar-megah-01',
                     'check_in_date' => now()->subMonths(3)->toDateString(),
-                    'check_out_date' => null,
                     'is_pic' => true,
                 ],
 
@@ -235,7 +239,8 @@ class ResidentSeeder extends Seeder
                     'password' => Hash::make('123456789'),
                     'profile' => [
                         'resident_category_id' => ResidentCategory::where('name', 'Asrama')->value('id'),
-                        'is_international' => false,
+                        'citizenship_status' => 'WNI',
+                        'country_id' => $indonesia->id,
                         'national_id' => '3302122203050004',
                         'student_id' => '2023020004',
                         'full_name' => 'Siti Aminah Zahra',
@@ -246,10 +251,10 @@ class ResidentSeeder extends Seeder
                         'phone_number' => '081234562004',
                         'guardian_name' => 'Ibu Zahra',
                         'guardian_phone_number' => '081298762004',
+                        'status' => 'active',
                     ],
                     'room_code' => 'cabang-sokaraja-komplek-kenanga-subsidi-01',
                     'check_in_date' => now()->subMonths(9)->toDateString(),
-                    'check_out_date' => null,
                     'is_pic' => true,
                 ],
 
@@ -260,7 +265,8 @@ class ResidentSeeder extends Seeder
                     'password' => Hash::make('123456789'),
                     'profile' => [
                         'resident_category_id' => ResidentCategory::where('name', 'Kos')->value('id'),
-                        'is_international' => false,
+                        'citizenship_status' => 'WNI',
+                        'country_id' => $indonesia->id,
                         'national_id' => '3302121806030001',
                         'student_id' => '2022010001',
                         'full_name' => 'Andi Wijaya Kusuma',
@@ -271,6 +277,7 @@ class ResidentSeeder extends Seeder
                         'phone_number' => '081234563001',
                         'guardian_name' => 'Bapak Wijaya',
                         'guardian_phone_number' => '081298763001',
+                        'status' => 'inactive',
                     ],
                     'room_code' => 'cabang-grendeng-komplek-barokah-reguler-4-01',
                     'check_in_date' => now()->subYear()->toDateString(),
@@ -280,131 +287,60 @@ class ResidentSeeder extends Seeder
             ];
 
             foreach ($residents as $data) {
-                $room = Room::where('code', $data['room_code'])->first();
-
-                if (!$room) {
-                    $this->command->warn("Room dengan code {$data['room_code']} tidak ditemukan. Skip {$data['email']}");
-                    continue;
-                }
-
-                $categoryId = $data['profile']['resident_category_id'];
-                if (!$categoryId) {
-                    $this->command->warn("Kategori penghuni tidak ditemukan untuk {$data['email']}. Skip.");
-                    continue;
-                }
-
-                $gender = $data['profile']['gender'];
-                $checkOutDate = $data['check_out_date'] ?? null;
-                $isPic = $data['is_pic'];
-
-                // ====== VALIDASI + LOCK (hanya untuk penghuni aktif) ======
-                if (is_null($checkOutDate)) {
-                    // Lock room + lock penghuni aktif
-                    $room = Room::query()->lockForUpdate()->findOrFail($room->id);
-
-                    RoomResident::query()
-                        ->where('room_id', $room->id)
-                        ->whereNull('check_out_date')
-                        ->lockForUpdate()
-                        ->get();
-
-                    // ====== (A) VALIDASI KATEGORI KAMAR + AUTO-LOCK ======
-                    $roomHasActive = RoomResident::query()
-                        ->where('room_id', $room->id)
-                        ->whereNull('check_out_date')
-                        ->exists();
-
-                    if (! is_null($room->resident_category_id)) {
-                        if ((int) $room->resident_category_id !== (int) $categoryId) {
-                            $this->command->warn("Kategori kamar {$room->code} tidak sesuai dengan penghuni {$data['email']}. Skip.");
-                            continue;
-                        }
-                    } else {
-                        if ($roomHasActive) {
-                            $this->command->warn("Kamar {$room->code} belum punya kategori tapi sudah terisi. Data tidak konsisten. Skip {$data['email']}");
-                            continue;
-                        }
-
-                        // Lock kategori kamar sesuai penghuni pertama
-                        $room->resident_category_id = $categoryId;
-                        $room->save();
-                    }
-
-                    // ====== (B) VALIDASI GENDER (anti campur) ======
-                    $activeGender = RoomResident::query()
-                        ->where('room_residents.room_id', $room->id)
-                        ->whereNull('room_residents.check_out_date')
-                        ->join('resident_profiles', 'resident_profiles.user_id', '=', 'room_residents.user_id')
-                        ->value('resident_profiles.gender');
-
-                    if ($activeGender && $activeGender !== $gender) {
-                        $this->command->warn("Kamar {$room->code} sudah khusus gender lain. Skip {$data['email']}");
-                        continue;
-                    }
-
-                    // ====== (C) VALIDASI PIC ======
-                    if ($isPic) {
-                        $hasPic = RoomResident::query()
-                            ->where('room_id', $room->id)
-                            ->whereNull('check_out_date')
-                            ->where('is_pic', true)
-                            ->exists();
-
-                        if ($hasPic) {
-                            $this->command->warn("Kamar {$room->code} sudah punya PIC aktif. {$data['email']} tidak dijadikan PIC.");
-                            $isPic = false;
-                        }
-                    }
-                }
-
-                // ====== 1. BUAT USER ======
+                // 1. Buat User
                 $user = User::firstOrCreate(
                     ['email' => $data['email']],
                     [
                         'name' => $data['name'],
                         'password' => $data['password'],
-                        'is_active' => is_null($checkOutDate), // aktif jika masih tinggal
+                        'is_active' => $data['profile']['status'] === 'active',
                     ]
                 );
 
-                // ====== 2. ATTACH ROLE RESIDENT ======
+                // 2. Attach role resident
                 $user->roles()->syncWithoutDetaching([$residentRole->id]);
 
-                // ====== 3. BUAT RESIDENT PROFILE ======
+                // 3. Buat Resident Profile
                 ResidentProfile::updateOrCreate(
                     ['user_id' => $user->id],
                     $data['profile']
                 );
 
-                // ====== 4. BUAT ROOM RESIDENT ======
-                $roomResident = RoomResident::firstOrCreate(
-                    [
-                        'room_id' => $room->id,
-                        'user_id' => $user->id,
-                        'check_in_date' => $data['check_in_date'],
-                    ],
-                    [
-                        'check_out_date' => $checkOutDate,
-                        'is_pic' => $isPic,
-                    ]
-                );
+                // 4. Tempatkan ke kamar
+                $room = Room::where('code', $data['room_code'])->first();
 
-                // ====== 5. BUAT ROOM HISTORY ======
-                RoomHistory::firstOrCreate(
-                    [
-                        'user_id' => $user->id,
-                        'room_id' => $room->id,
-                        'room_resident_id' => $roomResident->id,
-                        'check_in_date' => $data['check_in_date'],
-                    ],
-                    [
-                        'check_out_date' => $checkOutDate,
-                        'is_pic' => $isPic,
-                        'movement_type' => $checkOutDate ? 'checkout' : 'new',
-                        'notes' => $checkOutDate ? 'Keluar dari asrama' : 'Penghuni baru',
-                        'recorded_by' => $superAdmin->id,
-                    ]
-                );
+                if ($room) {
+                    $checkOutDate = $data['check_out_date'] ?? null;
+
+                    $roomResident = RoomResident::firstOrCreate(
+                        [
+                            'room_id' => $room->id,
+                            'user_id' => $user->id,
+                            'check_in_date' => $data['check_in_date'],
+                        ],
+                        [
+                            'check_out_date' => $checkOutDate,
+                            'is_pic' => $data['is_pic'],
+                        ]
+                    );
+
+                    // 5. Buat Room History
+                    RoomHistory::firstOrCreate(
+                        [
+                            'user_id' => $user->id,
+                            'room_id' => $room->id,
+                            'room_resident_id' => $roomResident->id,
+                            'check_in_date' => $data['check_in_date'],
+                        ],
+                        [
+                            'check_out_date' => $checkOutDate,
+                            'is_pic' => $data['is_pic'],
+                            'movement_type' => $checkOutDate ? 'checkout' : 'new',
+                            'notes' => $checkOutDate ? 'Keluar dari asrama' : 'Penghuni baru',
+                            'recorded_by' => $superAdmin->id,
+                        ]
+                    );
+                }
             }
         });
     }
