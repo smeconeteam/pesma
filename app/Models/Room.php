@@ -15,6 +15,7 @@ class Room extends Model
     protected $fillable = [
         'block_id',
         'room_type_id',
+        'resident_category_id',
         'code',
         'number',
         'capacity',
@@ -39,9 +40,19 @@ class Room extends Model
         return $this->belongsTo(RoomType::class, 'room_type_id');
     }
 
+    public function residentCategory(): BelongsTo
+    {
+        return $this->belongsTo(ResidentCategory::class, 'resident_category_id');
+    }
+
     public function roomResidents(): HasMany
     {
-        return $this->hasMany(RoomResident::class);
+        return $this->hasMany(RoomResident::class, 'room_id');
+    }
+
+    public function activeRoomResidents(): HasMany
+    {
+        return $this->roomResidents()->whereNull('check_out_date');
     }
 
     public function activeResidents(): HasMany
@@ -51,6 +62,11 @@ class Room extends Model
     }
 
     // Helper methods
+    public function isEmpty(): bool
+    {
+        return ! $this->activeRoomResidents()->exists();
+    }
+
     public function getAvailableCapacityAttribute(): int
     {
         $activeCount = $this->activeResidents()->count();

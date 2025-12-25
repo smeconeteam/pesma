@@ -8,10 +8,12 @@ use App\Models\Dorm;
 use App\Models\Room;
 use App\Models\RoomResident;
 use App\Models\RoomType;
+use App\Models\ResidentCategory;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Forms\Components\Select;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\Section as InfoSection;
@@ -42,7 +44,7 @@ class RoomResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Informasi Kamar')
                     ->schema([
-                        Forms\Components\Select::make('dorm_id')
+                        Select::make('dorm_id')
                             ->label('Cabang')
                             ->dehydrated(false)
                             ->options(fn() => Dorm::query()
@@ -67,7 +69,7 @@ class RoomResource extends Resource
                             ->disabled(function ($record) {
                                 if (!$record) return false;
 
-                                return \App\Models\RoomResident::query()
+                                return RoomResident::query()
                                     ->where('room_id', $record->id)
                                     ->whereNull('check_out_date')
                                     ->exists();
@@ -77,7 +79,7 @@ class RoomResource extends Resource
                                     return 'Pilih cabang terlebih dahulu untuk memuat daftar komplek.';
                                 }
 
-                                $hasActiveResidents = \App\Models\RoomResident::query()
+                                $hasActiveResidents = RoomResident::query()
                                     ->where('room_id', $record->id)
                                     ->whereNull('check_out_date')
                                     ->exists();
@@ -87,7 +89,7 @@ class RoomResource extends Resource
                                     : 'Pilih cabang terlebih dahulu untuk memuat daftar komplek.';
                             }),
 
-                        Forms\Components\Select::make('block_id')
+                        Select::make('block_id')
                             ->label('Komplek')
                             ->live()
                             ->afterStateUpdated(fn(Set $set, Get $get) => static::generateRoomCode($set, $get))
@@ -113,7 +115,7 @@ class RoomResource extends Resource
                                 // ✅ Disable jika kamar punya penghuni aktif
                                 if (!$record) return false;
 
-                                return \App\Models\RoomResident::query()
+                                return RoomResident::query()
                                     ->where('room_id', $record->id)
                                     ->whereNull('check_out_date')
                                     ->exists();
@@ -125,7 +127,7 @@ class RoomResource extends Resource
 
                                 if (!$record) return null;
 
-                                $hasActiveResidents = \App\Models\RoomResident::query()
+                                $hasActiveResidents = RoomResident::query()
                                     ->where('room_id', $record->id)
                                     ->whereNull('check_out_date')
                                     ->exists();
@@ -135,7 +137,7 @@ class RoomResource extends Resource
                                     : null;
                             }),
 
-                        Forms\Components\Select::make('room_type_id')
+                        Select::make('room_type_id')
                             ->label('Tipe Kamar')
                             ->options(fn() => RoomType::query()
                                 ->where('is_active', true)
@@ -183,10 +185,25 @@ class RoomResource extends Resource
                         Forms\Components\Toggle::make('is_active')
                             ->label('Aktif')
                             ->default(true),
+
+                        Select::make('resident_category_id')
+                            ->label('Kategori Kamar')
+                            ->relationship('residentCategory', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->helperText('Kategori hanya bisa diubah jika kamar kosong (tidak ada penghuni aktif).')
+                            ->disabled(function (?Room $record) {
+                                // saat create, $record null => boleh pilih
+                                if (! $record) return false;
+
+                                // saat edit, jika ada penghuni aktif => disable
+                                return ! $record->isEmpty();
+                            }),
                     ])
                     ->columns(2),
             ]);
     }
+
     public static function table(Table $table): Table
     {
         return $table

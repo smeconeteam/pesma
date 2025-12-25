@@ -20,6 +20,9 @@ class DatabaseSeeder extends Seeder
             RoomSeeder::class,
 
             ResidentCategorySeeder::class,
+            BillingTypeSeeder::class,
+            DiscountSeeder::class,
+            PaymentMethodSeeder::class,
 
             AdminScopeSeeder::class,
 
