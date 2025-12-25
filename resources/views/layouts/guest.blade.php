@@ -6,13 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    @php
-        $institution = institution();
-    @endphp
+    <title>{{ $institution?->dormitory_name ?? config('app.name') }}</title>
 
-    <title>{{ $institution->dormitory_name ?? config('app.name', 'Laravel') }}</title>
-
-    @if ($institution && $institution->logo_path)
+    @if ($institution?->logo_path)
         @php
             $favicon = Storage::url($institution->logo_path);
         @endphp
@@ -53,7 +49,7 @@
             </h1>
         </div>
 
-        <div {{ $attributes->merge(['class' => 'mt-6 w-full overflow-hidden bg-white px-6 py-4 shadow-md sm:max-w-md sm:rounded-lg']) }}>
+        <div {{ $attributes->merge(['class' => 'mt-6 w-full overflow-hidden bg-white px-6 py-4 shadow-md max-w-md rounded-lg md:max-w-5xl md:rounded-none']) }}>
             {{ $slot }}
         </div>
     </div>

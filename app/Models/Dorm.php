@@ -36,6 +36,11 @@ class Dorm extends Model
         return $this->hasMany(AdminScope::class);
     }
 
+    public function registrations(): HasMany
+    {
+        return $this->hasMany(Registration::class, 'preferred_dorm_id');
+    }
+
     public function canBeDeleted()
     {
         return ! $this->blocks()->exists();

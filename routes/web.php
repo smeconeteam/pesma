@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Middleware\EnsureUserIsResident;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\PublicRegistrationController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -24,3 +25,15 @@ Route::get('/no-access', function () {
 })->name('no-access');
 
 require __DIR__ . '/auth.php';
+
+
+
+Route::get('/pendaftaran', [PublicRegistrationController::class, 'create'])
+    ->name('public.registration.create');
+
+Route::post('/pendaftaran', [PublicRegistrationController::class, 'store'])
+    ->name('public.registration.store');
+
+Route::get('/pendaftaran/berhasil', [PublicRegistrationController::class, 'success'])
+    ->name('public.registration.success');
+

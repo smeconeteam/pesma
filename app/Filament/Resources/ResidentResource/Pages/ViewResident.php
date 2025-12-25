@@ -8,6 +8,7 @@ use Filament\Infolists\Infolist;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\Section as InfoSection;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewResident extends ViewRecord
@@ -19,6 +20,29 @@ class ViewResident extends ViewRecord
         return [
             Actions\EditAction::make(),
         ];
+    }
+
+    public function mount(int|string $record): void
+    {
+        parent::mount($record);
+
+        // Eager load semua relasi yang dibutuhkan
+        $this->record->load([
+            'residentProfile.residentCategory',
+            'residentProfile.country',
+            'activeRoomResident.room.roomType',
+            'activeRoomResident.room.block.dorm',
+        ]);
+
+        // Load room histories tanpa duplikasi
+        $this->record->setRelation(
+            'roomHistories',
+            $this->record->roomHistories()
+                ->with(['room.roomType', 'room.block.dorm', 'recordedBy'])
+                ->orderBy('check_in_date', 'desc')
+                ->get()
+                ->unique('id') // Pastikan unique berdasarkan ID
+        );
     }
 
     public function infolist(Infolist $infolist): Infolist
@@ -42,6 +66,23 @@ class ViewResident extends ViewRecord
                         ->columnSpanFull(),
 
                     TextEntry::make('residentProfile.full_name')->label('Nama Lengkap')->placeholder('-'),
+
+                    TextEntry::make('residentProfile.status')
+                        ->label('Status Penghuni')
+                        ->badge()
+                        ->color(fn($state) => match ($state) {
+                            'registered' => 'warning',
+                            'active' => 'success',
+                            'inactive' => 'danger',
+                            default => 'secondary',
+                        })
+                        ->formatStateUsing(fn($state) => match ($state) {
+                            'registered' => 'Terdaftar',
+                            'active' => 'Aktif',
+                            'inactive' => 'Nonaktif',
+                            default => '-',
+                        }),
+
                     TextEntry::make('residentProfile.residentCategory.name')->label('Kategori')->placeholder('-')->badge(),
                     TextEntry::make('residentProfile.gender')
                         ->label('Gender')
@@ -58,6 +99,150 @@ class ViewResident extends ViewRecord
                     TextEntry::make('residentProfile.guardian_name')->label('Nama Wali')->placeholder('-'),
                     TextEntry::make('residentProfile.guardian_phone_number')->label('No. HP Wali')->placeholder('-'),
                 ]),
+
+            InfoSection::make('Kamar Saat Ini')
+                ->columns(2)
+                ->schema([
+                    TextEntry::make('activeRoomResident.room.block.dorm.name')
+                        ->label('Cabang')
+                        ->placeholder('-'),
+
+                    TextEntry::make('activeRoomResident.room.block.name')
+                        ->label('Komplek')
+                        ->placeholder('-'),
+
+                    TextEntry::make('activeRoomResident.room.roomType.name')
+                        ->label('Tipe Kamar')
+                        ->placeholder('-'),
+
+                    TextEntry::make('activeRoomResident.room.number')
+                        ->label('Nomor Kamar')
+                        ->placeholder('-'),
+
+                    TextEntry::make('activeRoomResident.room.code')
+                        ->label('Kode Kamar')
+                        ->placeholder('-'),
+
+                    TextEntry::make('activeRoomResident.check_in_date')
+                        ->label('Tanggal Masuk')
+                        ->date('d M Y')
+                        ->placeholder('-'),
+
+                    IconEntry::make('activeRoomResident.is_pic')
+                        ->label('PIC Kamar')
+                        ->boolean()
+                        ->placeholder('-'),
+                ])
+                ->visible(fn($record) => $record->activeRoomResident !== null),
+
+            InfoSection::make('Riwayat Kamar')
+                ->description('Riwayat perpindahan kamar penghuni')
+                ->schema([
+                    RepeatableEntry::make('roomHistories')
+                        ->label('')
+                        ->schema([
+                            InfoSection::make('')
+                                ->columns(2)
+                                ->schema([
+                                    TextEntry::make('room.block.dorm.name')
+                                        ->label('Cabang')
+                                        ->placeholder('-'),
+
+                                    TextEntry::make('room.block.name')
+                                        ->label('Komplek')
+                                        ->placeholder('-'),
+
+                                    TextEntry::make('room.roomType.name')
+                                        ->label('Tipe Kamar')
+                                        ->placeholder('-'),
+
+                                    TextEntry::make('room.number')
+                                        ->label('Nomor Kamar')
+                                        ->placeholder('-'),
+
+                                    TextEntry::make('room.code')
+                                        ->label('Kode Kamar')
+                                        ->placeholder('-'),
+
+                                    TextEntry::make('movement_type')
+                                        ->label('Tipe Perpindahan')
+                                        ->badge()
+                                        ->color(fn($state) => match ($state) {
+                                            'new' => 'success',
+                                            'transfer' => 'warning',
+                                            'checkout' => 'danger',
+                                            default => 'secondary',
+                                        })
+                                        ->formatStateUsing(fn($state) => match ($state) {
+                                            'new' => 'Masuk Baru',
+                                            'transfer' => 'Pindah',
+                                            'checkout' => 'Keluar',
+                                            default => '-',
+                                        }),
+
+                                    TextEntry::make('check_in_date')
+                                        ->label('Tanggal Masuk')
+                                        ->date('d M Y'),
+
+                                    TextEntry::make('check_out_date')
+                                        ->label('Tanggal Keluar')
+                                        ->date('d M Y')
+                                        ->placeholder('Masih tinggal')
+                                        ->default(null),
+
+                                    TextEntry::make('duration_display')
+                                        ->label('Durasi Tinggal')
+                                        ->state(function ($record) {
+                                            $checkIn = $record->check_in_date;
+                                            $checkOut = $record->check_out_date;
+
+                                            if (!$checkIn) return '-';
+
+                                            // PERBAIKAN: Hitung durasi dengan benar
+                                            if (!$checkOut) {
+                                                // Masih tinggal: dari check_in sampai sekarang
+                                                $days = (int) $checkIn->diffInDays(now());
+                                            } else {
+                                                // Sudah checkout: dari check_in sampai check_out
+                                                $days = (int) $checkIn->diffInDays($checkOut);
+                                            }
+
+                                            if ($days === 0) return '< 1 hari';
+                                            if ($days === 1) return '1 hari';
+
+                                            // Konversi ke bulan dan hari (bilangan bulat)
+                                            $months = (int) floor($days / 30);
+                                            $remainingDays = (int) ($days % 30);
+
+                                            if ($months > 0 && $remainingDays > 0) {
+                                                return $months . ' bulan ' . $remainingDays . ' hari';
+                                            } elseif ($months > 0) {
+                                                return $months . ' bulan';
+                                            }
+
+                                            return $days . ' hari';
+                                        }),
+
+                                    IconEntry::make('is_pic')
+                                        ->label('PIC Kamar')
+                                        ->boolean(),
+
+                                    TextEntry::make('notes')
+                                        ->label('Catatan')
+                                        ->placeholder('-')
+                                        ->columnSpanFull(),
+
+                                    TextEntry::make('recordedBy.name')
+                                        ->label('Dicatat Oleh')
+                                        ->placeholder('-'),
+                                ])
+                                ->columnSpanFull(),
+                        ])
+                        ->columnSpanFull(),
+                ])
+                ->collapsible()
+                ->collapsed(false)
+                ->visible(fn($record) => $record->roomHistories->isNotEmpty()),
         ]);
     }
 }

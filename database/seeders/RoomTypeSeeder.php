@@ -7,37 +7,40 @@ use Illuminate\Database\Seeder;
 
 class RoomTypeSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        RoomType::create([
-            'name'                 => 'VVIP 2 Orang',
-            'description'          => 'Kamar VVIP berkapasitas 2 orang, fasilitas lengkap dan privasi tinggi.',
-            'default_capacity'     => 2,
-            'default_monthly_rate' => 1500000, // contoh: 1.500.000 / bulan
-        ]);
+        $roomTypes = [
+            [
+                'name' => 'VVIP',
+                'description' => 'Kamar premium 1 orang, AC, kamar mandi dalam',
+                'default_capacity' => 1,
+                'default_monthly_rate' => 2000000,
+            ],
+            [
+                'name' => 'VIP',
+                'description' => 'Kamar VIP 2 orang, AC, kamar mandi dalam',
+                'default_capacity' => 2,
+                'default_monthly_rate' => 1500000,
+            ],
+            [
+                'name' => 'Reguler 4',
+                'description' => 'Kamar standar 4 orang, kipas angin',
+                'default_capacity' => 4,
+                'default_monthly_rate' => 800000,
+            ],
+            [
+                'name' => 'Reguler 8',
+                'description' => 'Kamar ekonomis 6-8 orang',
+                'default_capacity' => 8,
+                'default_monthly_rate' => 500000,
+            ],
+        ];
 
-        RoomType::create([
-            'name'                 => 'VIP 4 Orang',
-            'description'          => 'Kamar VIP berkapasitas 4 orang, fasilitas lebih nyaman.',
-            'default_capacity'     => 4,
-            'default_monthly_rate' => 1200000, // 1.200.000 / bulan
-        ]);
-
-        RoomType::create([
-            'name'                 => 'Reguler 4 Orang',
-            'description'          => 'Kamar reguler dengan kapasitas 4 orang.',
-            'default_capacity'     => 4,
-            'default_monthly_rate' => 900000, // 900.000 / bulan
-        ]);
-
-        RoomType::create([
-            'name'                 => 'Reguler 8 Orang',
-            'description'          => 'Kamar reguler kapasitas 8 orang, cocok untuk santri/mahasiswa.',
-            'default_capacity'     => 8,
-            'default_monthly_rate' => 800000, // 800.000 / bulan
-        ]);
+        foreach ($roomTypes as $type) {
+            RoomType::firstOrCreate(
+                ['name' => $type['name']],
+                $type
+            );
+        }
     }
 }

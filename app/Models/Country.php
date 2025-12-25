@@ -13,4 +13,9 @@ class Country extends Model
     {
         return $this->hasMany(ResidentProfile::class, 'country_id');
     }
+
+    public function registrationsByNationality(): HasMany
+    {
+        return $this->hasMany(Registration::class, 'country_id');
+    }
 }
