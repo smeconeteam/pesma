@@ -45,5 +45,18 @@ class RoleSeeder extends Seeder
         );
 
         $superAdmin->roles()->syncWithoutDetaching([$superAdminRole->id]);
+
+        $adminRole = Role::where('name', 'main_admin')->first();
+
+        $admin = User::firstOrCreate(
+            ['email' => 'admin@example.com'],
+            [
+                'name' => 'Admin Utama',
+                'password' => bcrypt('123456789'),
+                'is_active' => true,
+            ]
+        );
+
+        $admin->roles()->syncWithoutDetaching([$adminRole->id]);
     }
 }
