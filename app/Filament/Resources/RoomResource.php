@@ -360,6 +360,34 @@ class RoomResource extends Resource
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when($data['value'] ?? null, fn(Builder $q, $blockId) => $q->where('block_id', $blockId));
                     }),
+
+                SelectFilter::make('room_type_id')
+                    ->label('Tipe Kamar')
+                    ->options(fn() => RoomType::query()
+                        ->orderBy('name')
+                        ->pluck('name', 'id')
+                        ->toArray())
+                    ->searchable()
+                    ->native(false)
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when($data['value'] ?? null, fn(Builder $q, $typeId) => $q->where('room_type_id', $typeId));
+                    }),
+
+                TernaryFilter::make('is_empty')
+                    ->label('Status Penghuni')
+                    ->placeholder('Semua Kamar')
+                    ->trueLabel('Kamar Kosong')
+                    ->falseLabel('Kamar Terisi')
+                    ->native(false)
+                    ->queries(
+                        true: fn(Builder $query) => $query->whereDoesntHave('roomResidents', function (Builder $q) {
+                            $q->whereNull('check_out_date');
+                        }),
+                        false: fn(Builder $query) => $query->whereHas('roomResidents', function (Builder $q) {
+                            $q->whereNull('check_out_date');
+                        }),
+                        blank: fn(Builder $query) => $query,
+                    ),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
