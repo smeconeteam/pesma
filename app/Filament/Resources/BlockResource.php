@@ -36,9 +36,8 @@ class BlockResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('dorm_id')
                             ->label('Cabang Asrama')
-                            ->relationship('dorm', 'name', function (Builder $query) use ($user) {
-                                $query->where('is_active', true)
-                                    ->whereNull('deleted_at');
+                            ->relationship('dorm', 'name', function (Builder $query, ?Block $record) use ($user) {
+                                $query->whereNull('deleted_at');
 
                                 if (! $user) {
                                     $query->whereRaw('1 = 0');
@@ -46,17 +45,30 @@ class BlockResource extends Resource
                                 }
 
                                 if ($user->hasRole(['super_admin', 'main_admin'])) {
-                                    return;
-                                }
-
-                                if ($user->hasRole('branch_admin')) {
+                                    // Role filtering done, now handle active/inactive
+                                } elseif ($user->hasRole('branch_admin')) {
                                     $dormIds = $user->branchDormIds();
 
                                     if ($dormIds && $dormIds->isNotEmpty()) {
                                         $query->whereIn('id', $dormIds);
                                     } else {
                                         $query->whereRaw('1 = 0');
+                                        return;
                                     }
+                                } else {
+                                    $query->whereRaw('1 = 0');
+                                    return;
+                                }
+
+                                // ✅ Saat EDIT: tampilkan yang aktif + yang sudah terpilih (meski nonaktif)
+                                if ($record && $record->exists) {
+                                    $query->where(function ($q) use ($record) {
+                                        $q->where('is_active', true)
+                                            ->orWhere('id', $record->dorm_id);
+                                    });
+                                } else {
+                                    // ✅ Saat CREATE: hanya yang aktif
+                                    $query->where('is_active', true);
                                 }
                             })
                             ->required()

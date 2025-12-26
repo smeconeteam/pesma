@@ -49,11 +49,22 @@ class RoomResource extends Resource
                         Select::make('dorm_id')
                             ->label('Cabang')
                             ->dehydrated(false)
-                            ->options(fn() => Dorm::query()
-                                ->where('is_active', true)
-                                ->orderBy('name')
-                                ->pluck('name', 'id')
-                                ->toArray())
+                            ->options(function (?Room $record) {
+                                $query = Dorm::query()->orderBy('name');
+
+                                // ✅ Saat EDIT: tampilkan yang aktif + yang sudah terpilih
+                                if ($record && $record->exists && $record->block?->dorm_id) {
+                                    $query->where(function ($q) use ($record) {
+                                        $q->where('is_active', true)
+                                            ->orWhere('id', $record->block->dorm_id);
+                                    });
+                                } else {
+                                    // ✅ Saat CREATE: hanya yang aktif
+                                    $query->where('is_active', true);
+                                }
+
+                                return $query->pluck('name', 'id')->toArray();
+                            })
                             ->searchable()
                             ->native(false)
                             ->required()
@@ -94,17 +105,28 @@ class RoomResource extends Resource
                             ->label('Komplek')
                             ->live()
                             ->afterStateUpdated(fn(Set $set, Get $get) => static::generateRoomCode($set, $get))
-                            ->options(function (Get $get) {
+                            ->options(function (Get $get, ?Room $record) {
                                 $dormId = $get('dorm_id');
                                 if (!$dormId) {
                                     return [];
                                 }
 
-                                return Block::query()
+                                $query = Block::query()
                                     ->where('dorm_id', $dormId)
-                                    ->orderBy('name')
-                                    ->pluck('name', 'id')
-                                    ->toArray();
+                                    ->orderBy('name');
+
+                                // ✅ Saat EDIT: tampilkan yang aktif + yang sudah terpilih
+                                if ($record && $record->exists && $record->block_id) {
+                                    $query->where(function ($q) use ($record) {
+                                        $q->where('is_active', true)
+                                            ->orWhere('id', $record->block_id);
+                                    });
+                                } else {
+                                    // ✅ Saat CREATE: hanya yang aktif
+                                    $query->where('is_active', true);
+                                }
+
+                                return $query->pluck('name', 'id')->toArray();
                             })
                             ->searchable()
                             ->native(false)
@@ -138,11 +160,22 @@ class RoomResource extends Resource
 
                         Select::make('room_type_id')
                             ->label('Tipe Kamar')
-                            ->options(fn() => RoomType::query()
-                                ->where('is_active', true)
-                                ->orderBy('name')
-                                ->pluck('name', 'id')
-                                ->toArray())
+                            ->options(function (?Room $record) {
+                                $query = RoomType::query()->orderBy('name');
+
+                                // ✅ Saat EDIT: tampilkan yang aktif + yang sudah terpilih
+                                if ($record && $record->exists && $record->room_type_id) {
+                                    $query->where(function ($q) use ($record) {
+                                        $q->where('is_active', true)
+                                            ->orWhere('id', $record->room_type_id);
+                                    });
+                                } else {
+                                    // ✅ Saat CREATE: hanya yang aktif
+                                    $query->where('is_active', true);
+                                }
+
+                                return $query->pluck('name', 'id')->toArray();
+                            })
                             ->searchable()
                             ->native(false)
                             ->required()
