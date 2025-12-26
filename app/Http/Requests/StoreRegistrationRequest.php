@@ -2,9 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreRegistrationRequest extends FormRequest
 {
@@ -16,53 +14,61 @@ class StoreRegistrationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Akun:contentReference[oaicite:10]{index=10}
-            'email' => [
-                'required', 'email', 'max:255',
-                Rule::unique('registrations', 'email'),
-                // cegah daftar ulang jika sudah jadi user
-                function ($attr, $value, $fail) {
-                    if (User::query()->where('email', $value)->exists()) {
-                        $fail('Email ini sudah aktif. Silakan login.');
-                    }
-                },
-            ],
-            'name'     => ['required', 'string', 'max:255'],
-            'password' => ['nullable', 'string', 'min:8', 'max:255'],
+            // AKUN
+            'email' => ['required', 'email', 'max:255', 'unique:registrations,email'],
+            'name' => ['required', 'string', 'max:255'],
+            'password' => ['nullable', 'string', 'min:6'],
 
-            // Profil calon penghuni:contentReference[oaicite:11]{index=11}
-            'resident_category_id' => ['required', 'integer', 'exists:resident_categories,id'],
-            'full_name'            => ['required', 'string', 'max:255'],
-            'gender'               => ['required', Rule::in(['M', 'F'])],
-            'national_id'          => ['nullable', 'regex:/^\d+$/'],
-            'student_id'           => ['nullable', 'string', 'max:255'],
-            'birth_place'          => ['nullable', 'string', 'max:255'],
-            'birth_date'           => ['nullable', 'date'],
-            'university_school'    => ['nullable', 'string', 'max:255'],
-
-            // Foto (public form pakai input name="photo", nanti disimpan ke photo_path):contentReference[oaicite:12]{index=12}
+            // PROFIL
+            'resident_category_id' => ['required', 'exists:resident_categories,id'],
+            'full_name' => ['required', 'string', 'max:255'],
+            'gender' => ['required', 'in:M,F'],
+            'national_id' => ['required', 'regex:/^\d+$/'],
+            'student_id' => ['required', 'string', 'max:255'],
+            'birth_place' => ['required', 'string', 'max:255'],
+            'birth_date' => ['required', 'date', 'before:-6 years'],
+            'university_school' => ['required', 'string', 'max:255'],
             'photo' => ['nullable', 'image', 'max:2048'],
 
-            // Kewarganegaraan & kontak:contentReference[oaicite:13]{index=13}
-            'citizenship_status'   => ['required', Rule::in(['WNI', 'WNA'])],
-            'country_id'           => ['required', 'integer', 'exists:countries,id'],
-            'phone_number'         => ['nullable', 'regex:/^\d+$/', 'max:30'],
-            'guardian_name'        => ['nullable', 'string', 'max:255'],
-            'guardian_phone_number'=> ['nullable', 'regex:/^\d+$/', 'max:30'],
+            // KEWARGANEGARAAN & KONTAK
+            'citizenship_status' => ['required', 'in:WNI,WNA'],
+            'country_id' => ['required', 'exists:countries,id'],
+            'phone_number' => ['required', 'regex:/^\d+$/'],
+            'guardian_name' => ['nullable', 'string', 'max:255'],
+            'guardian_phone_number' => ['nullable', 'regex:/^\d+$/'],
 
-            // Preferensi kamar:contentReference[oaicite:14]{index=14}
-            'preferred_dorm_id'     => ['nullable', 'integer', 'exists:dorms,id'],
-            'preferred_room_type_id'=> ['nullable', 'integer', 'exists:room_types,id'],
-            'planned_check_in_date' => ['nullable', 'date'],
+            // PREFERENSI
+            'preferred_dorm_id' => ['required', 'exists:dorms,id'],
+            'preferred_room_type_id' => ['required', 'exists:room_types,id'],
+            'planned_check_in_date' => ['required', 'date', 'after_or_equal:today'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'national_id.regex' => 'NIK hanya boleh angka.',
-            'phone_number.regex' => 'No. HP hanya boleh angka.',
-            'guardian_phone_number.regex' => 'No. HP Wali hanya boleh angka.',
+            'email.required' => 'Email wajib diisi',
+            'email.unique' => 'Email sudah terdaftar',
+            'name.required' => 'Nama wajib diisi',
+            'resident_category_id.required' => 'Kategori penghuni wajib dipilih',
+            'full_name.required' => 'Nama lengkap wajib diisi',
+            'gender.required' => 'Jenis kelamin wajib dipilih',
+            'national_id.required' => 'NIK wajib diisi',
+            'national_id.regex' => 'NIK hanya boleh angka',
+            'student_id.required' => 'NIM wajib diisi',
+            'birth_place.required' => 'Tempat lahir wajib diisi',
+            'birth_date.required' => 'Tanggal lahir wajib diisi',
+            'birth_date.before' => 'Minimal usia 6 tahun',
+            'university_school.required' => 'Universitas/Sekolah wajib diisi',
+            'citizenship_status.required' => 'Kewarganegaraan wajib dipilih',
+            'country_id.required' => 'Asal negara wajib dipilih',
+            'phone_number.required' => 'No. HP wajib diisi',
+            'phone_number.regex' => 'No. HP hanya boleh angka',
+            'guardian_phone_number.regex' => 'No. HP Wali hanya boleh angka',
+            'preferred_dorm_id.required' => 'Cabang yang diinginkan wajib dipilih',
+            'preferred_room_type_id.required' => 'Tipe kamar yang diinginkan wajib dipilih',
+            'planned_check_in_date.required' => 'Rencana tanggal masuk wajib diisi',
+            'planned_check_in_date.after_or_equal' => 'Tanggal masuk minimal hari ini',
         ];
     }
 }
