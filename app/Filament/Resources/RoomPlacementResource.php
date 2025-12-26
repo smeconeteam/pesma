@@ -80,7 +80,7 @@ class RoomPlacementResource extends Resource
 
                 Tables\Columns\TextColumn::make('residentProfile.gender')
                     ->label('Gender')
-                    ->formatStateUsing(fn($state) => $state === 'M' ? 'L' : 'P')
+                    ->formatStateUsing(fn($state) => $state === 'M' ? 'Laki-laki' : 'Perempuan')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('current_room')
@@ -115,23 +115,18 @@ class RoomPlacementResource extends Resource
                     })
                     ->native(false),
 
-                Tables\Filters\TernaryFilter::make('has_room')
-                    ->label('Memiliki Kamar')
-                    ->placeholder('Semua')
-                    ->trueLabel('Sudah Ada Kamar')
-                    ->falseLabel('Belum Ada Kamar')
-                    ->queries(
-                        true: fn(Builder $query) => $query->whereHas(
-                            'roomResidents',
-                            fn(Builder $q) =>
-                            $q->whereNull('check_out_date')
-                        ),
-                        false: fn(Builder $query) => $query->whereDoesntHave(
-                            'roomResidents',
-                            fn(Builder $q) =>
-                            $q->whereNull('check_out_date')
-                        ),
-                    ),
+                Tables\Filters\SelectFilter::make('gender')
+                    ->label('Jenis Kelamin')
+                    ->options([
+                        'M' => 'Laki-laki',
+                        'F' => 'Perempuan',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        return $query->when($data['value'] ?? null, function (Builder $q, $gender) {
+                            $q->whereHas('residentProfile', fn(Builder $p) => $p->where('gender', $gender));
+                        });
+                    })
+                    ->native(false),
             ])
             ->actions([
                 Tables\Actions\Action::make('place')
