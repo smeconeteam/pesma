@@ -9,30 +9,27 @@ use App\Models\Room;
 use App\Models\RoomResident;
 use App\Models\RoomType;
 use App\Models\ResidentCategory;
-
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Forms\Components\Select;
-
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\Section as InfoSection;
 use Filament\Infolists\Components\TextEntry;
-
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
-
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\Indicator;
-
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class RoomResource extends Resource
 {
@@ -201,7 +198,10 @@ class RoomResource extends Resource
                             ->disabled()
                             ->required()
                             ->maxLength(100)
-                            ->unique(ignoreRecord: true)
+                            ->unique(
+                                ignoreRecord: true,
+                                modifyRuleUsing: fn ($rule) => $rule->whereNull('deleted_at')
+                            )
                             ->dehydrated(true)
                             ->readonly(),
 
@@ -284,9 +284,6 @@ class RoomResource extends Resource
                     ->sortable(),
             ])
             ->filters([
-                /**
-                 * ✅ Status aktif (indikator hanya muncul kalau state strict true/false)
-                 */
                 TernaryFilter::make('is_active')
                     ->label('Status Aktif')
                     ->placeholder('Semua')
@@ -312,13 +309,6 @@ class RoomResource extends Resource
                         ];
                     }),
 
-
-                /**
-                 * ✅ Filter Cabang (MODEL: dorm_id)
-                 * - branch_admin: auto isi & dikunci (chip tidak removable)
-                 * - block_admin : auto isi & dikunci (chip tidak removable)
-                 * - ketika dorm berubah => reset block
-                 */
                 SelectFilter::make('dorm_id')
                     ->label('Cabang')
                     ->query(function (Builder $query, array $data): Builder {
@@ -340,6 +330,7 @@ class RoomResource extends Resource
                                 $user = auth()->user();
                                 if (!$user) return [];
 
+                                // ✅ tampilkan juga cabang nonaktif (yang penting tidak terhapus)
                                 $query = Dorm::query()
                                     ->whereNull('deleted_at')
                                     ->orderBy('name');
@@ -364,9 +355,7 @@ class RoomResource extends Resource
                                 $user = auth()->user();
                                 if (!$user) return null;
 
-                                // hanya auto isi kalau role memang harus terkunci
                                 if ($user->hasRole('branch_admin')) {
-                                    // auto isi HANYA jika memang 1 dorm atau minimal ambil first
                                     return $user->branchDormIds()->first();
                                 }
 
@@ -378,7 +367,6 @@ class RoomResource extends Resource
                                 return null;
                             })
                             ->afterStateHydrated(function (Select $component, $state) {
-                                // pastikan branch/block admin tidak kosong (terisi otomatis)
                                 $user = auth()->user();
                                 if (!$user) return;
 
@@ -397,10 +385,8 @@ class RoomResource extends Resource
                             })
                             ->disabled(fn () => auth()->user()?->hasRole(['branch_admin', 'block_admin']) ?? false)
                             ->afterStateUpdated(function (Set $set, $state) {
-                                // reset komplek ketika cabang berubah
                                 $set('../block_id.value', null);
 
-                                // kalau role terkunci dan di-clear => balikin lagi
                                 $user = auth()->user();
 
                                 if (($user?->hasRole('branch_admin') ?? false) && blank($state)) {
@@ -414,7 +400,6 @@ class RoomResource extends Resource
                             }),
                     ])
                     ->indicateUsing(function ($state) {
-                        // state dari SelectFilter adalah scalar (value) atau array, kita normalkan
                         if ($state instanceof \Illuminate\Support\Collection) {
                             $state = $state->first();
                         }
@@ -433,11 +418,6 @@ class RoomResource extends Resource
                         ];
                     }),
 
-                /**
-                 * ✅ Filter Komplek (MODEL: block_id)
-                 * - disable kalau cabang belum dipilih (kecuali block_admin)
-                 * - block_admin: auto isi & dikunci (chip tidak removable)
-                 */
                 SelectFilter::make('block_id')
                     ->label('Komplek')
                     ->query(function (Builder $query, array $data): Builder {
@@ -464,7 +444,6 @@ class RoomResource extends Resource
                                 return null;
                             })
                             ->afterStateHydrated(function (Select $component, $state) {
-                                // pastikan block_admin tidak kosong
                                 $user = auth()->user();
                                 if (!$user) return;
 
@@ -477,10 +456,8 @@ class RoomResource extends Resource
                             ->disabled(function (Get $get) {
                                 $user = auth()->user();
 
-                                // block_admin dikunci
                                 if ($user?->hasRole('block_admin')) return true;
 
-                                // ambil dorm dari sibling filter dorm_id
                                 $dormState = $get('../dorm_id.value');
                                 $dormId = is_array($dormState) ? ($dormState['value'] ?? null) : $dormState;
 
@@ -493,8 +470,6 @@ class RoomResource extends Resource
                                 $dormState = $get('../dorm_id.value');
                                 $dormId = is_array($dormState) ? ($dormState['value'] ?? null) : $dormState;
 
-                                // kalau dorm belum dipilih:
-                                // - block_admin tetap diberi opsi scoped supaya label bisa resolve
                                 if (blank($dormId)) {
                                     if ($user->hasRole('block_admin')) {
                                         return Block::query()
@@ -539,7 +514,6 @@ class RoomResource extends Resource
                                     : null;
                             })
                             ->afterStateUpdated(function (Set $set, $state) {
-                                // kalau block_admin dan di-clear => balikin lagi
                                 $user = auth()->user();
                                 if (($user?->hasRole('block_admin') ?? false) && blank($state)) {
                                     $set('value', $user->blockIds()->first());
@@ -565,9 +539,6 @@ class RoomResource extends Resource
                         ];
                     }),
 
-                /**
-                 * ✅ Tipe kamar (indikator hanya muncul kalau dipilih)
-                 */
                 SelectFilter::make('room_type_id')
                     ->label('Tipe Kamar')
                     ->options(fn () => RoomType::query()->orderBy('name')->pluck('name', 'id')->toArray())
@@ -587,9 +558,6 @@ class RoomResource extends Resource
                         ];
                     }),
 
-                /**
-                 * ✅ Status penghuni (indikator hanya muncul kalau state strict true/false)
-                 */
                 TernaryFilter::make('is_empty')
                     ->label('Status Penghuni')
                     ->placeholder('Semua Kamar')
@@ -601,7 +569,7 @@ class RoomResource extends Resource
                         false: fn (Builder $query) => $query->whereHas('roomResidents', fn (Builder $q) => $q->whereNull('check_out_date')),
                         blank: fn (Builder $query) => $query,
                     )
-                   ->indicateUsing(function ($state) {
+                    ->indicateUsing(function ($state) {
                         $value = is_array($state) ? ($state['value'] ?? null) : $state;
 
                         if ($value === null || $value === '') {
@@ -623,9 +591,14 @@ class RoomResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
 
+                // ✅ Data terhapus tidak bisa di-edit
                 Tables\Actions\EditAction::make()
-                    ->visible(fn () => auth()->user()?->hasRole(['super_admin', 'main_admin'])),
+                    ->visible(fn (Room $record): bool =>
+                        (auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false)
+                        && ! $record->trashed()
+                    ),
 
+                // ✅ Delete: sebelum soft delete, ubah code supaya bisa dipakai ulang
                 Tables\Actions\DeleteAction::make()
                     ->visible(function (Room $record): bool {
                         $user = auth()->user();
@@ -642,10 +615,50 @@ class RoomResource extends Resource
                             ->where('room_id', $record->id)
                             ->whereNull('check_out_date')
                             ->exists();
+                    })
+                    ->action(function (Room $record) {
+                        DB::transaction(function () use ($record) {
+                            static::releaseCodeThenSoftDelete($record);
+                        });
+
+                        Notification::make()
+                            ->title('Berhasil menghapus kamar')
+                            ->success()
+                            ->send();
                     }),
 
+                // ✅ Restore: ditolak jika ada kamar aktif memakai code asli
                 Tables\Actions\RestoreAction::make()
-                    ->visible(fn (Room $record): bool => (auth()->user()?->hasRole('super_admin') ?? false) && $record->trashed()),
+                    ->visible(fn (Room $record): bool => (auth()->user()?->hasRole('super_admin') ?? false) && $record->trashed())
+                    ->action(function (Room $record) {
+                        DB::transaction(function () use ($record) {
+                            $originalCode = static::extractOriginalCode($record->code);
+
+                            $existsActive = Room::query()
+                                ->whereNull('deleted_at')
+                                ->where('code', $originalCode)
+                                ->exists();
+
+                            if ($existsActive) {
+                                Notification::make()
+                                    ->title('Gagal Memulihkan')
+                                    ->body("Tidak bisa memulihkan karena sudah ada kamar aktif dengan kode: {$originalCode}.")
+                                    ->danger()
+                                    ->send();
+
+                                return;
+                            }
+
+                            // balikin code ke original lalu restore
+                            $record->updateQuietly(['code' => $originalCode]);
+                            $record->restore();
+
+                            Notification::make()
+                                ->title('Berhasil memulihkan kamar')
+                                ->success()
+                                ->send();
+                        });
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -653,10 +666,11 @@ class RoomResource extends Resource
                         ->visible(fn () => auth()->user()?->hasRole(['super_admin', 'main_admin']))
                         ->action(function (Collection $records) {
                             $allowed = $records->filter(function (Room $room) {
-                                return !RoomResident::query()
-                                    ->where('room_id', $room->id)
-                                    ->whereNull('check_out_date')
-                                    ->exists();
+                                return !$room->trashed()
+                                    && !RoomResident::query()
+                                        ->where('room_id', $room->id)
+                                        ->whereNull('check_out_date')
+                                        ->exists();
                             });
 
                             $blocked = $records->diff($allowed);
@@ -670,9 +684,11 @@ class RoomResource extends Resource
                                 return;
                             }
 
-                            foreach ($allowed as $room) {
-                                $room->delete();
-                            }
+                            DB::transaction(function () use ($allowed) {
+                                foreach ($allowed as $room) {
+                                    static::releaseCodeThenSoftDelete($room);
+                                }
+                            });
 
                             $deleted = $allowed->count();
 
@@ -692,7 +708,59 @@ class RoomResource extends Resource
                         }),
 
                     Tables\Actions\RestoreBulkAction::make()
-                        ->visible(fn () => auth()->user()?->hasRole('super_admin')),
+                        ->visible(fn () => auth()->user()?->hasRole('super_admin'))
+                        ->action(function (Collection $records) {
+                            // Restore bulk: tolak yang bentrok
+                            $restored = 0;
+                            $blockedCodes = [];
+
+                            DB::transaction(function () use ($records, &$restored, &$blockedCodes) {
+                                foreach ($records as $room) {
+                                    if (!($room instanceof Room) || !$room->trashed()) {
+                                        continue;
+                                    }
+
+                                    $originalCode = static::extractOriginalCode($room->code);
+
+                                    $existsActive = Room::query()
+                                        ->whereNull('deleted_at')
+                                        ->where('code', $originalCode)
+                                        ->exists();
+
+                                    if ($existsActive) {
+                                        $blockedCodes[] = $originalCode;
+                                        continue;
+                                    }
+
+                                    $room->updateQuietly(['code' => $originalCode]);
+                                    $room->restore();
+                                    $restored++;
+                                }
+                            });
+
+                            if ($restored === 0) {
+                                Notification::make()
+                                    ->title('Gagal Memulihkan')
+                                    ->body('Tidak ada data yang bisa dipulihkan karena semua bentrok dengan kode kamar yang masih aktif.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            if (!empty($blockedCodes)) {
+                                Notification::make()
+                                    ->title('Berhasil Sebagian')
+                                    ->body("Berhasil memulihkan {$restored} kamar. Gagal karena kode sudah dipakai: " . collect($blockedCodes)->unique()->join(', '))
+                                    ->warning()
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->title('Berhasil')
+                                    ->body("Berhasil memulihkan {$restored} kamar.")
+                                    ->success()
+                                    ->send();
+                            }
+                        }),
                 ]),
             ]);
     }
@@ -773,12 +841,10 @@ class RoomResource extends Resource
             return $query->whereRaw('1 = 0');
         }
 
-        // Super admin & main admin: akses semua
         if ($user->hasRole(['super_admin', 'main_admin'])) {
             return $query;
         }
 
-        // Branch admin: filter hanya kamar di cabangnya
         if ($user->hasRole('branch_admin')) {
             return $query->whereHas(
                 'block',
@@ -786,7 +852,6 @@ class RoomResource extends Resource
             );
         }
 
-        // Block admin: filter hanya kamar di kompleknya
         if ($user->hasRole('block_admin')) {
             return $query->whereIn('block_id', $user->blockIds());
         }
@@ -814,9 +879,19 @@ class RoomResource extends Resource
         return auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false;
     }
 
+    // ✅ Data terhapus tidak bisa di-edit
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false;
+        $user = auth()->user();
+        if (!($user?->hasRole(['super_admin', 'main_admin']) ?? false)) {
+            return false;
+        }
+
+        if ($record && method_exists($record, 'trashed') && $record->trashed()) {
+            return false;
+        }
+
+        return true;
     }
 
     public static function canDelete($record): bool
@@ -867,5 +942,35 @@ class RoomResource extends Resource
         );
 
         $set('code', strtolower($code));
+    }
+
+    /**
+     * ✅ Saat soft delete: ubah code agar "kode asli" bisa dipakai ulang untuk create data baru.
+     */
+    protected static function releaseCodeThenSoftDelete(Room $room): void
+    {
+        if ($room->trashed()) {
+            return;
+        }
+
+        $original = $room->code;
+
+        // kalau sudah pernah ditrashed sebelumnya (punya marker), jangan dobel marker
+        if (!Str::contains($original, '__trashed__')) {
+            $suffix = '__trashed__' . $room->id . '__' . now()->timestamp;
+            $room->updateQuietly([
+                'code' => $original . $suffix,
+            ]);
+        }
+
+        $room->delete();
+    }
+
+    /**
+     * ✅ Ambil kode asli dari code yang sudah ditambah suffix saat dihapus.
+     */
+    protected static function extractOriginalCode(string $code): string
+    {
+        return Str::before($code, '__trashed__');
     }
 }
