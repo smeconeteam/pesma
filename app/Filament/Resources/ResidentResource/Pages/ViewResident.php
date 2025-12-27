@@ -164,6 +164,7 @@ class ViewResident extends ViewRecord
                                         ->label('Kode Kamar')
                                         ->placeholder('-'),
 
+                                    // ✅ HANYA BAGIAN INI YANG DIUBAH
                                     TextEntry::make('movement_type')
                                         ->label('Tipe Perpindahan')
                                         ->badge()
@@ -174,7 +175,7 @@ class ViewResident extends ViewRecord
                                             default => 'secondary',
                                         })
                                         ->formatStateUsing(fn($state) => match ($state) {
-                                            'new' => 'Masuk Baru',
+                                            'new' => 'Masuk',
                                             'transfer' => 'Pindah',
                                             'checkout' => 'Keluar',
                                             default => '-',
@@ -198,19 +199,15 @@ class ViewResident extends ViewRecord
 
                                             if (!$checkIn) return '-';
 
-                                            // PERBAIKAN: Hitung durasi dengan benar
                                             if (!$checkOut) {
-                                                // Masih tinggal: dari check_in sampai sekarang
                                                 $days = (int) $checkIn->diffInDays(now());
                                             } else {
-                                                // Sudah checkout: dari check_in sampai check_out
                                                 $days = (int) $checkIn->diffInDays($checkOut);
                                             }
 
                                             if ($days === 0) return '< 1 hari';
                                             if ($days === 1) return '1 hari';
 
-                                            // Konversi ke bulan dan hari (bilangan bulat)
                                             $months = (int) floor($days / 30);
                                             $remainingDays = (int) ($days % 30);
 

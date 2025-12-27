@@ -153,11 +153,11 @@ class RoomPlacementResource extends Resource
             ->defaultSort('id', 'desc');
     }
 
-    public static function getPages(): array
+   public static function getPages(): array
     {
         return [
-            'index' => Pages\ListRoomPlacements::route('/'),
-            'place' => Pages\PlaceResident::route('/{record}/place'),
+            'index'    => Pages\ListRoomPlacements::route('/'),
+            'place'    => Pages\PlaceResident::route('/{record}/place'),
             'transfer' => Pages\TransferResident::route('/{record}/transfer'),
             'checkout' => Pages\CheckoutResident::route('/{record}/checkout'),
         ];

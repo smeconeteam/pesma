@@ -6,9 +6,11 @@ use App\Filament\Resources\RoomPlacementResource;
 use App\Models\Block;
 use App\Models\Dorm;
 use App\Models\Room;
-use App\Models\RoomHistory;
 use App\Models\RoomResident;
 use App\Models\User;
+use Filament\Actions\Action;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -17,9 +19,10 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
-class PlaceResident extends Page
+class PlaceResident extends Page implements HasActions
 {
     use \Filament\Forms\Concerns\InteractsWithForms;
+    use InteractsWithActions;
 
     protected static string $resource = RoomPlacementResource::class;
     protected static string $view = 'filament.resources.room-placement-resource.pages.place-resident';
@@ -29,29 +32,47 @@ class PlaceResident extends Page
 
     public function mount(User $record): void
     {
-        $this->record = $record;
+        $this->record = $record->load([
+            'residentProfile',
+            'activeRoomResident',
+        ]);
 
-        // Cek apakah sudah punya kamar aktif
-        if ($record->activeRoomResident) {
+        if ($this->record->activeRoomResident) {
             Notification::make()
-                ->title('Resident ini sudah memiliki kamar aktif')
+                ->title('Penghuni ini sudah memiliki kamar aktif')
                 ->warning()
                 ->send();
 
             $this->redirect(RoomPlacementResource::getUrl('index'));
+            return;
         }
 
         $this->form->fill([
             'check_in_date' => now()->toDateString(),
+            'is_pic' => false,
         ]);
+    }
+
+    protected function getFormActions(): array
+    {
+        return [
+            Action::make('cancel')
+                ->label('Batal')
+                ->color('gray')
+                ->url(RoomPlacementResource::getUrl('index')),
+
+            Action::make('place')
+                ->label('Simpan')
+                ->color('primary')
+                ->action('place'),
+        ];
     }
 
     public function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Informasi Resident')
-                    ->description('Resident yang akan ditempatkan')
+                Forms\Components\Section::make('Informasi Penghuni')
                     ->columns(2)
                     ->schema([
                         Forms\Components\Placeholder::make('full_name')
@@ -60,16 +81,11 @@ class PlaceResident extends Page
 
                         Forms\Components\Placeholder::make('gender')
                             ->label('Jenis Kelamin')
-                            ->content($this->record->residentProfile->gender === 'M' ? 'Laki-laki' : 'Perempuan'),
+                            ->content(fn () => ($this->record->residentProfile?->gender === 'M') ? 'Laki-laki' : 'Perempuan'),
 
                         Forms\Components\Placeholder::make('status')
                             ->label('Status Saat Ini')
-                            ->content(fn() => match ($this->record->residentProfile->status) {
-                                'registered' => 'Terdaftar',
-                                'active' => 'Aktif',
-                                'inactive' => 'Nonaktif',
-                                default => '-',
-                            }),
+                            ->content(fn () => $this->record->residentProfile?->status ?? '-'),
                     ]),
 
                 Forms\Components\Section::make('Pilih Kamar')
@@ -77,7 +93,10 @@ class PlaceResident extends Page
                     ->schema([
                         Forms\Components\Select::make('dorm_id')
                             ->label('Cabang (Dorm)')
-                            ->options(fn() => Dorm::query()->orderBy('name')->pluck('name', 'id'))
+                            ->options(fn () => Dorm::query()
+                                ->where('is_active', true) // ✅ hanya dorm aktif
+                                ->orderBy('name')
+                                ->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
                             ->reactive()
@@ -85,20 +104,26 @@ class PlaceResident extends Page
                             ->afterStateUpdated(function (Forms\Set $set) {
                                 $set('block_id', null);
                                 $set('room_id', null);
+                                $set('is_pic', false);
                             }),
 
                         Forms\Components\Select::make('block_id')
-                            ->label('Blok')
-                            ->options(fn(Forms\Get $get) => Block::query()
-                                ->when($get('dorm_id'), fn(Builder $q, $dormId) => $q->where('dorm_id', $dormId))
+                            ->label('Komplek')
+                            ->options(fn (Forms\Get $get) => Block::query()
+                                ->where('is_active', true) // ✅ hanya block aktif
+                                ->when($get('dorm_id'), fn (Builder $q, $dormId) => $q->where('dorm_id', $dormId))
                                 ->orderBy('name')
                                 ->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
                             ->reactive()
                             ->required()
-                            ->disabled(fn(Forms\Get $get) => blank($get('dorm_id')))
-                            ->afterStateUpdated(fn(Forms\Set $set) => $set('room_id', null)),
+                            ->disabled(fn (Forms\Get $get) => blank($get('dorm_id')))
+                            ->helperText(fn (Forms\Get $get) => blank($get('dorm_id')) ? 'Pilih cabang dulu untuk menampilkan komplek.' : null)
+                            ->afterStateUpdated(function (Forms\Set $set) {
+                                $set('room_id', null);
+                                $set('is_pic', false);
+                            }),
 
                         Forms\Components\Select::make('room_id')
                             ->label('Kamar')
@@ -106,10 +131,10 @@ class PlaceResident extends Page
                             ->native(false)
                             ->reactive()
                             ->required()
-                            ->disabled(fn(Forms\Get $get) => blank($get('block_id')))
+                            ->disabled(fn (Forms\Get $get) => blank($get('block_id')))
                             ->options(function (Forms\Get $get) {
                                 $blockId = $get('block_id');
-                                $gender = $this->record->residentProfile->gender;
+                                $gender  = $this->record->residentProfile?->gender;
 
                                 if (blank($blockId) || blank($gender)) return [];
 
@@ -135,7 +160,7 @@ class PlaceResident extends Page
                                         ->whereNull('check_out_date')
                                         ->count();
 
-                                    $capacity = $room->capacity ?? 0;
+                                    $capacity  = (int) ($room->capacity ?? 0);
                                     $available = $capacity - $activeCount;
 
                                     $labelGender = $activeGender
@@ -156,7 +181,9 @@ class PlaceResident extends Page
                                     ->where('is_pic', true)
                                     ->exists();
 
-                                if ($hasPic) $set('is_pic', false);
+                                if ($hasPic) {
+                                    $set('is_pic', false);
+                                }
                             }),
 
                         Forms\Components\DatePicker::make('check_in_date')
@@ -194,19 +221,19 @@ class PlaceResident extends Page
         $data = $this->form->getState();
 
         DB::transaction(function () use ($data) {
-            $roomId = $data['room_id'];
+            $roomId  = $data['room_id'];
             $checkIn = $data['check_in_date'];
-            $isPic = (bool)($data['is_pic'] ?? false);
-            $gender = $this->record->residentProfile->gender;
+            $isPic   = (bool) ($data['is_pic'] ?? false);
+            $gender  = $this->record->residentProfile?->gender;
 
-            // Lock
+            // lock penghuni aktif di kamar tujuan
             RoomResident::query()
                 ->where('room_id', $roomId)
                 ->whereNull('check_out_date')
                 ->lockForUpdate()
                 ->get();
 
-            // Validasi gender
+            // validasi gender kamar
             $activeGender = RoomResident::query()
                 ->where('room_residents.room_id', $roomId)
                 ->whereNull('room_residents.check_out_date')
@@ -219,7 +246,7 @@ class PlaceResident extends Page
                 ]);
             }
 
-            // Validasi PIC
+            // validasi PIC
             $activeCount = RoomResident::query()
                 ->where('room_id', $roomId)
                 ->whereNull('check_out_date')
@@ -239,59 +266,29 @@ class PlaceResident extends Page
                 ]);
             }
 
-            // Buat RoomResident
-            $roomResident = RoomResident::create([
-                'room_id' => $roomId,
-                'user_id' => $this->record->id,
-                'check_in_date' => $checkIn,
+            // buat room_resident (history akan auto dibuat oleh sistem kamu)
+            RoomResident::create([
+                'user_id'        => $this->record->id,
+                'room_id'        => $roomId,
+                'check_in_date'  => $checkIn,
                 'check_out_date' => null,
-                'is_pic' => $isPic,
+                'is_pic'         => $isPic,
+                'notes'          => $data['notes'] ?? null,
             ]);
 
-            // Buat RoomHistory
-            RoomHistory::create([
-                'user_id' => $this->record->id,
-                'room_id' => $roomId,
-                'room_resident_id' => $roomResident->id,
-                'check_in_date' => $checkIn,
-                'check_out_date' => null,
-                'is_pic' => $isPic,
-                'movement_type' => 'new',
-                'notes' => $data['notes'] ?? 'Penempatan kamar baru',
-                'recorded_by' => auth()->id(),
-            ]);
+            // Pastikan status penghuni aktif
+            $this->record->update(['is_active' => true]);
+            $this->record->residentProfile()?->update(['status' => 'active']);
 
-            // Update status resident menjadi active
-            $this->record->residentProfile->update([
-                'status' => 'active',
-            ]);
+            // ✅ movement_type TIDAK perlu diubah manual.
+            // Auto history boleh tetap 'new' (nanti di tampilan kita labelkan sebagai "Masuk").
         });
 
         Notification::make()
-            ->title('Resident berhasil ditempatkan')
+            ->title('Berhasil menempatkan penghuni')
             ->success()
             ->send();
 
         $this->redirect(RoomPlacementResource::getUrl('index'));
-    }
-
-    protected function getFormActions(): array
-    {
-        return [
-            \Filament\Actions\Action::make('place')
-                ->label('Tempatkan di Kamar')
-                ->color('success')
-                ->action('place'),
-
-            \Filament\Actions\Action::make('cancel')
-                ->label('Batal')
-                ->color('gray')
-                ->url(RoomPlacementResource::getUrl('index')),
-        ];
-    }
-
-    protected function getHeaderActions(): array
-    {
-        return [];
     }
 }
