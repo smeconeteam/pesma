@@ -9,21 +9,27 @@ use App\Models\Room;
 use App\Models\RoomResident;
 use App\Models\RoomType;
 use App\Models\ResidentCategory;
+
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Forms\Components\Select;
+
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\Section as InfoSection;
 use Filament\Infolists\Components\TextEntry;
+
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Filters\Indicator;
+
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Collection;
@@ -104,7 +110,7 @@ class RoomResource extends Resource
                         Select::make('block_id')
                             ->label('Komplek')
                             ->live()
-                            ->afterStateUpdated(fn(Set $set, Get $get) => static::generateRoomCode($set, $get))
+                            ->afterStateUpdated(fn (Set $set, Get $get) => static::generateRoomCode($set, $get))
                             ->options(function (Get $get, ?Room $record) {
                                 $dormId = $get('dorm_id');
                                 if (!$dormId) {
@@ -180,14 +186,14 @@ class RoomResource extends Resource
                             ->native(false)
                             ->required()
                             ->live()
-                            ->afterStateUpdated(fn(Set $set, Get $get) => static::generateRoomCode($set, $get)),
+                            ->afterStateUpdated(fn (Set $set, Get $get) => static::generateRoomCode($set, $get)),
 
                         Forms\Components\TextInput::make('number')
                             ->label('Nomor Kamar')
                             ->required()
                             ->maxLength(20)
                             ->live()
-                            ->afterStateUpdated(fn(Set $set, Get $get) => static::generateRoomCode($set, $get))
+                            ->afterStateUpdated(fn (Set $set, Get $get) => static::generateRoomCode($set, $get))
                             ->helperText('Contoh: 01, 02, 101, dst.'),
 
                         Forms\Components\TextInput::make('code')
@@ -278,134 +284,312 @@ class RoomResource extends Resource
                     ->sortable(),
             ])
             ->filters([
+                /**
+                 * ✅ Status aktif (indikator hanya muncul kalau state strict true/false)
+                 */
                 TernaryFilter::make('is_active')
                     ->label('Status Aktif')
                     ->placeholder('Semua')
                     ->trueLabel('Aktif')
                     ->falseLabel('Nonaktif')
-                    ->native(false),
+                    ->native(false)
+                    ->indicateUsing(function ($state) {
+                        $value = is_array($state) ? ($state['value'] ?? null) : $state;
 
+                        if ($value === null || $value === '') {
+                            return null;
+                        }
+
+                        $bool = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+
+                        if ($bool === null) {
+                            return null;
+                        }
+
+                        return [
+                            Indicator::make('Status: ' . ($bool ? 'Aktif' : 'Nonaktif'))
+                                ->removable(true),
+                        ];
+                    }),
+
+
+                /**
+                 * ✅ Filter Cabang (MODEL: dorm_id)
+                 * - branch_admin: auto isi & dikunci (chip tidak removable)
+                 * - block_admin : auto isi & dikunci (chip tidak removable)
+                 * - ketika dorm berubah => reset block
+                 */
                 SelectFilter::make('dorm_id')
                     ->label('Cabang')
-                    ->options(function () {
-                        $user = auth()->user();
-
-                        if (!$user) return [];
-
-                        $query = Dorm::query()
-                            ->whereNull('deleted_at')
-                            ->orderBy('name');
-
-                        // Super admin & main admin: semua cabang
-                        if ($user->hasRole(['super_admin', 'main_admin'])) {
-                            return $query->pluck('name', 'id')->toArray();
-                        }
-
-                        // Branch admin: hanya cabangnya
-                        if ($user->hasRole('branch_admin')) {
-                            return $query->whereIn('id', $user->branchDormIds())->pluck('name', 'id')->toArray();
-                        }
-
-                        // Block admin: cabang dari kompleknya
-                        if ($user->hasRole('block_admin')) {
-                            $blockIds = $user->blockIds()->toArray();
-                            $dormIds = Block::whereIn('id', $blockIds)->pluck('dorm_id')->unique()->all();
-                            return $query->whereIn('id', $dormIds)->pluck('name', 'id')->toArray();
-                        }
-
-                        return [];
-                    })
-                    ->searchable()
-                    ->native(false)
-                    ->default(function () {
-                        $user = auth()->user();
-
-                        // Auto-set untuk branch admin (1 cabang)
-                        if ($user?->hasRole('branch_admin')) {
-                            $dormIds = $user->branchDormIds()->toArray();
-                            return count($dormIds) === 1 ? $dormIds[0] : null;
-                        }
-
-                        // Auto-set untuk block admin (ambil dorm dari block)
-                        if ($user?->hasRole('block_admin')) {
-                            $blockIds = $user->blockIds()->toArray();
-                            if (!empty($blockIds)) {
-                                $dormIds = Block::whereIn('id', $blockIds)
-                                    ->pluck('dorm_id')
-                                    ->unique()
-                                    ->values()
-                                    ->all();
-                                return count($dormIds) === 1 ? $dormIds[0] : null;
-                            }
-                        }
-
-                        return null;
-                    })
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['value'] ?? null,
-                            fn(Builder $q, $dormId) => $q->whereHas('block', fn(Builder $qb) => $qb->where('dorm_id', $dormId))
+                            fn (Builder $q, $dormId) => $q->whereHas(
+                                'block',
+                                fn (Builder $qb) => $qb->where('dorm_id', $dormId)
+                            )
                         );
+                    })
+                    ->form([
+                        Select::make('value')
+                            ->label('Cabang')
+                            ->native(false)
+                            ->searchable()
+                            ->live()
+                            ->options(function () {
+                                $user = auth()->user();
+                                if (!$user) return [];
+
+                                $query = Dorm::query()
+                                    ->whereNull('deleted_at')
+                                    ->orderBy('name');
+
+                                if ($user->hasRole(['super_admin', 'main_admin'])) {
+                                    return $query->pluck('name', 'id')->toArray();
+                                }
+
+                                if ($user->hasRole('branch_admin')) {
+                                    return $query->whereIn('id', $user->branchDormIds())->pluck('name', 'id')->toArray();
+                                }
+
+                                if ($user->hasRole('block_admin')) {
+                                    $blockIds = $user->blockIds()->toArray();
+                                    $dormIds = Block::whereIn('id', $blockIds)->pluck('dorm_id')->unique()->values()->all();
+                                    return $query->whereIn('id', $dormIds)->pluck('name', 'id')->toArray();
+                                }
+
+                                return [];
+                            })
+                            ->default(function () {
+                                $user = auth()->user();
+                                if (!$user) return null;
+
+                                // hanya auto isi kalau role memang harus terkunci
+                                if ($user->hasRole('branch_admin')) {
+                                    // auto isi HANYA jika memang 1 dorm atau minimal ambil first
+                                    return $user->branchDormIds()->first();
+                                }
+
+                                if ($user->hasRole('block_admin')) {
+                                    $blockId = $user->blockIds()->first();
+                                    return $blockId ? Block::whereKey($blockId)->value('dorm_id') : null;
+                                }
+
+                                return null;
+                            })
+                            ->afterStateHydrated(function (Select $component, $state) {
+                                // pastikan branch/block admin tidak kosong (terisi otomatis)
+                                $user = auth()->user();
+                                if (!$user) return;
+
+                                if (!blank($state)) return;
+
+                                if ($user->hasRole('branch_admin')) {
+                                    $component->state($user->branchDormIds()->first());
+                                    return;
+                                }
+
+                                if ($user->hasRole('block_admin')) {
+                                    $blockId = $user->blockIds()->first();
+                                    if (!$blockId) return;
+                                    $component->state(Block::whereKey($blockId)->value('dorm_id'));
+                                }
+                            })
+                            ->disabled(fn () => auth()->user()?->hasRole(['branch_admin', 'block_admin']) ?? false)
+                            ->afterStateUpdated(function (Set $set, $state) {
+                                // reset komplek ketika cabang berubah
+                                $set('../block_id.value', null);
+
+                                // kalau role terkunci dan di-clear => balikin lagi
+                                $user = auth()->user();
+
+                                if (($user?->hasRole('branch_admin') ?? false) && blank($state)) {
+                                    $set('value', $user->branchDormIds()->first());
+                                }
+
+                                if (($user?->hasRole('block_admin') ?? false) && blank($state)) {
+                                    $blockId = $user->blockIds()->first();
+                                    $set('value', $blockId ? Block::whereKey($blockId)->value('dorm_id') : null);
+                                }
+                            }),
+                    ])
+                    ->indicateUsing(function ($state) {
+                        // state dari SelectFilter adalah scalar (value) atau array, kita normalkan
+                        if ($state instanceof \Illuminate\Support\Collection) {
+                            $state = $state->first();
+                        }
+                        $id = is_array($state) ? ($state['value'] ?? null) : $state;
+                        if (blank($id)) return null;
+
+                        $name = Dorm::query()->whereKey($id)->value('name');
+                        if (!$name) return null;
+
+                        $user = auth()->user();
+                        $locked = $user?->hasAnyRole(['branch_admin', 'block_admin']) ?? false;
+
+                        return [
+                            Indicator::make("Cabang: {$name}")
+                                ->removable(! $locked),
+                        ];
                     }),
 
+                /**
+                 * ✅ Filter Komplek (MODEL: block_id)
+                 * - disable kalau cabang belum dipilih (kecuali block_admin)
+                 * - block_admin: auto isi & dikunci (chip tidak removable)
+                 */
                 SelectFilter::make('block_id')
                     ->label('Komplek')
-                    ->options(function () {
-                        $user = auth()->user();
-
-                        if (!$user) return [];
-
-                        $query = Block::query()
-                            ->whereNull('deleted_at')
-                            ->orderBy('name');
-
-                        // Super admin, main admin: semua komplek
-                        if ($user->hasRole(['super_admin', 'main_admin'])) {
-                            return $query->pluck('name', 'id')->toArray();
-                        }
-
-                        // Branch admin: komplek di cabangnya
-                        if ($user->hasRole('branch_admin')) {
-                            $dormIds = $user->branchDormIds()->toArray();
-                            return $query->whereIn('dorm_id', $dormIds)->pluck('name', 'id')->toArray();
-                        }
-
-                        // Block admin: hanya kompleknya
-                        if ($user->hasRole('block_admin')) {
-                            return $query->whereIn('id', $user->blockIds())->pluck('name', 'id')->toArray();
-                        }
-
-                        return [];
-                    })
-                    ->searchable()
-                    ->native(false)
-                    ->default(function () {
-                        $user = auth()->user();
-
-                        // Auto-set untuk block admin (1 komplek)
-                        if ($user?->hasRole('block_admin')) {
-                            $blockIds = $user->blockIds()->toArray();
-                            return count($blockIds) === 1 ? $blockIds[0] : null;
-                        }
-
-                        return null;
-                    })
                     ->query(function (Builder $query, array $data): Builder {
-                        return $query->when($data['value'] ?? null, fn(Builder $q, $blockId) => $q->where('block_id', $blockId));
+                        return $query->when(
+                            $data['value'] ?? null,
+                            fn (Builder $q, $blockId) => $q->where('block_id', $blockId)
+                        );
+                    })
+                    ->form([
+                        Select::make('value')
+                            ->label('Komplek')
+                            ->native(false)
+                            ->searchable()
+                            ->live()
+                            ->placeholder('Pilih cabang terlebih dahulu')
+                            ->default(function () {
+                                $user = auth()->user();
+                                if (!$user) return null;
+
+                                if ($user->hasRole('block_admin')) {
+                                    return $user->blockIds()->first();
+                                }
+
+                                return null;
+                            })
+                            ->afterStateHydrated(function (Select $component, $state) {
+                                // pastikan block_admin tidak kosong
+                                $user = auth()->user();
+                                if (!$user) return;
+
+                                if (!blank($state)) return;
+
+                                if ($user->hasRole('block_admin')) {
+                                    $component->state($user->blockIds()->first());
+                                }
+                            })
+                            ->disabled(function (Get $get) {
+                                $user = auth()->user();
+
+                                // block_admin dikunci
+                                if ($user?->hasRole('block_admin')) return true;
+
+                                // ambil dorm dari sibling filter dorm_id
+                                $dormState = $get('../dorm_id.value');
+                                $dormId = is_array($dormState) ? ($dormState['value'] ?? null) : $dormState;
+
+                                return blank($dormId);
+                            })
+                            ->options(function (Get $get) {
+                                $user = auth()->user();
+                                if (!$user) return [];
+
+                                $dormState = $get('../dorm_id.value');
+                                $dormId = is_array($dormState) ? ($dormState['value'] ?? null) : $dormState;
+
+                                // kalau dorm belum dipilih:
+                                // - block_admin tetap diberi opsi scoped supaya label bisa resolve
+                                if (blank($dormId)) {
+                                    if ($user->hasRole('block_admin')) {
+                                        return Block::query()
+                                            ->whereNull('deleted_at')
+                                            ->whereIn('id', $user->blockIds())
+                                            ->orderBy('name')
+                                            ->pluck('name', 'id')
+                                            ->toArray();
+                                    }
+                                    return [];
+                                }
+
+                                $query = Block::query()
+                                    ->whereNull('deleted_at')
+                                    ->where('dorm_id', $dormId)
+                                    ->orderBy('name');
+
+                                if ($user->hasRole(['super_admin', 'main_admin'])) {
+                                    return $query->pluck('name', 'id')->toArray();
+                                }
+
+                                if ($user->hasRole('branch_admin')) {
+                                    $allowedDormIds = $user->branchDormIds()->toArray();
+                                    if (!in_array((int) $dormId, array_map('intval', $allowedDormIds), true)) {
+                                        return [];
+                                    }
+                                    return $query->pluck('name', 'id')->toArray();
+                                }
+
+                                if ($user->hasRole('block_admin')) {
+                                    return $query->whereIn('id', $user->blockIds())->pluck('name', 'id')->toArray();
+                                }
+
+                                return [];
+                            })
+                            ->helperText(function (Get $get) {
+                                $dormState = $get('../dorm_id.value');
+                                $dormId = is_array($dormState) ? ($dormState['value'] ?? null) : $dormState;
+
+                                return blank($dormId)
+                                    ? 'Komplek baru bisa dipilih setelah cabang dipilih.'
+                                    : null;
+                            })
+                            ->afterStateUpdated(function (Set $set, $state) {
+                                // kalau block_admin dan di-clear => balikin lagi
+                                $user = auth()->user();
+                                if (($user?->hasRole('block_admin') ?? false) && blank($state)) {
+                                    $set('value', $user->blockIds()->first());
+                                }
+                            }),
+                    ])
+                    ->indicateUsing(function ($state) {
+                        if ($state instanceof \Illuminate\Support\Collection) {
+                            $state = $state->first();
+                        }
+                        $id = is_array($state) ? ($state['value'] ?? null) : $state;
+                        if (blank($id)) return null;
+
+                        $name = Block::query()->whereKey($id)->value('name');
+                        if (!$name) return null;
+
+                        $user = auth()->user();
+                        $locked = $user?->hasRole('block_admin') ?? false;
+
+                        return [
+                            Indicator::make("Komplek: {$name}")
+                                ->removable(! $locked),
+                        ];
                     }),
 
+                /**
+                 * ✅ Tipe kamar (indikator hanya muncul kalau dipilih)
+                 */
                 SelectFilter::make('room_type_id')
                     ->label('Tipe Kamar')
-                    ->options(fn() => RoomType::query()
-                        ->orderBy('name')
-                        ->pluck('name', 'id')
-                        ->toArray())
+                    ->options(fn () => RoomType::query()->orderBy('name')->pluck('name', 'id')->toArray())
                     ->searchable()
                     ->native(false)
                     ->query(function (Builder $query, array $data): Builder {
-                        return $query->when($data['value'] ?? null, fn(Builder $q, $typeId) => $q->where('room_type_id', $typeId));
+                        return $query->when($data['value'] ?? null, fn (Builder $q, $typeId) => $q->where('room_type_id', $typeId));
+                    })
+                    ->indicateUsing(function ($state) {
+                        if (blank($state)) return null;
+
+                        $name = RoomType::query()->whereKey($state)->value('name');
+                        if (!$name) return null;
+
+                        return [
+                            Indicator::make("Tipe: {$name}")->removable(true),
+                        ];
                     }),
 
+                /**
+                 * ✅ Status penghuni (indikator hanya muncul kalau state strict true/false)
+                 */
                 TernaryFilter::make('is_empty')
                     ->label('Status Penghuni')
                     ->placeholder('Semua Kamar')
@@ -413,20 +597,34 @@ class RoomResource extends Resource
                     ->falseLabel('Kamar Terisi')
                     ->native(false)
                     ->queries(
-                        true: fn(Builder $query) => $query->whereDoesntHave('roomResidents', function (Builder $q) {
-                            $q->whereNull('check_out_date');
-                        }),
-                        false: fn(Builder $query) => $query->whereHas('roomResidents', function (Builder $q) {
-                            $q->whereNull('check_out_date');
-                        }),
-                        blank: fn(Builder $query) => $query,
-                    ),
+                        true: fn (Builder $query) => $query->whereDoesntHave('roomResidents', fn (Builder $q) => $q->whereNull('check_out_date')),
+                        false: fn (Builder $query) => $query->whereHas('roomResidents', fn (Builder $q) => $q->whereNull('check_out_date')),
+                        blank: fn (Builder $query) => $query,
+                    )
+                   ->indicateUsing(function ($state) {
+                        $value = is_array($state) ? ($state['value'] ?? null) : $state;
+
+                        if ($value === null || $value === '') {
+                            return null;
+                        }
+
+                        $bool = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+
+                        if ($bool === null) {
+                            return null;
+                        }
+
+                        return [
+                            Indicator::make('Penghuni: ' . ($bool ? 'Kamar Kosong' : 'Kamar Terisi'))
+                                ->removable(true),
+                        ];
+                    }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
 
                 Tables\Actions\EditAction::make()
-                    ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin'])),
+                    ->visible(fn () => auth()->user()?->hasRole(['super_admin', 'main_admin'])),
 
                 Tables\Actions\DeleteAction::make()
                     ->visible(function (Room $record): bool {
@@ -447,12 +645,12 @@ class RoomResource extends Resource
                     }),
 
                 Tables\Actions\RestoreAction::make()
-                    ->visible(fn(Room $record): bool => (auth()->user()?->hasRole('super_admin') ?? false) && $record->trashed()),
+                    ->visible(fn (Room $record): bool => (auth()->user()?->hasRole('super_admin') ?? false) && $record->trashed()),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin']))
+                        ->visible(fn () => auth()->user()?->hasRole(['super_admin', 'main_admin']))
                         ->action(function (Collection $records) {
                             $allowed = $records->filter(function (Room $room) {
                                 return !RoomResident::query()
@@ -469,7 +667,6 @@ class RoomResource extends Resource
                                     ->body('Tidak ada kamar yang bisa dihapus. Kamar yang masih memiliki penghuni aktif tidak dapat dihapus.')
                                     ->danger()
                                     ->send();
-
                                 return;
                             }
 
@@ -495,7 +692,7 @@ class RoomResource extends Resource
                         }),
 
                     Tables\Actions\RestoreBulkAction::make()
-                        ->visible(fn() => auth()->user()?->hasRole('super_admin')),
+                        ->visible(fn () => auth()->user()?->hasRole('super_admin')),
                 ]),
             ]);
     }
@@ -523,7 +720,7 @@ class RoomResource extends Resource
 
                         TextEntry::make('capacity')
                             ->label('Kapasitas')
-                            ->formatStateUsing(fn($state) => $state ? "{$state} orang" : '-'),
+                            ->formatStateUsing(fn ($state) => $state ? "{$state} orang" : '-'),
 
                         TextEntry::make('monthly_rate')
                             ->label('Tarif Bulanan')
@@ -536,7 +733,7 @@ class RoomResource extends Resource
                         TextEntry::make('penghuni_aktif')
                             ->label('Penghuni Aktif')
                             ->state(
-                                fn(Room $record) => RoomResident::query()
+                                fn (Room $record) => RoomResident::query()
                                     ->where('room_id', $record->id)
                                     ->whereNull('check_out_date')
                                     ->count()
@@ -585,7 +782,7 @@ class RoomResource extends Resource
         if ($user->hasRole('branch_admin')) {
             return $query->whereHas(
                 'block',
-                fn(Builder $q) => $q->whereIn('dorm_id', $user->branchDormIds())
+                fn (Builder $q) => $q->whereIn('dorm_id', $user->branchDormIds())
             );
         }
 

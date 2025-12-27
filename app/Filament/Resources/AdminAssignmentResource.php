@@ -136,7 +136,7 @@ class AdminAssignmentResource extends Resource
                     ]),
 
                 Tables\Columns\TextColumn::make('dorm.name')
-                    ->label('Asrama')
+                    ->label('Cabang')
                     ->placeholder('-')
                     ->toggleable(),
 
@@ -164,29 +164,33 @@ class AdminAssignmentResource extends Resource
                     ->label('Lokasi')
                     ->form([
                         Forms\Components\Select::make('dorm_id')
-                            ->label('Asrama')
-                            ->options(fn() => Dorm::query()->orderBy('name')->pluck('name', 'id'))
+                            ->label('Cabang')
+                            ->options(fn () => Dorm::query()->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
                             ->reactive()
-                            ->afterStateUpdated(fn(Forms\Set $set) => $set('block_id', null)),
+                            ->afterStateUpdated(fn (Forms\Set $set) => $set('block_id', null)),
 
                         Forms\Components\Select::make('block_id')
                             ->label('Komplek')
+                            ->placeholder('Pilih cabang terlebih dahulu')
                             ->options(
-                                fn(Forms\Get $get) => Block::query()
-                                    ->when($get('dorm_id'), fn(Builder $q, $dormId) => $q->where('dorm_id', $dormId))
+                                fn (Forms\Get $get) => Block::query()
+                                    ->when($get('dorm_id'), fn (Builder $q, $dormId) => $q->where('dorm_id', $dormId))
                                     ->orderBy('name')
                                     ->pluck('name', 'id')
                             )
                             ->searchable()
                             ->native(false)
-                            ->disabled(fn(Forms\Get $get) => blank($get('dorm_id'))),
+                            ->disabled(fn (Forms\Get $get) => blank($get('dorm_id')))
+                            ->helperText(fn (Forms\Get $get) => blank($get('dorm_id'))
+                                ? 'Komplek bisa dipilih setelah memilih cabang.'
+                                : null),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
-                            ->when($data['dorm_id'] ?? null, fn(Builder $q, $dormId) => $q->where('admin_scopes.dorm_id', $dormId))
-                            ->when($data['block_id'] ?? null, fn(Builder $q, $blockId) => $q->where('admin_scopes.block_id', $blockId));
+                            ->when($data['dorm_id'] ?? null, fn (Builder $q, $dormId) => $q->where('admin_scopes.dorm_id', $dormId))
+                            ->when($data['block_id'] ?? null, fn (Builder $q, $blockId) => $q->where('admin_scopes.block_id', $blockId));
                     }),
             ])
             ->actions([
