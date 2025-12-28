@@ -81,7 +81,7 @@ class TransferResident extends Page implements HasActions
                     ->schema([
                         Forms\Components\Select::make('new_dorm_id')
                             ->label('Cabang Baru')
-                            ->options(fn () => Dorm::query()
+                            ->options(fn() => Dorm::query()
                                 ->where('is_active', true)
                                 ->orderBy('name')
                                 ->pluck('name', 'id'))
@@ -96,18 +96,18 @@ class TransferResident extends Page implements HasActions
 
                         Forms\Components\Select::make('new_block_id')
                             ->label('Komplek Baru')
-                            ->options(fn (Forms\Get $get) => Block::query()
+                            ->options(fn(Forms\Get $get) => Block::query()
                                 ->where('is_active', true)
-                                ->when($get('new_dorm_id'), fn (Builder $q, $dormId) => $q->where('dorm_id', $dormId))
+                                ->when($get('new_dorm_id'), fn(Builder $q, $dormId) => $q->where('dorm_id', $dormId))
                                 ->orderBy('name')
                                 ->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
                             ->reactive()
                             ->required()
-                            ->disabled(fn (Forms\Get $get) => blank($get('new_dorm_id')))
-                            ->helperText(fn (Forms\Get $get) => blank($get('new_dorm_id')) ? 'Pilih cabang dulu untuk menampilkan komplek.' : null)
-                            ->afterStateUpdated(fn (Forms\Set $set) => $set('new_room_id', null)),
+                            ->disabled(fn(Forms\Get $get) => blank($get('new_dorm_id')))
+                            ->helperText(fn(Forms\Get $get) => blank($get('new_dorm_id')) ? 'Pilih cabang dulu untuk menampilkan komplek.' : null)
+                            ->afterStateUpdated(fn(Forms\Set $set) => $set('new_room_id', null)),
 
                         Forms\Components\Select::make('new_room_id')
                             ->label('Kamar Baru')
@@ -115,7 +115,7 @@ class TransferResident extends Page implements HasActions
                             ->native(false)
                             ->reactive()
                             ->required()
-                            ->disabled(fn (Forms\Get $get) => blank($get('new_block_id')))
+                            ->disabled(fn(Forms\Get $get) => blank($get('new_block_id')))
                             ->options(function (Forms\Get $get) use ($currentRoomResident) {
                                 $blockId = $get('new_block_id');
                                 $gender  = $this->record->residentProfile?->gender;
@@ -125,7 +125,7 @@ class TransferResident extends Page implements HasActions
                                 $rooms = Room::query()
                                     ->where('block_id', $blockId)
                                     ->where('is_active', true)
-                                    ->when($currentRoomResident?->room_id, fn ($q) => $q->where('id', '!=', $currentRoomResident->room_id))
+                                    ->when($currentRoomResident?->room_id, fn($q) => $q->where('id', '!=', $currentRoomResident->room_id))
                                     ->orderBy('code')
                                     ->get();
 
@@ -148,6 +148,8 @@ class TransferResident extends Page implements HasActions
                                     $capacity  = (int) ($room->capacity ?? 0);
                                     $available = $capacity - $activeCount;
 
+                                    if ($available <= 0) continue;
+
                                     $labelGender = $activeGender
                                         ? ($activeGender === 'M' ? 'Laki-laki' : 'Perempuan')
                                         : 'Kosong';
@@ -163,7 +165,6 @@ class TransferResident extends Page implements HasActions
                             ->required()
                             ->default(now()->toDateString())
                             ->native(false)
-                            // ✅ aturan: tanggal pindah >= tanggal masuk
                             ->minDate($minTransferDate)
                             ->helperText($minTransferDate ? "Tidak boleh sebelum tanggal masuk kamar aktif ({$minTransferDate})." : null),
 
@@ -209,7 +210,7 @@ class TransferResident extends Page implements HasActions
                 ]);
             }
 
-            // ✅ VALIDASI: tanggal pindah harus >= tanggal masuk kamar aktif
+            // VALIDASI: tanggal pindah harus >= tanggal masuk kamar aktif
             $currentCheckIn = $currentRoomResident->check_in_date
                 ? Carbon::parse($currentRoomResident->check_in_date)->startOfDay()
                 : null;
@@ -220,27 +221,28 @@ class TransferResident extends Page implements HasActions
                 ]);
             }
 
-            // =========================================================
-            // 1) TUTUP KAMAR LAMA (tanpa memicu event yang bikin user jadi nonaktif)
-            // =========================================================
+            // Cek apakah penghuni adalah PIC di kamar lama
+            $wasPic = $currentRoomResident->is_pic;
+            $oldRoomId = $currentRoomResident->room_id;
+
+            // TUTUP KAMAR LAMA (tanpa memicu event yang bikin user jadi nonaktif)
             RoomResident::withoutEvents(function () use ($currentRoomResident, $transferDate) {
                 $currentRoomResident->update([
                     'check_out_date' => $transferDate->toDateString(),
                 ]);
             });
 
-            // ✅ history kamar lama: status = Pindah (transfer), bukan Keluar (checkout)
+            // history kamar lama: status = transfer
             RoomHistory::query()
                 ->where('room_resident_id', $currentRoomResident->id)
                 ->whereNull('check_out_date')
                 ->update([
                     'check_out_date' => $transferDate->toDateString(),
-                    'movement_type'  => 'transfer', // DB enum: new|transfer|checkout
+                    'movement_type'  => 'transfer',
+                    'notes' => $data['notes'] ?? 'Pindah kamar',
                 ]);
 
-            // =========================================================
-            // 2) VALIDASI & LOCK KAMAR TUJUAN
-            // =========================================================
+            // VALIDASI & LOCK KAMAR TUJUAN
             RoomResident::query()
                 ->where('room_id', $newRoomId)
                 ->whereNull('check_out_date')
@@ -278,25 +280,59 @@ class TransferResident extends Page implements HasActions
                 ]);
             }
 
-            // =========================================================
-            // 3) BUAT ROOM_RESIDENT BARU (history auto dibuat sebagai "new" = Masuk)
-            // =========================================================
-            RoomResident::create([
-                'user_id'        => $this->record->id,
-                'room_id'        => $newRoomId,
-                'check_in_date'  => $transferDate->toDateString(),
+            // BUAT ROOM_RESIDENT BARU (TANPA EVENTS untuk menghindari duplikasi)
+            $newRoomResident = RoomResident::withoutEvents(function () use ($newRoomId, $transferDate, $isPic) {
+                return RoomResident::create([
+                    'user_id'        => $this->record->id,
+                    'room_id'        => $newRoomId,
+                    'check_in_date'  => $transferDate->toDateString(),
+                    'check_out_date' => null,
+                    'is_pic'         => $isPic,
+                ]);
+            });
+
+            // Buat history manual untuk kamar baru
+            RoomHistory::create([
+                'user_id' => $this->record->id,
+                'room_id' => $newRoomId,
+                'room_resident_id' => $newRoomResident->id,
+                'check_in_date' => $transferDate->toDateString(),
                 'check_out_date' => null,
-                'is_pic'         => $isPic,
-                'notes'          => $data['notes'] ?? null,
+                'is_pic' => $isPic,
+                'movement_type' => 'new', // Status "Masuk" untuk kamar baru
+                'notes' => $data['notes'] ?? 'Pindah dari kamar lain',
+                'recorded_by' => auth()->id(),
             ]);
 
-            // =========================================================
-            // 4) PASTIKAN PENGHUNI TETAP AKTIF
-            // =========================================================
+            // PASTIKAN PENGHUNI TETAP AKTIF
             $this->record->forceFill(['is_active' => true])->save();
 
             if ($this->record->residentProfile) {
                 $this->record->residentProfile->forceFill(['status' => 'active'])->save();
+            }
+
+            // ASSIGN PIC BARU DI KAMAR LAMA (jika yang pindah adalah PIC)
+            if ($wasPic) {
+                // Cari penghuni tertua yang masih aktif di kamar lama
+                $newPicForOldRoom = RoomResident::where('room_id', $oldRoomId)
+                    ->whereNull('check_out_date')
+                    ->orderBy('check_in_date', 'asc')
+                    ->first();
+
+                if ($newPicForOldRoom) {
+                    // Update sebagai PIC tanpa trigger event
+                    RoomResident::withoutEvents(function () use ($newPicForOldRoom) {
+                        $newPicForOldRoom->update(['is_pic' => true]);
+                    });
+
+                    // Update history juga
+                    RoomHistory::where('room_resident_id', $newPicForOldRoom->id)
+                        ->whereNull('check_out_date')
+                        ->update([
+                            'is_pic' => true,
+                            'notes' => 'Auto-assigned sebagai PIC karena PIC sebelumnya pindah kamar',
+                        ]);
+                }
             }
         });
 

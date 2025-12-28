@@ -4,7 +4,6 @@ namespace App\Filament\Resources\RegistrationResource\Pages;
 
 use App\Filament\Resources\RegistrationResource;
 use App\Models\Block;
-use App\Models\Country;
 use App\Models\Dorm;
 use App\Models\Registration;
 use App\Models\ResidentProfile;
@@ -12,7 +11,6 @@ use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomHistory;
 use App\Models\RoomResident;
-use App\Models\RoomType;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -45,13 +43,11 @@ class ApproveRegistration extends Page
             $this->redirect(RegistrationResource::getUrl('index'));
         }
 
-        // Fill form dengan data preferensi pendaftar
         $fillData = [
             'place_in_room' => false,
             'status' => 'registered',
         ];
 
-        // Jika ada preferred_dorm_id yang aktif, set sebagai default
         if ($record->preferred_dorm_id) {
             $dorm = Dorm::where('id', $record->preferred_dorm_id)
                 ->where('is_active', true)
@@ -60,7 +56,6 @@ class ApproveRegistration extends Page
             if ($dorm) {
                 $fillData['dorm_id'] = $dorm->id;
 
-                // Jika ada block aktif di dorm ini, ambil yang pertama
                 $firstBlock = Block::where('dorm_id', $dorm->id)
                     ->where('is_active', true)
                     ->orderBy('name')
@@ -69,19 +64,16 @@ class ApproveRegistration extends Page
                 if ($firstBlock) {
                     $fillData['block_id'] = $firstBlock->id;
 
-                    // Jika ada room type preference dan gender cocok, cari room yang sesuai
                     if ($record->preferred_room_type_id && $record->gender) {
                         $suitableRoom = Room::where('block_id', $firstBlock->id)
                             ->where('room_type_id', $record->preferred_room_type_id)
                             ->where('is_active', true)
                             ->whereHas('activeRoomResidents', function ($q) use ($record) {
-                                // Cari room yang gender-nya cocok atau kosong
                                 $q->whereHas('user.residentProfile', function ($q2) use ($record) {
                                     $q2->where('gender', $record->gender);
                                 });
-                            }, '<=', 0) // atau yang masih kosong
+                            }, '<=', 0)
                             ->orWhere(function ($q) use ($firstBlock, $record) {
-                                // Atau room yang kosong sama sekali
                                 $q->where('block_id', $firstBlock->id)
                                     ->where('room_type_id', $record->preferred_room_type_id)
                                     ->where('is_active', true)
@@ -97,7 +89,6 @@ class ApproveRegistration extends Page
             }
         }
 
-        // Set default check_in_date dari planned_check_in_date
         if ($record->planned_check_in_date) {
             $fillData['check_in_date'] = $record->planned_check_in_date->format('Y-m-d');
         }
@@ -166,7 +157,6 @@ class ApproveRegistration extends Page
                             ->afterStateUpdated(function ($state, Forms\Set $set) {
                                 if ($state !== 'active') {
                                     $set('place_in_room', false);
-                                    // Jangan reset dorm_id, block_id, room_id agar tetap terisi
                                 } else {
                                     $set('place_in_room', true);
                                 }
@@ -193,7 +183,6 @@ class ApproveRegistration extends Page
                                 $set('block_id', null);
                                 $set('room_id', null);
 
-                                // Auto-select first active block
                                 $dormId = $get('dorm_id');
                                 if ($dormId) {
                                     $firstBlock = Block::where('dorm_id', $dormId)
@@ -238,7 +227,6 @@ class ApproveRegistration extends Page
                                     ->where('block_id', $blockId)
                                     ->where('is_active', true);
 
-                                // Prioritaskan room dengan tipe yang diinginkan
                                 if ($preferredRoomTypeId) {
                                     $query->orderByRaw("CASE WHEN room_type_id = ? THEN 0 ELSE 1 END", [$preferredRoomTypeId]);
                                 }
@@ -249,30 +237,25 @@ class ApproveRegistration extends Page
                                 $options = [];
 
                                 foreach ($rooms as $room) {
-                                    // Cek gender di kamar
                                     $activeGender = $room->getActiveGenderAttribute();
 
-                                    // Skip jika gender tidak cocok
                                     if ($activeGender && $activeGender !== $gender) continue;
 
-                                    // Cek kapasitas
                                     $activeCount = $room->activeResidents()->count();
                                     $capacity = $room->capacity ?? 0;
                                     $available = $capacity - $activeCount;
 
-                                    // Skip jika penuh
                                     if ($available <= 0) continue;
 
                                     $labelGender = $activeGender
                                         ? ($activeGender === 'M' ? 'Laki-laki' : 'Perempuan')
                                         : 'Kosong';
 
-                                    // Tambahkan badge jika sesuai preferensi
                                     $roomTypeMatch = ($room->room_type_id == $preferredRoomTypeId) ? ' ⭐' : '';
 
                                     $roomTypeName = $room->roomType?->name ?? 'N/A';
 
-                                    $options[$room->id] = "{$room->code} – {$roomTypeName}{$roomTypeMatch} – {$labelGender} (Tersisa: {$available})";
+                                    $options[$room->id] = "{$room->code} — {$roomTypeName}{$roomTypeMatch} — {$labelGender} (Tersisa: {$available})";
                                 }
 
                                 return $options;
@@ -289,7 +272,6 @@ class ApproveRegistration extends Page
                                 if ($hasPic) {
                                     $set('is_pic', false);
                                 } else {
-                                    // Auto-set PIC jika kamar kosong
                                     $activeCount = RoomResident::query()
                                         ->where('room_id', $state)
                                         ->whereNull('check_out_date')
@@ -447,29 +429,29 @@ class ApproveRegistration extends Page
                     ]);
                 }
 
-                // Buat RoomResident (Observer akan otomatis buat RoomHistory)
-                RoomResident::create([
-                    'room_id' => $roomId,
+                // PERBAIKAN: Buat RoomResident TANPA events untuk menghindari duplikasi
+                $roomResident = RoomResident::withoutEvents(function () use ($roomId, $user, $checkIn, $isPic) {
+                    return RoomResident::create([
+                        'room_id' => $roomId,
+                        'user_id' => $user->id,
+                        'check_in_date' => $checkIn,
+                        'check_out_date' => null,
+                        'is_pic' => $isPic,
+                    ]);
+                });
+
+                // Buat SATU history saja secara manual
+                RoomHistory::create([
                     'user_id' => $user->id,
+                    'room_id' => $roomId,
+                    'room_resident_id' => $roomResident->id,
                     'check_in_date' => $checkIn,
                     'check_out_date' => null,
                     'is_pic' => $isPic,
+                    'movement_type' => 'new',
+                    'notes' => 'Penempatan awal saat approval pendaftaran',
+                    'recorded_by' => auth()->id(),
                 ]);
-
-                // Update movement_type di history yang baru dibuat oleh observer
-                $latestHistory = RoomHistory::where('user_id', $user->id)
-                    ->where('room_id', $roomId)
-                    ->whereNull('check_out_date')
-                    ->latest('id')
-                    ->first();
-
-                if ($latestHistory) {
-                    $latestHistory->update([
-                        'movement_type' => 'new',
-                        'notes' => 'Penempatan awal saat approval pendaftaran',
-                        'recorded_by' => auth()->id(),
-                    ]);
-                }
             }
 
             // 5) Update Registration
