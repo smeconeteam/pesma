@@ -29,6 +29,13 @@
                         {{ __('Dasbor') }}
                     </x-nav-link>
                     @endif
+
+                    {{-- ✅ Menu Kamar Saya --}}
+                    @if (\Illuminate\Support\Facades\Route::has('resident.my-room'))
+                    <x-nav-link :href="route('resident.my-room')" :active="request()->routeIs('resident.my-room')">
+                        {{ __('Kamar Saya') }}
+                    </x-nav-link>
+                    @endif
                     @endauth
 
                     @guest
@@ -120,6 +127,13 @@
             @if (\Illuminate\Support\Facades\Route::has('dashboard'))
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dasbor') }}
+            </x-responsive-nav-link>
+            @endif
+
+            {{-- ✅ Menu Kamar Saya (mobile) --}}
+            @if (\Illuminate\Support\Facades\Route::has('resident.my-room'))
+            <x-responsive-nav-link :href="route('resident.my-room')" :active="request()->routeIs('resident.my-room')">
+                {{ __('Kamar Saya') }}
             </x-responsive-nav-link>
             @endif
             @endauth

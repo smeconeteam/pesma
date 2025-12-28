@@ -4,6 +4,8 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicRegistrationController;
 use App\Http\Controllers\Resident\DashboardController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Resident\MyRoomController;
+
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -14,6 +16,9 @@ Route::middleware(['auth', 'verified', 'resident.only'])->group(function () {
     // ✅ Dashboard resident pakai controller
     Route::get('/dashboard', DashboardController::class)
         ->name('dashboard');
+
+    // ✅ Halaman Kamar Saya (read-only)
+    Route::get('/kamar-saya', MyRoomController::class)->name('resident.my-room');
 
     Route::get('/profile', [ProfileController::class, 'edit'])
         ->name('profile.edit');
