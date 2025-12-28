@@ -25,35 +25,32 @@ class ListResidents extends ListRecords
 
     public function getTabs(): array
     {
-        $isSuperAdmin = auth()->user()?->hasRole('super_admin');
-
-        $tabs = [
-            'aktif' => Tab::make('Data Aktif')
-                ->modifyQueryUsing(function (Builder $query) {
-                    // ✅ pastikan hanya data yang belum terhapus
-                    return $query->whereNull('users.deleted_at');
-                })
-                ->badge(fn () => User::query()
-                    ->whereHas('roles', fn (Builder $q) => $q->where('name', 'resident'))
-                    ->whereNull('users.deleted_at')
-                    ->count()
-                ),
-        ];
-
-        if ($isSuperAdmin) {
-            $tabs['terhapus'] = Tab::make('Data Terhapus')
-                ->modifyQueryUsing(function (Builder $query) {
-                    // ✅ hanya data yang terhapus
-                    return $query->whereNotNull('users.deleted_at');
-                })
-                ->badge(fn () => User::query()
-                    ->whereHas('roles', fn (Builder $q) => $q->where('name', 'resident'))
-                    ->onlyTrashed()
-                    ->count()
-                )
-                ->badgeColor('danger');
+        if (!auth()->user()?->hasRole('super_admin')) {
+            return [];
         }
 
-        return $tabs;
+        return [
+            'aktif' => Tab::make('Data Aktif')
+                ->modifyQueryUsing(function (Builder $query) {
+                    return $query->whereNull('users.deleted_at');
+                })
+                ->badge(
+                    fn() => User::query()
+                        ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
+                        ->whereNull('users.deleted_at')
+                        ->count()
+                ),
+            'terhapus' => Tab::make('Data Terhapus')
+                ->modifyQueryUsing(function (Builder $query) {
+                    return $query->whereNotNull('users.deleted_at');
+                })
+                ->badge(
+                    fn() => User::query()
+                        ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
+                        ->onlyTrashed()
+                        ->count()
+                )
+                ->badgeColor('danger'),
+        ];
     }
 }

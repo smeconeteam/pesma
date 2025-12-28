@@ -22,16 +22,20 @@ class ListDiscounts extends ListRecords
 
     public function getTabs(): array
     {
+        if (!auth()->user()?->hasRole('super_admin')) {
+            return [];
+        }
+
         return [
             'aktif' => Tab::make('Aktif')
                 ->icon('heroicon-m-check-circle')
                 ->badge(Discount::query()->whereNull('deleted_at')->count())
-                ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('deleted_at')),
+                ->modifyQueryUsing(fn(Builder $query) => $query->whereNull('deleted_at')),
 
             'sampah' => Tab::make('Sampah')
                 ->icon('heroicon-m-trash')
                 ->badge(Discount::onlyTrashed()->count())
-                ->modifyQueryUsing(fn (Builder $query) => $query->onlyTrashed()),
+                ->modifyQueryUsing(fn(Builder $query) => $query->onlyTrashed()),
         ];
     }
 

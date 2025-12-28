@@ -22,19 +22,18 @@ class ListBlocks extends ListRecords
 
     public function getTabs(): array
     {
-        $tabs = [
+        if (!auth()->user()?->hasRole('super_admin')) {
+            return [];
+        }
+
+        return [
             'aktif' => Tab::make('Data Aktif')
                 ->modifyQueryUsing(fn(Builder $query) => $query),
-        ];
-
-        if (auth()->user()?->hasRole('super_admin')) {
-            $tabs['terhapus'] = Tab::make('Data Terhapus')
+            'terhapus' => Tab::make('Data Terhapus')
                 ->modifyQueryUsing(
                     fn(Builder $query) =>
                     $query->withoutGlobalScopes([SoftDeletingScope::class])->onlyTrashed()
-                );
-        }
-
-        return $tabs;
+                ),
+        ];
     }
 }
