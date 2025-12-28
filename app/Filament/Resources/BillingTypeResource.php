@@ -35,23 +35,53 @@ class BillingTypeResource extends Resource
         return $user && ($user->hasRole('super_admin') || $user->hasRole('main_admin'));
     }
 
-    public static function shouldRegisterNavigation(): bool { return static::isAllowed(); }
-    public static function canViewAny(): bool { return static::isAllowed(); }
-    public static function canCreate(): bool { return static::isAllowed(); }
-    public static function canEdit($record): bool { return static::isAllowed(); }
-    public static function canDelete($record): bool { return static::isAllowed(); }
-    public static function canDeleteAny(): bool { return static::isAllowed(); }
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::isAllowed();
+    }
+    public static function canViewAny(): bool
+    {
+        return static::isAllowed();
+    }
+    public static function canCreate(): bool
+    {
+        return static::isAllowed();
+    }
+    public static function canEdit($record): bool
+    {
+        return static::isAllowed();
+    }
+    public static function canDelete($record): bool
+    {
+        return static::isAllowed();
+    }
+    public static function canDeleteAny(): bool
+    {
+        return static::isAllowed();
+    }
 
     /** =========================
      *  SOFT DELETE + EAGER LOAD
      *  ========================= */
     public static function getEloquentQuery(): Builder
     {
+        $user = auth()->user();
+
+        if (!$user) {
+            return parent::getEloquentQuery()->whereRaw('1 = 0');
+        }
+
+        // ✅ Hanya super_admin yang bisa lihat data terhapus
+        if ($user->hasRole('super_admin')) {
+            return parent::getEloquentQuery()
+                ->withoutGlobalScopes([SoftDeletingScope::class])
+                ->with(['dorms:id,name']);
+        }
+
+        // ✅ main_admin hanya lihat data aktif (pakai SoftDeletingScope default)
         return parent::getEloquentQuery()
-            ->withoutGlobalScopes([SoftDeletingScope::class])
             ->with(['dorms:id,name']);
     }
-
     /** =========================
      *  FORM
      *  ========================= */
@@ -98,25 +128,28 @@ class BillingTypeResource extends Resource
 
             Forms\Components\Section::make('Cakupan Cabang')
                 // ✅ CARA KE-2: jangan tampil saat view
-                ->visible(fn (string $operation): bool => $operation !== 'view')
+                ->visible(fn(string $operation): bool => $operation !== 'view')
                 ->schema([
                     // CREATE: boleh pilih banyak cabang
                     Forms\Components\Select::make('dorm_ids')
                         ->label('Cabang yang berlaku')
                         ->multiple()
-                        ->options(fn () => Dorm::query()
-                            ->where('is_active', true)
-                            ->orderBy('name')
-                            ->pluck('name', 'id')
-                            ->toArray()
+                        ->options(
+                            fn() => Dorm::query()
+                                ->where('is_active', true)
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->toArray()
                         )
                         ->searchable()
                         ->preload()
                         ->native(false)
-                        ->visible(fn (Get $get, string $operation) =>
+                        ->visible(
+                            fn(Get $get, string $operation) =>
                             $operation === 'create' && ! (bool) $get('applies_to_all')
                         )
-                        ->required(fn (Get $get, string $operation) =>
+                        ->required(
+                            fn(Get $get, string $operation) =>
                             $operation === 'create' && ! (bool) $get('applies_to_all')
                         )
                         ->helperText('Jika memilih beberapa cabang, sistem akan membuat data baru 1 per cabang (nominal sama).'),
@@ -124,19 +157,22 @@ class BillingTypeResource extends Resource
                     // EDIT: wajib 1 cabang saja
                     Forms\Components\Select::make('dorm_id')
                         ->label('Cabang yang berlaku')
-                        ->options(fn () => Dorm::query()
-                            ->where('is_active', true)
-                            ->orderBy('name')
-                            ->pluck('name', 'id')
-                            ->toArray()
+                        ->options(
+                            fn() => Dorm::query()
+                                ->where('is_active', true)
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->toArray()
                         )
                         ->searchable()
                         ->preload()
                         ->native(false)
-                        ->visible(fn (Get $get, string $operation) =>
+                        ->visible(
+                            fn(Get $get, string $operation) =>
                             $operation === 'edit' && ! (bool) $get('applies_to_all')
                         )
-                        ->required(fn (Get $get, string $operation) =>
+                        ->required(
+                            fn(Get $get, string $operation) =>
                             $operation === 'edit' && ! (bool) $get('applies_to_all')
                         )
                         ->helperText('Saat edit, hanya boleh memilih 1 cabang.'),
@@ -158,7 +194,7 @@ class BillingTypeResource extends Resource
 
                 Tables\Columns\TextColumn::make('amount')
                     ->label('Nominal')
-                    ->formatStateUsing(fn ($state) => 'Rp ' . number_format((float) $state, 0, ',', '.'))
+                    ->formatStateUsing(fn($state) => 'Rp ' . number_format((float) $state, 0, ',', '.'))
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('cabang')
@@ -202,11 +238,12 @@ class BillingTypeResource extends Resource
                 // Filter berdasarkan cabang: tampilkan yg "Semua Cabang" atau yang punya dorm itu
                 SelectFilter::make('dorm_filter')
                     ->label('Cabang')
-                    ->options(fn () => Dorm::query()
-                        ->where('is_active', true)
-                        ->orderBy('name')
-                        ->pluck('name', 'id')
-                        ->toArray()
+                    ->options(
+                        fn() => Dorm::query()
+                            ->where('is_active', true)
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->toArray()
                     )
                     ->searchable()
                     ->query(function (Builder $query, array $data) {
@@ -218,7 +255,7 @@ class BillingTypeResource extends Resource
 
                         return $query->where(function (Builder $q) use ($dormId) {
                             $q->where('applies_to_all', true)
-                                ->orWhereHas('dorms', fn (Builder $dq) => $dq->where('dorms.id', $dormId));
+                                ->orWhereHas('dorms', fn(Builder $dq) => $dq->where('dorms.id', $dormId));
                         });
                     }),
             ])
@@ -226,13 +263,13 @@ class BillingTypeResource extends Resource
                 Tables\Actions\ViewAction::make(),
 
                 Tables\Actions\EditAction::make()
-                    ->visible(fn ($record) => $record->deleted_at === null),
+                    ->visible(fn($record) => $record->deleted_at === null),
 
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn ($record) => $record->deleted_at === null),
+                    ->visible(fn($record) => $record->deleted_at === null),
 
                 Tables\Actions\RestoreAction::make()
-                    ->visible(fn ($record) => $record->deleted_at !== null),
+                    ->visible(fn($record) => $record->deleted_at !== null),
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),

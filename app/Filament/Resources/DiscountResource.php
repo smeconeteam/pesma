@@ -40,20 +40,51 @@ class DiscountResource extends Resource
         return $user && ($user->hasRole('super_admin') || $user->hasRole('main_admin'));
     }
 
-    public static function shouldRegisterNavigation(): bool { return static::isAllowed(); }
-    public static function canViewAny(): bool { return static::isAllowed(); }
-    public static function canCreate(): bool { return static::isAllowed(); }
-    public static function canEdit($record): bool { return static::isAllowed(); }
-    public static function canDelete($record): bool { return static::isAllowed(); }
-    public static function canDeleteAny(): bool { return static::isAllowed(); }
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::isAllowed();
+    }
+    public static function canViewAny(): bool
+    {
+        return static::isAllowed();
+    }
+    public static function canCreate(): bool
+    {
+        return static::isAllowed();
+    }
+    public static function canEdit($record): bool
+    {
+        return static::isAllowed();
+    }
+    public static function canDelete($record): bool
+    {
+        return static::isAllowed();
+    }
+    public static function canDeleteAny(): bool
+    {
+        return static::isAllowed();
+    }
 
     /** =========================
      *  SOFT DELETE + EAGER LOAD
      *  ========================= */
     public static function getEloquentQuery(): Builder
     {
+        $user = auth()->user();
+
+        if (!$user) {
+            return parent::getEloquentQuery()->whereRaw('1 = 0');
+        }
+
+        // ✅ Hanya super_admin yang bisa lihat data terhapus
+        if ($user->hasRole('super_admin')) {
+            return parent::getEloquentQuery()
+                ->withoutGlobalScopes([SoftDeletingScope::class])
+                ->with(['dorms:id,name']);
+        }
+
+        // ✅ main_admin hanya lihat data aktif (pakai SoftDeletingScope default)
         return parent::getEloquentQuery()
-            ->withoutGlobalScopes([SoftDeletingScope::class])
             ->with(['dorms:id,name']);
     }
 
@@ -112,7 +143,7 @@ class DiscountResource extends Resource
                         ->required()
                         ->maxLength(255)
                         ->live()
-                        ->afterStateUpdated(fn (Get $get, Set $set) => static::autoFillVoucherIfEmpty($get, $set)),
+                        ->afterStateUpdated(fn(Get $get, Set $set) => static::autoFillVoucherIfEmpty($get, $set)),
 
                     Forms\Components\TextInput::make('voucher_code')
                         ->label('Kode Voucher')
@@ -154,7 +185,7 @@ class DiscountResource extends Resource
                         ->displayFormat('d M Y')
                         ->helperText('Harus >= tanggal mulai.')
                         ->rules([
-                            fn (Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
+                            fn(Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
                                 $from = $get('valid_from');
 
                                 if (! $from || ! $value) {
@@ -191,19 +222,19 @@ class DiscountResource extends Resource
 
                     Forms\Components\TextInput::make('percent')
                         ->label('Persen')
-                        ->visible(fn (Get $get) => $get('type') === 'percent')
-                        ->required(fn (Get $get) => $get('type') === 'percent')
+                        ->visible(fn(Get $get) => $get('type') === 'percent')
+                        ->required(fn(Get $get) => $get('type') === 'percent')
                         ->numeric()
                         ->minValue(0)
                         ->maxValue(100)
                         ->suffix('%')
                         ->live()
-                        ->afterStateUpdated(fn (Get $get, Set $set) => static::autoFillVoucherIfEmpty($get, $set)),
+                        ->afterStateUpdated(fn(Get $get, Set $set) => static::autoFillVoucherIfEmpty($get, $set)),
 
                     Forms\Components\TextInput::make('amount')
                         ->label('Nominal')
-                        ->visible(fn (Get $get) => $get('type') === 'fixed')
-                        ->required(fn (Get $get) => $get('type') === 'fixed')
+                        ->visible(fn(Get $get) => $get('type') === 'fixed')
+                        ->required(fn(Get $get) => $get('type') === 'fixed')
                         ->prefix('Rp')
                         ->dehydrateStateUsing(function ($state) {
                             $digits = preg_replace('/\D+/', '', (string) $state);
@@ -212,7 +243,7 @@ class DiscountResource extends Resource
                         ->rule('integer')
                         ->minValue(0)
                         ->live()
-                        ->afterStateUpdated(fn (Get $get, Set $set) => static::autoFillVoucherIfEmpty($get, $set)),
+                        ->afterStateUpdated(fn(Get $get, Set $set) => static::autoFillVoucherIfEmpty($get, $set)),
 
                     Forms\Components\Textarea::make('description')
                         ->label('Deskripsi')
@@ -243,15 +274,15 @@ class DiscountResource extends Resource
                         ->relationship(
                             name: 'dorms',
                             titleAttribute: 'name',
-                            modifyQueryUsing: fn (Builder $query) => $query
+                            modifyQueryUsing: fn(Builder $query) => $query
                                 ->where('is_active', true)
                                 ->orderBy('name')
                         )
                         ->searchable()
                         ->preload()
                         ->native(false)
-                        ->visible(fn (Get $get) => ! (bool) $get('applies_to_all'))
-                        ->required(fn (Get $get) => ! (bool) $get('applies_to_all')),
+                        ->visible(fn(Get $get) => ! (bool) $get('applies_to_all'))
+                        ->required(fn(Get $get) => ! (bool) $get('applies_to_all')),
                 ]),
         ]);
     }
@@ -280,13 +311,13 @@ class DiscountResource extends Resource
                                 return 'Selamanya';
                             }
 
-                            $fmt = fn ($d) => $d ? Carbon::parse($d)->translatedFormat('d M Y') : '-';
+                            $fmt = fn($d) => $d ? Carbon::parse($d)->translatedFormat('d M Y') : '-';
                             return $fmt($from) . ' s/d ' . $fmt($until);
                         }),
 
                     TextEntry::make('tipe_label')
                         ->label('Tipe')
-                        ->state(fn (Discount $record) => $record->type === 'percent' ? 'Persen (%)' : 'Nominal (Rp)'),
+                        ->state(fn(Discount $record) => $record->type === 'percent' ? 'Persen (%)' : 'Nominal (Rp)'),
 
                     TextEntry::make('nilai_diskon')
                         ->label('Nilai Diskon')
@@ -383,11 +414,12 @@ class DiscountResource extends Resource
 
                 SelectFilter::make('dorm_filter')
                     ->label('Cabang')
-                    ->options(fn () => Dorm::query()
-                        ->where('is_active', true)
-                        ->orderBy('name')
-                        ->pluck('name', 'id')
-                        ->toArray()
+                    ->options(
+                        fn() => Dorm::query()
+                            ->where('is_active', true)
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->toArray()
                     )
                     ->searchable()
                     ->query(function (Builder $query, array $data) {
@@ -396,23 +428,23 @@ class DiscountResource extends Resource
 
                         return $query->where(function (Builder $q) use ($dormId) {
                             $q->where('applies_to_all', true)
-                              ->orWhereHas('dorms', fn (Builder $dq) => $dq->where('dorms.id', $dormId));
+                                ->orWhereHas('dorms', fn(Builder $dq) => $dq->where('dorms.id', $dormId));
                         });
                     }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
-                    ->url(fn ($record) => static::getUrl('view', ['record' => $record]))
+                    ->url(fn($record) => static::getUrl('view', ['record' => $record]))
                     ->openUrlInNewTab(false),
 
                 Tables\Actions\EditAction::make()
-                    ->visible(fn ($record) => $record->deleted_at === null),
+                    ->visible(fn($record) => $record->deleted_at === null),
 
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn ($record) => $record->deleted_at === null),
+                    ->visible(fn($record) => $record->deleted_at === null),
 
                 Tables\Actions\RestoreAction::make()
-                    ->visible(fn ($record) => $record->deleted_at !== null),
+                    ->visible(fn($record) => $record->deleted_at !== null),
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
