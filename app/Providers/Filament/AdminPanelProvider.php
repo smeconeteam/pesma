@@ -32,8 +32,8 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Green,
             ])
             ->navigationGroups([
-                'Penghuni',
                 'Asrama',
+                'Penghuni',
                 'Keuangan',
                 'Pengaturan',
             ])
