@@ -81,165 +81,167 @@ class RegistrationResource extends Resource
 
     public static function form(Form $form): Form
     {
-        return $form->schema([
-            Forms\Components\Section::make('Akun')
-                ->description('Data akun untuk login resident')
-                ->columns(2)
-                ->schema([
-                    Forms\Components\TextInput::make('email')
-                        ->label('Email')
-                        ->email()
-                        ->required()
-                        ->unique(ignoreRecord: true)
-                        ->maxLength(255),
+        return $form
+            ->schema([
+                Forms\Components\Section::make('Akun')
+                    ->description('Data akun untuk login resident')
+                    ->columns(2)
+                    ->schema([
+                        Forms\Components\TextInput::make('email')
+                            ->label('Email')
+                            ->email()
+                            ->required()
+                            ->unique(ignoreRecord: true)
+                            ->maxLength(255),
 
-                    Forms\Components\TextInput::make('name')
-                        ->label('Nama (Username)')
-                        ->helperText('Boleh sama dengan nama lengkap')
-                        ->required()
-                        ->maxLength(255),
+                        Forms\Components\TextInput::make('name')
+                            ->label('Nama (Username)')
+                            ->helperText('Boleh sama dengan nama lengkap')
+                            ->required()
+                            ->maxLength(255),
 
-                    Forms\Components\TextInput::make('password')
-                        ->label('Password')
-                        ->password()
-                        ->helperText('Kosongkan untuk generate otomatis (123456789)')
-                        ->dehydrateStateUsing(fn($state) => filled($state) ? bcrypt($state) : bcrypt('123456789'))
-                        ->maxLength(255)
-                        ->columnSpanFull(),
-                ]),
+                        Forms\Components\TextInput::make('password')
+                            ->label('Password')
+                            ->password()
+                            ->helperText('Kosongkan untuk generate otomatis (123456789)')
+                            ->dehydrateStateUsing(fn($state) => filled($state) ? bcrypt($state) : bcrypt('123456789'))
+                            ->maxLength(255)
+                            ->columnSpanFull(),
+                    ]),
 
-            Forms\Components\Section::make('Profil Calon Penghuni')
-                ->columns(2)
-                ->schema([
-                    Forms\Components\Select::make('resident_category_id')
-                        ->label('Kategori Penghuni')
-                        ->options(fn() => ResidentCategory::query()->orderBy('name')->pluck('name', 'id'))
-                        ->searchable()
-                        ->native(false)
-                        ->required(),
+                Forms\Components\Section::make('Profil Calon Penghuni')
+                    ->columns(2)
+                    ->schema([
+                        Forms\Components\Select::make('resident_category_id')
+                            ->label('Kategori Penghuni')
+                            ->options(fn() => ResidentCategory::query()->orderBy('name')->pluck('name', 'id'))
+                            ->searchable()
+                            ->native(false)
+                            ->required(),
 
-                    Forms\Components\TextInput::make('full_name')
-                        ->label('Nama Lengkap')
-                        ->required()
-                        ->maxLength(255),
+                        Forms\Components\TextInput::make('full_name')
+                            ->label('Nama Lengkap')
+                            ->required()
+                            ->maxLength(255),
 
-                    Forms\Components\Select::make('gender')
-                        ->label('Jenis Kelamin')
-                        ->options(['M' => 'Laki-laki', 'F' => 'Perempuan'])
-                        ->native(false)
-                        ->required(),
+                        Forms\Components\Select::make('gender')
+                            ->label('Jenis Kelamin')
+                            ->options(['M' => 'Laki-laki', 'F' => 'Perempuan'])
+                            ->native(false)
+                            ->required(),
 
-                    Forms\Components\TextInput::make('national_id')
-                        ->label('NIK')
-                        ->rule('regex:/^\d+$/')
-                        ->helperText('Hanya angka')
-                        ->extraInputAttributes(['inputmode' => 'numeric', 'pattern' => '[0-9]*'])
-                        ->nullable(),
+                        Forms\Components\TextInput::make('national_id')
+                            ->label('NIK')
+                            ->rule('regex:/^\d+$/')
+                            ->helperText('Hanya angka')
+                            ->extraInputAttributes(['inputmode' => 'numeric', 'pattern' => '[0-9]*'])
+                            ->required(),
 
-                    Forms\Components\TextInput::make('student_id')
-                        ->label('NIM')
-                        ->nullable(),
+                        Forms\Components\TextInput::make('student_id')
+                            ->label('NIM/NIS')
+                            ->required(),
 
-                    Forms\Components\TextInput::make('birth_place')
-                        ->label('Tempat Lahir')
-                        ->nullable(),
+                        Forms\Components\TextInput::make('birth_place')
+                            ->label('Tempat Lahir')
+                            ->required(),
 
-                    Forms\Components\DatePicker::make('birth_date')
-                        ->label('Tanggal Lahir')
-                        ->native(false)
-                        ->displayFormat('d/m/Y')
-                        ->format('Y-m-d')
-                        ->maxDate(now()->subYears(6))
-                        ->helperText('Minimal usia 6 tahun')
-                        ->nullable(),
+                        Forms\Components\DatePicker::make('birth_date')
+                            ->label('Tanggal Lahir')
+                            ->native(false)
+                            ->displayFormat('d/m/Y')
+                            ->format('Y-m-d')
+                            ->default(now()->subYears(6))
+                            ->maxDate(now()->subYears(6))
+                            ->helperText('Minimal usia 6 tahun')
+                            ->required(),
 
-                    Forms\Components\TextInput::make('university_school')
-                        ->label('Universitas/Sekolah')
-                        ->nullable(),
+                        Forms\Components\TextInput::make('university_school')
+                            ->label('Universitas/Sekolah')
+                            ->required(),
 
-                    Forms\Components\FileUpload::make('photo_path')
-                        ->label('Foto')
-                        ->directory('registrations')
-                        ->image()
-                        ->imageEditor()
-                        ->columnSpanFull()
-                        ->nullable(),
-                ]),
+                        Forms\Components\FileUpload::make('photo_path')
+                            ->label('Foto')
+                            ->directory('registrations')
+                            ->image()
+                            ->imageEditor()
+                            ->columnSpanFull()
+                            ->nullable(),
+                    ]),
 
-            Forms\Components\Section::make('Kewarganegaraan & Kontak')
-                ->columns(2)
-                ->schema([
-                    Forms\Components\Select::make('citizenship_status')
-                        ->label('Kewarganegaraan')
-                        ->options(['WNI' => 'WNI', 'WNA' => 'WNA'])
-                        ->native(false)
-                        ->default('WNI')
-                        ->reactive()
-                        ->afterStateUpdated(function ($state, Forms\Set $set) {
-                            if ($state === 'WNI') {
-                                $indoId = Country::query()->where('iso2', 'ID')->value('id');
-                                if ($indoId) $set('country_id', $indoId);
-                            }
-                        })
-                        ->required(),
+                Forms\Components\Section::make('Kewarganegaraan & Kontak')
+                    ->columns(2)
+                    ->schema([
+                        Forms\Components\Select::make('citizenship_status')
+                            ->label('Kewarganegaraan')
+                            ->options(['WNI' => 'WNI', 'WNA' => 'WNA'])
+                            ->native(false)
+                            ->default('WNI')
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                if ($state === 'WNI') {
+                                    $indoId = Country::query()->where('iso2', 'ID')->value('id');
+                                    if ($indoId) $set('country_id', $indoId);
+                                }
+                            })
+                            ->required(),
 
-                    Forms\Components\Select::make('country_id')
-                        ->label('Asal Negara')
-                        ->options(fn() => Country::query()->orderBy('name')->pluck('name', 'id'))
-                        ->searchable()
-                        ->native(false)
-                        ->disabled(fn(Forms\Get $get) => $get('citizenship_status') === 'WNI')
-                        ->default(fn() => Country::query()->where('iso2', 'ID')->value('id'))
-                        ->required(),
+                        Forms\Components\Select::make('country_id')
+                            ->label('Asal Negara')
+                            ->options(fn() => Country::query()->orderBy('name')->pluck('name', 'id'))
+                            ->searchable()
+                            ->native(false)
+                            ->disabled(fn(Forms\Get $get) => $get('citizenship_status') === 'WNI')
+                            ->default(fn() => Country::query()->where('iso2', 'ID')->value('id'))
+                            ->required(),
 
-                    Forms\Components\TextInput::make('phone_number')
-                        ->label('No. HP')
-                        ->rule('regex:/^\d+$/')
-                        ->helperText('Hanya angka (tanpa + / spasi)')
-                        ->extraInputAttributes(['inputmode' => 'numeric', 'pattern' => '[0-9]*'])
-                        ->nullable(),
+                        Forms\Components\TextInput::make('phone_number')
+                            ->label('No. HP')
+                            ->rule('regex:/^\d+$/')
+                            ->helperText('Hanya angka (tanpa + / spasi)')
+                            ->extraInputAttributes(['inputmode' => 'numeric', 'pattern' => '[0-9]*'])
+                            ->required(),
 
-                    Forms\Components\TextInput::make('guardian_name')
-                        ->label('Nama Wali')
-                        ->nullable(),
+                        Forms\Components\TextInput::make('guardian_name')
+                            ->label('Nama Wali')
+                            ->nullable(),
 
-                    Forms\Components\TextInput::make('guardian_phone_number')
-                        ->label('No. HP Wali')
-                        ->rule('regex:/^\d+$/')
-                        ->helperText('Hanya angka (tanpa + / spasi)')
-                        ->extraInputAttributes(['inputmode' => 'numeric', 'pattern' => '[0-9]*'])
-                        ->nullable(),
-                ]),
+                        Forms\Components\TextInput::make('guardian_phone_number')
+                            ->label('No. HP Wali')
+                            ->rule('regex:/^\d+$/')
+                            ->helperText('Hanya angka (tanpa + / spasi)')
+                            ->extraInputAttributes(['inputmode' => 'numeric', 'pattern' => '[0-9]*'])
+                            ->nullable(),
+                    ]),
 
-            Forms\Components\Section::make('Preferensi Kamar')
-                ->description('Rencana kamar yang diinginkan (tidak mengikat)')
-                ->columns(2)
-                ->schema([
-                    Forms\Components\Select::make('preferred_dorm_id')
-                        ->label('Cabang Yang Diinginkan')
-                        ->options(fn() => Dorm::query()->orderBy('name')->pluck('name', 'id'))
-                        ->searchable()
-                        ->native(false)
-                        ->nullable(),
+                Forms\Components\Section::make('Preferensi Kamar')
+                    ->description('Rencana kamar yang diinginkan')
+                    ->columns(2)
+                    ->schema([
+                        Forms\Components\Select::make('preferred_dorm_id')
+                            ->label('Cabang Yang Diinginkan')
+                            ->options(fn() => Dorm::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))
+                            ->searchable()
+                            ->native(false)
+                            ->required(),
 
-                    Forms\Components\Select::make('preferred_room_type_id')
-                        ->label('Tipe Kamar Yang Diinginkan')
-                        ->options(fn() => RoomType::query()->orderBy('name')->pluck('name', 'id'))
-                        ->searchable()
-                        ->native(false)
-                        ->nullable(),
+                        Forms\Components\Select::make('preferred_room_type_id')
+                            ->label('Tipe Kamar Yang Diinginkan')
+                            ->options(fn() => RoomType::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))
+                            ->searchable()
+                            ->native(false)
+                            ->required(),
 
-                    Forms\Components\DatePicker::make('planned_check_in_date')
-                        ->label('Rencana Tanggal Masuk')
-                        ->native(false)
-                        ->displayFormat('d/m/Y')
-                        ->format('Y-m-d')
-                        ->minDate(now())
-                        ->default(now()->addDays(7))
-                        ->helperText('Minimal hari ini')
-                        ->nullable(),
-                ]),
-        ]);
+                        Forms\Components\DatePicker::make('planned_check_in_date')
+                            ->label('Rencana Tanggal Masuk')
+                            ->native(false)
+                            ->displayFormat('d/m/Y')
+                            ->format('Y-m-d')
+                            ->minDate(now())
+                            ->default(now()->addDays(7))
+                            ->helperText('Minimal hari ini')
+                            ->required(),
+                    ]),
+            ]);
     }
 
     public static function table(Table $table): Table

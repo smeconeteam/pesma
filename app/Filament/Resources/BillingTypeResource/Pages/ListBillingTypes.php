@@ -22,16 +22,20 @@ class ListBillingTypes extends ListRecords
 
     public function getTabs(): array
     {
+        if (!auth()->user()?->hasRole('super_admin')) {
+            return [];
+        }
+
         return [
             'aktif' => Tab::make('Aktif')
                 ->icon('heroicon-m-check-circle')
-                ->badge(BillingType::query()->whereNull('deleted_at')->count())
-                ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('deleted_at')),
+                ->badge(BillingType::query()->withoutTrashed()->count())
+                ->modifyQueryUsing(fn(Builder $query) => $query->withoutTrashed()),
 
             'sampah' => Tab::make('Sampah')
                 ->icon('heroicon-m-trash')
                 ->badge(BillingType::onlyTrashed()->count())
-                ->modifyQueryUsing(fn (Builder $query) => $query->onlyTrashed()),
+                ->modifyQueryUsing(fn(Builder $query) => $query->onlyTrashed()),
         ];
     }
 

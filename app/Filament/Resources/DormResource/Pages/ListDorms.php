@@ -21,16 +21,15 @@ class ListDorms extends ListRecords
 
     public function getTabs(): array
     {
-        $tabs = [
-            'aktif' => Tab::make('Data Aktif')
-                ->modifyQueryUsing(fn (Builder $query) => $query->withoutTrashed()),
-        ];
-
-        if (auth()->user()?->hasRole('super_admin')) {
-            $tabs['terhapus'] = Tab::make('Data Terhapus')
-                ->modifyQueryUsing(fn (Builder $query) => $query->onlyTrashed());
+        if (!auth()->user()?->hasRole('super_admin')) {
+            return [];
         }
 
-        return $tabs;
+        return [
+            'aktif' => Tab::make('Data Aktif')
+                ->modifyQueryUsing(fn(Builder $query) => $query->withoutTrashed()),
+            'terhapus' => Tab::make('Data Terhapus')
+                ->modifyQueryUsing(fn(Builder $query) => $query->onlyTrashed()),
+        ];
     }
 }

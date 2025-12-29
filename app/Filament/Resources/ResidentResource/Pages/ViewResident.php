@@ -10,6 +10,7 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\Section as InfoSection;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Resources\Pages\ViewRecord;
+use Illuminate\Support\Carbon;
 
 class ViewResident extends ViewRecord
 {
@@ -26,7 +27,6 @@ class ViewResident extends ViewRecord
     {
         parent::mount($record);
 
-        // Eager load semua relasi yang dibutuhkan
         $this->record->load([
             'residentProfile.residentCategory',
             'residentProfile.country',
@@ -34,14 +34,13 @@ class ViewResident extends ViewRecord
             'activeRoomResident.room.block.dorm',
         ]);
 
-        // Load room histories tanpa duplikasi
         $this->record->setRelation(
             'roomHistories',
             $this->record->roomHistories()
                 ->with(['room.roomType', 'room.block.dorm', 'recordedBy'])
                 ->orderBy('check_in_date', 'desc')
                 ->get()
-                ->unique('id') // Pastikan unique berdasarkan ID
+                ->unique('id')
         );
     }
 
@@ -174,7 +173,7 @@ class ViewResident extends ViewRecord
                                             default => 'secondary',
                                         })
                                         ->formatStateUsing(fn($state) => match ($state) {
-                                            'new' => 'Masuk Baru',
+                                            'new' => 'Masuk',
                                             'transfer' => 'Pindah',
                                             'checkout' => 'Keluar',
                                             default => '-',
@@ -198,19 +197,31 @@ class ViewResident extends ViewRecord
 
                                             if (!$checkIn) return '-';
 
-                                            // PERBAIKAN: Hitung durasi dengan benar
-                                            if (!$checkOut) {
-                                                // Masih tinggal: dari check_in sampai sekarang
-                                                $days = (int) $checkIn->diffInDays(now());
-                                            } else {
-                                                // Sudah checkout: dari check_in sampai check_out
-                                                $days = (int) $checkIn->diffInDays($checkOut);
+                                            $checkInDate = Carbon::parse($checkIn)->startOfDay();
+                                            $now = now()->startOfDay();
+
+                                            // Jika belum melewati tanggal masuk
+                                            if ($now->lt($checkInDate)) {
+                                                return '0 hari (belum melewati tanggal masuk)';
                                             }
 
-                                            if ($days === 0) return '< 1 hari';
+                                            if (!$checkOut) {
+                                                $days = (int) $checkInDate->diffInDays($now);
+                                            } else {
+                                                $checkOutDate = Carbon::parse($checkOut)->startOfDay();
+
+                                                // Jika checkout sebelum check-in (error data)
+                                                if ($checkOutDate->lt($checkInDate)) {
+                                                    return '0 hari (data tidak valid)';
+                                                }
+
+                                                $days = (int) $checkInDate->diffInDays($checkOutDate);
+                                            }
+
+                                            // Minimal 0 hari
+                                            if ($days === 0) return '0 hari';
                                             if ($days === 1) return '1 hari';
 
-                                            // Konversi ke bulan dan hari (bilangan bulat)
                                             $months = (int) floor($days / 30);
                                             $remainingDays = (int) ($days % 30);
 

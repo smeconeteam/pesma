@@ -3,15 +3,13 @@
 namespace App\Filament\Resources\ResidentResource\Pages;
 
 use App\Filament\Resources\ResidentResource;
-use App\Models\ResidentProfile;
-use App\Models\Room;
-use App\Models\RoomResident;
+use App\Models\ResidentCategory;
 use Filament\Actions;
+use Filament\Forms;
+use Filament\Forms\Form;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Carbon;
-use Illuminate\Validation\ValidationException;
 
 class EditResident extends EditRecord
 {
@@ -21,19 +19,164 @@ class EditResident extends EditRecord
     {
         parent::mount($record);
 
-        // ✅ pastikan profile ada supaya form tidak kosong saat edit
+        // Pastikan profile ada supaya form tidak kosong saat edit
         $this->record->residentProfile()->firstOrCreate([]);
+    }
+
+    public function form(Form $form): Form
+    {
+        return $form->schema([
+            Forms\Components\Section::make('Akun')
+                ->columns(2)
+                ->schema([
+                    Forms\Components\TextInput::make('email')
+                        ->label('Email')
+                        ->email()
+                        ->required()
+                        ->unique(ignoreRecord: true)
+                        ->maxLength(255),
+
+                    Forms\Components\Toggle::make('is_active')
+                        ->label('Aktif')
+                        ->default(true),
+                ]),
+
+            Forms\Components\Section::make('Profil Penghuni')
+                ->columns(2)
+                ->schema([
+                    Forms\Components\TextInput::make('residentProfile.full_name')
+                        ->label('Nama Lengkap')
+                        ->required()
+                        ->maxLength(255)
+                        ->columnSpanFull(),
+
+                    Forms\Components\Select::make('residentProfile.resident_category_id')
+                        ->label('Kategori Penghuni')
+                        ->options(fn() => ResidentCategory::query()->orderBy('name')->pluck('name', 'id'))
+                        ->searchable()
+                        ->native(false)
+                        ->required(),
+
+                    Forms\Components\Select::make('residentProfile.citizenship_status')
+                        ->label('Status Kewarganegaraan')
+                        ->options([
+                            'WNI' => 'WNI (Warga Negara Indonesia)',
+                            'WNA' => 'WNA (Warga Negara Asing)',
+                        ])
+                        ->native(false)
+                        ->required()
+                        ->reactive(),
+
+                    Forms\Components\Select::make('residentProfile.country_id')
+                        ->label('Negara')
+                        ->relationship('residentProfile.country', 'name')
+                        ->searchable()
+                        ->native(false)
+                        ->required(fn(Forms\Get $get) => $get('residentProfile.citizenship_status') === 'WNA')
+                        ->visible(fn(Forms\Get $get) => $get('residentProfile.citizenship_status') === 'WNA'),
+
+                    Forms\Components\TextInput::make('residentProfile.national_id')
+                        ->label('NIK')
+                        ->rule('digits:16')
+                        ->helperText('16 digit, hanya angka.')
+                        ->extraInputAttributes(['inputmode' => 'numeric', 'pattern' => '[0-9]*']),
+
+                    Forms\Components\TextInput::make('residentProfile.student_id')
+                        ->label('NIM')
+                        ->maxLength(50),
+
+                    Forms\Components\Select::make('residentProfile.gender')
+                        ->label('Jenis Kelamin')
+                        ->options(['M' => 'Laki-laki', 'F' => 'Perempuan'])
+                        ->native(false)
+                        ->required(),
+
+                    Forms\Components\TextInput::make('residentProfile.birth_place')
+                        ->label('Tempat Lahir')
+                        ->maxLength(100),
+
+                    Forms\Components\DatePicker::make('residentProfile.birth_date')
+                        ->label('Tanggal Lahir')
+                        ->native(false),
+
+                    Forms\Components\TextInput::make('residentProfile.university_school')
+                        ->label('Universitas/Sekolah')
+                        ->maxLength(255),
+
+                    Forms\Components\TextInput::make('residentProfile.phone_number')
+                        ->label('No. HP')
+                        ->maxLength(15)
+                        ->rule('regex:/^\d+$/')
+                        ->helperText('Hanya angka, tanpa spasi/tanda +.')
+                        ->extraInputAttributes(['inputmode' => 'numeric', 'pattern' => '[0-9]*']),
+
+                    Forms\Components\TextInput::make('residentProfile.guardian_name')
+                        ->label('Nama Wali')
+                        ->maxLength(255),
+
+                    Forms\Components\TextInput::make('residentProfile.guardian_phone_number')
+                        ->label('No. HP Wali')
+                        ->maxLength(15)
+                        ->rule('regex:/^\d+$/')
+                        ->helperText('Hanya angka, tanpa spasi/tanda +.')
+                        ->extraInputAttributes(['inputmode' => 'numeric', 'pattern' => '[0-9]*']),
+
+                    Forms\Components\FileUpload::make('residentProfile.photo_path')
+                        ->label('Foto')
+                        ->directory('residents')
+                        ->image()
+                        ->imageEditor()
+                        ->columnSpanFull(),
+                ]),
+
+            Forms\Components\Section::make('Kamar Aktif')
+                ->description('Untuk mengubah penempatan kamar, gunakan menu "Penempatan Kamar"')
+                ->columns(2)
+                ->schema([
+                    Forms\Components\Placeholder::make('current_room')
+                        ->label('Kamar Saat Ini')
+                        ->content(function ($record) {
+                            $active = $record->activeRoomResident;
+
+                            if (!$active?->room) return '-';
+
+                            $room = $active->room;
+                            $block = $room->block;
+                            $dorm = $block->dorm;
+
+                            return "{$dorm->name} - {$block->name} - {$room->code}";
+                        }),
+
+                    Forms\Components\Placeholder::make('check_in_date')
+                        ->label('Tanggal Masuk')
+                        ->content(function ($record) {
+                            $active = $record->activeRoomResident;
+                            return $active?->check_in_date?->format('d M Y') ?? '-';
+                        }),
+
+                    Forms\Components\Placeholder::make('is_pic')
+                        ->label('PIC Kamar')
+                        ->content(function ($record) {
+                            $active = $record->activeRoomResident;
+                            return $active?->is_pic ? '✓ Ya' : '✗ Tidak';
+                        }),
+                ])
+                ->visible(fn($record) => $record->activeRoomResident !== null)
+                ->collapsible()
+                ->collapsed(),
+        ]);
     }
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $record = $this->record;
-
         $profile = $record->residentProfile;
 
-        $data['profile'] = [
+        // Fill data profil
+        $data['residentProfile'] = [
             'resident_category_id'  => $profile?->resident_category_id,
-            'is_international'      => (bool) ($profile?->is_international ?? false),
+            'citizenship_status'    => $profile?->citizenship_status ?? 'WNI',
+            'country_id'            => $profile?->country_id,
             'national_id'           => $profile?->national_id,
             'student_id'            => $profile?->student_id,
             'full_name'             => $profile?->full_name ?? $record->name,
@@ -47,175 +190,45 @@ class EditResident extends EditRecord
             'photo_path'            => $profile?->photo_path,
         ];
 
-        $active = $record->roomResidents()
-            ->whereNull('check_out_date')
-            ->latest('check_in_date')
-            ->with(['room.block'])
-            ->first();
-
-        if ($active?->room) {
-            $data['dorm_id']  = $active->room->block->dorm_id ?? null;
-            $data['block_id'] = $active->room->block_id ?? null;
-
-            $data['room'] = [
-                'room_id'       => $active->room_id,
-                'check_in_date' => $active->check_in_date?->format('Y-m-d'),
-                'is_pic'        => (bool) $active->is_pic,
-            ];
-        } else {
-            $data['dorm_id'] = null;
-            $data['block_id'] = null;
-            $data['room'] = [
-                'room_id'       => null,
-                'check_in_date' => now()->format('Y-m-d'),
-                'is_pic'        => false,
-            ];
-        }
-
         return $data;
     }
 
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
         return DB::transaction(function () use ($record, $data) {
-            $profileData = $data['profile'] ?? [];
-            $roomData    = $data['room'] ?? [];
-
-            $newRoomId  = $roomData['room_id'] ?? null;
-            $newCheckIn = isset($roomData['check_in_date'])
-                ? Carbon::parse($roomData['check_in_date'])->toDateString()
-                : null;
-            $newIsPic   = (bool) ($roomData['is_pic'] ?? false);
-
-            $gender = $profileData['gender'] ?? null;
-            if (! in_array($gender, ['M', 'F'], true)) {
-                throw ValidationException::withMessages([
-                    'profile.gender' => 'Jenis kelamin wajib diisi.',
-                ]);
-            }
-
-            $categoryId = $profileData['resident_category_id'] ?? null;
-            if (blank($categoryId)) {
-                throw ValidationException::withMessages([
-                    'profile.resident_category_id' => 'Kategori penghuni wajib diisi.',
-                ]);
-            }
-
-            // 1) update user
+            // 1) Update user (email & is_active)
             $record->update([
                 'email'     => $data['email'],
                 'is_active' => (bool) ($data['is_active'] ?? true),
-                'name'      => $profileData['full_name'] ?? $record->name,
+                'name'      => $data['residentProfile']['full_name'] ?? $record->name,
             ]);
 
-            // 2) upsert resident_profile
-            ResidentProfile::updateOrCreate(
-                ['user_id' => $record->id],
-                [
-                    'resident_category_id'  => $categoryId,
-                    'is_international'      => (bool) ($profileData['is_international'] ?? false),
-                    'national_id'           => $profileData['national_id'] ?? null,
-                    'student_id'            => $profileData['student_id'] ?? null,
-                    'full_name'             => $profileData['full_name'] ?? $record->name,
-                    'gender'                => $gender,
-                    'birth_place'           => $profileData['birth_place'] ?? null,
-                    'birth_date'            => $profileData['birth_date'] ?? null,
-                    'university_school'     => $profileData['university_school'] ?? null,
-                    'phone_number'          => $profileData['phone_number'] ?? null,
-                    'guardian_name'         => $profileData['guardian_name'] ?? null,
-                    'guardian_phone_number' => $profileData['guardian_phone_number'] ?? null,
-                    'photo_path'            => $profileData['photo_path'] ?? null,
-                ]
-            );
+            // 2) Update/Create resident profile
+            if (isset($data['residentProfile'])) {
+                $profileData = $data['residentProfile'];
 
-            // 3) update penempatan kamar (boleh pindah kamar)
-            if ($newRoomId && $newCheckIn) {
-                // lock penghuni aktif kamar target + lock room target
-                RoomResident::query()
-                    ->where('room_id', $newRoomId)
-                    ->whereNull('check_out_date')
-                    ->lockForUpdate()
-                    ->get();
-
-                $targetRoom = Room::query()->lockForUpdate()->findOrFail($newRoomId);
-
-                // ✅ validasi + auto-lock kategori kamar target
-                $this->ensureRoomCategoryValidAndLock($targetRoom, (int) $categoryId);
-
-                // cek gender kamar target dari penghuni aktif
-                $activeGender = RoomResident::query()
-                    ->where('room_residents.room_id', $newRoomId)
-                    ->whereNull('room_residents.check_out_date')
-                    ->join('resident_profiles', 'resident_profiles.user_id', '=', 'room_residents.user_id')
-                    ->value('resident_profiles.gender');
-
-                if ($activeGender && $activeGender !== $gender) {
-                    throw ValidationException::withMessages([
-                        'room.room_id' => 'Kamar ini sudah khusus untuk gender lain (tidak boleh campur).',
-                    ]);
-                }
-
-                $active = RoomResident::query()
-                    ->where('user_id', $record->id)
-                    ->whereNull('check_out_date')
-                    ->latest('check_in_date')
-                    ->first();
-
-                if ($active && (int) $active->room_id === (int) $newRoomId) {
-                    // masih kamar yang sama → update data aktif
-                    if ($newIsPic) {
-                        $hasPic = RoomResident::query()
-                            ->where('room_id', $newRoomId)
-                            ->whereNull('check_out_date')
-                            ->where('is_pic', true)
-                            ->where('id', '!=', $active->id)
-                            ->exists();
-
-                        if ($hasPic) {
-                            throw ValidationException::withMessages([
-                                'room.is_pic' => 'PIC aktif untuk kamar ini sudah ada. Tidak bisa menetapkan PIC kedua.',
-                            ]);
-                        }
-                    }
-
-                    $active->update([
-                        'check_in_date' => $newCheckIn,
-                        'is_pic'        => $newIsPic,
-                    ]);
-                } else {
-                    // pindah kamar → tutup yang lama lalu buat yang baru
-                    if ($active) {
-                        $active->update([
-                            'check_out_date' => Carbon::parse($newCheckIn)->subDay()->toDateString(),
-                            'is_pic'         => false,
-                        ]);
-                    }
-
-                    if ($newIsPic) {
-                        $hasPic = RoomResident::query()
-                            ->where('room_id', $newRoomId)
-                            ->whereNull('check_out_date')
-                            ->where('is_pic', true)
-                            ->exists();
-
-                        if ($hasPic) {
-                            throw ValidationException::withMessages([
-                                'room.is_pic' => 'PIC aktif untuk kamar ini sudah ada. Tidak bisa menetapkan PIC kedua.',
-                            ]);
-                        }
-                    }
-
-                    RoomResident::create([
-                        'room_id'        => $newRoomId,
-                        'user_id'        => $record->id,
-                        'check_in_date'  => $newCheckIn,
-                        'check_out_date' => null,
-                        'is_pic'         => $newIsPic,
-                    ]);
-                }
+                $record->residentProfile()->updateOrCreate(
+                    ['user_id' => $record->id],
+                    [
+                        'resident_category_id'  => $profileData['resident_category_id'] ?? null,
+                        'citizenship_status'    => $profileData['citizenship_status'] ?? 'WNI',
+                        'country_id'            => $profileData['country_id'] ?? null,
+                        'national_id'           => $profileData['national_id'] ?? null,
+                        'student_id'            => $profileData['student_id'] ?? null,
+                        'full_name'             => $profileData['full_name'] ?? $record->name,
+                        'gender'                => $profileData['gender'] ?? null,
+                        'birth_place'           => $profileData['birth_place'] ?? null,
+                        'birth_date'            => $profileData['birth_date'] ?? null,
+                        'university_school'     => $profileData['university_school'] ?? null,
+                        'phone_number'          => $profileData['phone_number'] ?? null,
+                        'guardian_name'         => $profileData['guardian_name'] ?? null,
+                        'guardian_phone_number' => $profileData['guardian_phone_number'] ?? null,
+                        'photo_path'            => $profileData['photo_path'] ?? null,
+                    ]
+                );
             }
 
-            return $record;
+            return $record->fresh();
         });
     }
 
@@ -227,38 +240,15 @@ class EditResident extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\ViewAction::make(),
             Actions\DeleteAction::make()
-                ->label('Hapus')
-                ->visible(fn (): bool =>
-                    ! $this->record->trashed()
-                    && ! RoomResident::query()->where('user_id', $this->record->id)->exists()
-                ),
+                ->visible(fn() => auth()->user()?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin'])),
         ];
     }
 
-    private function ensureRoomCategoryValidAndLock(Room $room, int $residentCategoryId): void
+    protected function afterSave(): void
     {
-        $roomHasActive = RoomResident::query()
-            ->where('room_id', $room->id)
-            ->whereNull('check_out_date')
-            ->exists();
-
-        if (! is_null($room->resident_category_id)) {
-            if ((int) $room->resident_category_id !== (int) $residentCategoryId) {
-                throw ValidationException::withMessages([
-                    'room.room_id' => 'Kategori penghuni tidak sesuai dengan kategori kamar.',
-                ]);
-            }
-            return;
-        }
-
-        if ($roomHasActive) {
-            throw ValidationException::withMessages([
-                'room.room_id' => 'Kategori kamar belum ditentukan, tapi kamar sudah terisi. Periksa data kamar.',
-            ]);
-        }
-
-        $room->resident_category_id = $residentCategoryId;
-        $room->save();
+        // Refresh relationships
+        $this->record->load(['residentProfile', 'activeRoomResident.room.block.dorm']);
     }
 }

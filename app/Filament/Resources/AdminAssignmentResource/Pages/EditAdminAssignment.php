@@ -4,9 +4,11 @@ namespace App\Filament\Resources\AdminAssignmentResource\Pages;
 
 use App\Filament\Resources\AdminAssignmentResource;
 use App\Models\AdminScope;
+use App\Models\Role;
 use App\Services\AdminPrivilegeService;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class EditAdminAssignment extends EditRecord
 {
@@ -17,61 +19,55 @@ class EditAdminAssignment extends EditRecord
         return $this->getResource()::getUrl('index');
     }
 
-    public function updateAdminScope(\App\Models\AdminScope $scope, string $type): \App\Models\AdminScope
+    protected function handleRecordUpdate(Model $record, array $data): Model
     {
-        if (! in_array($type, ['branch', 'block'], true)) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'type' => 'Tipe admin tidak valid.',
-            ]);
-        }
+        /** @var AdminScope $record */
+        $user = $record->user()->firstOrFail();
+        $newType = $data['type'];
 
-        $user = $scope->user()->firstOrFail();
-
-        // validasi domestik
+        // Validasi domestik
         $isDomestic = $user->residentProfile()
             ->where('citizenship_status', 'WNI')
             ->exists();
 
-        if (! $isDomestic) {
+        if (!$isDomestic) {
             throw \Illuminate\Validation\ValidationException::withMessages([
                 'type' => 'Penghuni mancanegara tidak boleh menjadi admin.',
             ]);
         }
 
-        // ambil domisili aktif (agar scope tetap sesuai kamar aktif)
+        // Ambil domisili aktif (agar scope tetap sesuai kamar aktif)
         $active = $user->activeRoomResident()->with('room.block.dorm')->first();
-        if (! $active?->room?->block?->dorm) {
+        if (!$active?->room?->block?->dorm) {
             throw \Illuminate\Validation\ValidationException::withMessages([
                 'type' => 'Penghuni harus memiliki kamar aktif.',
             ]);
         }
 
-        $dormId  = (int) $active->room->block->dorm->id;
+        $dormId = (int) $active->room->block->dorm->id;
         $blockId = (int) $active->room->block->id;
 
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($scope, $user, $type, $dormId, $blockId) {
-            // cabut role admin lama, pasang role admin baru
-            $oldRoleIds = $user->roles()
-                ->whereIn('name', ['branch_admin', 'block_admin'])
-                ->pluck('roles.id')
-                ->all();
+        return DB::transaction(function () use ($record, $user, $newType, $dormId, $blockId) {
+            // HAPUS semua role admin yang ada (branch_admin DAN block_admin)
+            $adminRoles = Role::whereIn('name', ['branch_admin', 'block_admin'])->pluck('id');
 
-            if (! empty($oldRoleIds)) {
-                $user->roles()->detach($oldRoleIds);
+            if ($adminRoles->isNotEmpty()) {
+                $user->roles()->detach($adminRoles->toArray());
             }
 
-            $roleName = $type === 'branch' ? 'branch_admin' : 'block_admin';
-            $role = \App\Models\Role::firstOrCreate(['name' => $roleName]);
-            $user->roles()->syncWithoutDetaching([$role->id]);
+            // ATTACH role baru sesuai type
+            $newRoleName = $newType === 'branch' ? 'branch_admin' : 'block_admin';
+            $newRole = Role::firstOrCreate(['name' => $newRoleName]);
+            $user->roles()->attach($newRole->id);
 
-            // ✅ update scope YANG SAMA (bukan buat baru)
-            $scope->update([
-                'type'     => $type,
-                'dorm_id'  => $dormId,
-                'block_id' => $blockId, // tetap simpan block_id untuk deteksi pindah komplek
+            // Update scope record
+            $record->update([
+                'type' => $newType,
+                'dorm_id' => $dormId,
+                'block_id' => $blockId,
             ]);
 
-            return $scope->refresh();
+            return $record->refresh();
         });
     }
 }

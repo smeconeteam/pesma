@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\RoomPlacementResource\Pages;
 
 use App\Filament\Resources\RoomPlacementResource;
+use App\Models\User;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Resources\Components\Tab;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,36 +18,35 @@ class ListRoomPlacements extends ListRecords
             'semua' => Tab::make('Semua Resident'),
 
             'belum_kamar' => Tab::make('Belum Ada Kamar')
-                ->modifyQueryUsing(
-                    fn(Builder $q) =>
-                    $q->whereDoesntHave(
+                ->modifyQueryUsing(function (Builder $query) {
+                    return $query->whereDoesntHave(
                         'roomResidents',
-                        fn(Builder $rr) =>
-                        $rr->whereNull('check_out_date')
-                    )
-                )
-                ->badge(
-                    fn() => \App\Models\User::query()
+                        function (Builder $q) {
+                            $q->whereNull('check_out_date');
+                        }
+                    );
+                })
+                ->badge(function () {
+                    return User::query()
                         ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
                         ->whereHas('residentProfile', fn(Builder $q) => $q->where('status', 'registered'))
                         ->whereDoesntHave(
                             'roomResidents',
-                            fn(Builder $rr) =>
-                            $rr->whereNull('check_out_date')
+                            fn(Builder $q) => $q->whereNull('check_out_date')
                         )
-                        ->count()
-                )
+                        ->count();
+                })
                 ->badgeColor('warning'),
 
             'sudah_kamar' => Tab::make('Sudah Ada Kamar')
-                ->modifyQueryUsing(
-                    fn(Builder $q) =>
-                    $q->whereHas(
+                ->modifyQueryUsing(function (Builder $query) {
+                    return $query->whereHas(
                         'roomResidents',
-                        fn(Builder $rr) =>
-                        $rr->whereNull('check_out_date')
-                    )
-                ),
+                        function (Builder $q) {
+                            $q->whereNull('check_out_date');
+                        }
+                    );
+                }),
         ];
     }
 }

@@ -7,12 +7,14 @@ use App\Filament\Resources\BlockResource\RelationManagers;
 use App\Models\Block;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Filament\Notifications\Notification;
+use Illuminate\Validation\Rules\Unique;
 
 class BlockResource extends Resource
 {
@@ -26,6 +28,19 @@ class BlockResource extends Resource
     protected static ?string $pluralLabel = 'Komplek Asrama';
     protected static ?string $modelLabel = 'Komplek Asrama';
 
+    /**
+     * ✅ Cek konflik restore:
+     * Jika sudah ada data aktif (non-trashed) dengan dorm_id + name sama,
+     * maka data yang terhapus tidak boleh dipulihkan.
+     */
+    protected static function hasActiveDuplicateForRestore(Block $record): bool
+    {
+        return Block::query()
+            ->where('dorm_id', $record->dorm_id)
+            ->where('name', $record->name)
+            ->exists(); // default: hanya non-trashed (deleted_at NULL)
+    }
+
     public static function form(Form $form): Form
     {
         $user = auth()->user();
@@ -36,9 +51,8 @@ class BlockResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('dorm_id')
                             ->label('Cabang Asrama')
-                            ->relationship('dorm', 'name', function (Builder $query) use ($user) {
-                                $query->where('is_active', true)
-                                    ->whereNull('deleted_at');
+                            ->relationship('dorm', 'name', function (Builder $query, ?Block $record) use ($user) {
+                                $query->whereNull('deleted_at');
 
                                 if (! $user) {
                                     $query->whereRaw('1 = 0');
@@ -46,38 +60,65 @@ class BlockResource extends Resource
                                 }
 
                                 if ($user->hasRole(['super_admin', 'main_admin'])) {
-                                    return;
-                                }
-
-                                if ($user->hasRole('branch_admin')) {
+                                    // Role filtering done, now handle active/inactive
+                                } elseif ($user->hasRole('branch_admin')) {
                                     $dormIds = $user->branchDormIds();
 
                                     if ($dormIds && $dormIds->isNotEmpty()) {
                                         $query->whereIn('id', $dormIds);
                                     } else {
                                         $query->whereRaw('1 = 0');
+                                        return;
                                     }
+                                } else {
+                                    $query->whereRaw('1 = 0');
+                                    return;
+                                }
+
+                                // ✅ Saat EDIT: tampilkan yang aktif + yang sudah terpilih (meski nonaktif)
+                                if ($record && $record->exists) {
+                                    $query->where(function ($q) use ($record) {
+                                        $q->where('is_active', true)
+                                            ->orWhere('id', $record->dorm_id);
+                                    });
+                                } else {
+                                    // ✅ Saat CREATE: hanya yang aktif
+                                    $query->where('is_active', true);
                                 }
                             })
                             ->required()
                             ->searchable()
                             ->preload()
                             ->native(false)
-                            // Disable jika komplek sudah punya kamar
-                            ->disabled(fn($record) => $record && $record->rooms()->exists())
-                            ->dehydrated(fn($record) => ! ($record && $record->rooms()->exists()))
+                            ->disabled(fn ($record) => $record && $record->rooms()->exists())
+                            ->dehydrated(fn ($record) => ! ($record && $record->rooms()->exists()))
                             ->helperText(
-                                fn($record) =>
-                                $record && $record->rooms()->exists()
-                                    ? 'Cabang tidak dapat diubah karena komplek ini sudah memiliki kamar.'
-                                    : null
+                                fn ($record) =>
+                                    $record && $record->rooms()->exists()
+                                        ? 'Cabang tidak dapat diubah karena komplek ini sudah memiliki kamar.'
+                                        : null
                             ),
 
                         Forms\Components\TextInput::make('name')
                             ->label('Nama Komplek')
                             ->required()
                             ->maxLength(255)
-                            ->unique(ignoreRecord: true),
+                            /**
+                             * ✅ Aturan unik:
+                             * - Unik PER dorm_id (beda cabang boleh sama)
+                             * - Hanya dibandingkan dengan data yang belum terhapus (deleted_at NULL)
+                             * - Saat edit: ignore record aktif (ignoreRecord: true)
+                             */
+                            ->unique(
+                                table: Block::class,
+                                column: 'name',
+                                ignoreRecord: true,
+                                modifyRuleUsing: function (Unique $rule, Get $get): Unique {
+                                    return $rule
+                                        ->where('dorm_id', $get('dorm_id'))
+                                        ->whereNull('deleted_at');
+                                }
+                            ),
 
                         Forms\Components\Textarea::make('description')
                             ->label('Deskripsi')
@@ -139,11 +180,11 @@ class BlockResource extends Resource
                     ->relationship(
                         'dorm',
                         'name',
-                        fn(Builder $query) =>
-                        $query->where('is_active', true)
-                            ->whereNull('deleted_at')
+                        fn (Builder $query) => $query
+                            ->whereNull('deleted_at')   // ✅ tetap sembunyikan yang soft-deleted
+                            ->orderBy('name')           // ✅ non-aktif ikut tampil (tidak filter is_active)
                     )
-                    ->visible(fn() => $user?->hasRole(['super_admin', 'main_admin']))
+                    ->visible(fn () => $user?->hasRole(['super_admin', 'main_admin']))
                     ->native(false),
             ])
             ->actions([
@@ -153,12 +194,10 @@ class BlockResource extends Resource
                     ->visible(function (Block $record) {
                         $user = auth()->user();
 
-                        // ✅ Cek role dulu
-                        if (!$user?->hasRole(['super_admin', 'main_admin'])) {
+                        if (! $user?->hasRole(['super_admin', 'main_admin'])) {
                             return false;
                         }
 
-                        // ✅ Cek apakah record sudah dihapus (soft delete)
                         if (method_exists($record, 'trashed') && $record->trashed()) {
                             return false;
                         }
@@ -168,26 +207,54 @@ class BlockResource extends Resource
 
                 Tables\Actions\DeleteAction::make()
                     ->visible(
-                        fn(Block $record): bool =>
-                        auth()->user()?->hasRole(['super_admin', 'main_admin'])
+                        fn (Block $record): bool =>
+                            auth()->user()?->hasRole(['super_admin', 'main_admin'])
                             && ! $record->trashed()
                             && ! $record->rooms()->exists()
                     ),
 
+                /**
+                 * ✅ Restore diblok kalau ada duplikat aktif dengan dorm_id + name sama
+                 */
                 Tables\Actions\RestoreAction::make()
                     ->visible(
-                        fn(Block $record): bool =>
-                        auth()->user()?->hasRole(['super_admin'])
+                        fn (Block $record): bool =>
+                            auth()->user()?->hasRole(['super_admin'])
                             && $record->trashed()
-                    ),
+                    )
+                    ->disabled(fn (Block $record): bool => static::hasActiveDuplicateForRestore($record))
+                    ->tooltip(function (Block $record): ?string {
+                        if (! static::hasActiveDuplicateForRestore($record)) return null;
+
+                        return 'Tidak bisa dipulihkan karena sudah ada komplek aktif dengan nama yang sama pada cabang ini.';
+                    })
+                    ->action(function (Block $record): void {
+                        if (static::hasActiveDuplicateForRestore($record)) {
+                            Notification::make()
+                                ->title('Gagal Memulihkan')
+                                ->body('Tidak bisa dipulihkan karena sudah ada komplek aktif dengan nama yang sama pada cabang ini.')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
+                        $record->restore();
+
+                        Notification::make()
+                            ->title('Berhasil')
+                            ->body('Data komplek berhasil dipulihkan.')
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin', 'branch_admin']))
+                        ->visible(fn () => auth()->user()?->hasRole(['super_admin', 'main_admin', 'branch_admin']))
                         ->action(function (Collection $records) {
 
-                            $allowed = $records->filter(fn(Block $r) => ! $r->rooms()->exists());
+                            $allowed = $records->filter(fn (Block $r) => ! $r->rooms()->exists());
                             $blocked = $records->diff($allowed);
 
                             if ($allowed->isEmpty()) {
@@ -219,8 +286,45 @@ class BlockResource extends Resource
                                     ->send();
                             }
                         }),
+
+                    /**
+                     * ✅ Restore bulk diblok kalau ada duplikat aktif (dorm_id + name sama)
+                     */
                     Tables\Actions\RestoreBulkAction::make()
-                        ->visible(fn() => auth()->user()?->hasRole('super_admin')),
+                        ->visible(fn () => auth()->user()?->hasRole('super_admin'))
+                        ->action(function (Collection $records): void {
+                            $allowed = $records->filter(fn (Block $r) => ! static::hasActiveDuplicateForRestore($r));
+                            $blocked = $records->diff($allowed);
+
+                            if ($allowed->isEmpty()) {
+                                Notification::make()
+                                    ->title('Gagal Memulihkan')
+                                    ->body('Semua data yang dipilih tidak bisa dipulihkan karena sudah ada duplikat aktif pada cabang yang sama.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            foreach ($allowed as $r) {
+                                $r->restore();
+                            }
+
+                            $restored = $allowed->count();
+
+                            if ($blocked->isNotEmpty()) {
+                                Notification::make()
+                                    ->title('Berhasil Sebagian')
+                                    ->body("Berhasil memulihkan {$restored} komplek. Yang tidak bisa dipulihkan karena duplikat: " . $blocked->pluck('name')->join(', '))
+                                    ->warning()
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->title('Berhasil')
+                                    ->body("Berhasil memulihkan {$restored} komplek.")
+                                    ->success()
+                                    ->send();
+                            }
+                        }),
                 ]),
             ]);
     }
@@ -263,7 +367,6 @@ class BlockResource extends Resource
             return $query->whereRaw('1 = 0');
         }
 
-        // resident dan lainnya: tidak boleh lihat
         return $query->whereRaw('1 = 0');
     }
 
@@ -294,11 +397,10 @@ class BlockResource extends Resource
     {
         $user = auth()->user();
 
-        if (!$user?->hasRole(['super_admin', 'main_admin'])) {
+        if (! $user?->hasRole(['super_admin', 'main_admin'])) {
             return false;
         }
 
-        // Cek apakah record sudah dihapus (soft delete)
         if (method_exists($record, 'trashed') && $record->trashed()) {
             return false;
         }

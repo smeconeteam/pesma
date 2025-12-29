@@ -9,7 +9,6 @@ use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -103,12 +102,11 @@ class DormResource extends Resource
                     ->visible(function (Dorm $record) {
                         $user = auth()->user();
 
-                        // Cek role dulu
-                        if (!$user?->hasRole(['super_admin', 'main_admin'])) {
+                        if (! $user?->hasRole(['super_admin', 'main_admin'])) {
                             return false;
                         }
 
-                        // Cek apakah record sudah dihapus (soft delete)
+                        // ✅ Data trashed tidak boleh diedit
                         if (method_exists($record, 'trashed') && $record->trashed()) {
                             return false;
                         }
@@ -118,25 +116,52 @@ class DormResource extends Resource
 
                 Tables\Actions\DeleteAction::make()
                     ->visible(
-                        fn(Dorm $record): bool =>
-                        auth()->user()?->hasRole(['super_admin', 'main_admin'])
+                        fn (Dorm $record): bool =>
+                            auth()->user()?->hasRole(['super_admin', 'main_admin'])
                             && ! $record->trashed()
                             && ! $record->blocks()->exists()
                     ),
 
+                /**
+                 * ✅ Restore hanya jika tidak ada dorm aktif dengan nama sama.
+                 */
                 Tables\Actions\RestoreAction::make()
                     ->visible(
-                        fn(Dorm $record): bool =>
-                        auth()->user()?->hasRole(['super_admin'])
+                        fn (Dorm $record): bool =>
+                            auth()->user()?->hasRole(['super_admin'])
                             && $record->trashed()
-                    ),
+                    )
+                    ->action(function (Dorm $record) {
+                        $existsActiveSameName = Dorm::query()
+                            ->where('name', $record->name)
+                            ->whereNull('deleted_at')
+                            ->exists();
+
+                        if ($existsActiveSameName) {
+                            Notification::make()
+                                ->title('Gagal Memulihkan')
+                                ->body("Tidak bisa memulihkan cabang \"{$record->name}\" karena sudah ada cabang aktif dengan nama yang sama.")
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
+                        $record->restore();
+
+                        Notification::make()
+                            ->title('Berhasil')
+                            ->body("Cabang \"{$record->name}\" berhasil dipulihkan.")
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => auth()->user()?->hasRole(['super_admin', 'main_admin']))
+                        ->visible(fn () => auth()->user()?->hasRole(['super_admin', 'main_admin']))
                         ->action(function (Collection $records) {
-                            $allowed = $records->filter(fn(Dorm $r) => ! $r->blocks()->exists());
+                            $allowed = $records->filter(fn (Dorm $r) => ! $r->blocks()->exists());
                             $blocked = $records->diff($allowed);
 
                             if ($allowed->isEmpty()) {
@@ -170,8 +195,63 @@ class DormResource extends Resource
                             }
                         }),
 
+                    /**
+                     * ✅ Restore massal: tolak yang namanya bentrok dengan dorm aktif.
+                     */
                     Tables\Actions\RestoreBulkAction::make()
-                        ->visible(fn() => auth()->user()?->hasRole(['super_admin'])),
+                        ->visible(fn () => auth()->user()?->hasRole(['super_admin']))
+                        ->action(function (Collection $records) {
+                            $restorable = collect();
+                            $blocked    = collect();
+
+                            foreach ($records as $record) {
+                                /** @var Dorm $record */
+                                if (! method_exists($record, 'trashed') || ! $record->trashed()) {
+                                    continue;
+                                }
+
+                                $existsActiveSameName = Dorm::query()
+                                    ->where('name', $record->name)
+                                    ->whereNull('deleted_at')
+                                    ->exists();
+
+                                if ($existsActiveSameName) {
+                                    $blocked->push($record);
+                                } else {
+                                    $restorable->push($record);
+                                }
+                            }
+
+                            if ($restorable->isEmpty()) {
+                                Notification::make()
+                                    ->title('Tidak Bisa Dipulihkan')
+                                    ->body('Semua data yang dipilih bentrok dengan nama cabang aktif, sehingga tidak bisa dipulihkan.')
+                                    ->danger()
+                                    ->send();
+
+                                return;
+                            }
+
+                            foreach ($restorable as $r) {
+                                $r->restore();
+                            }
+
+                            $restoredCount = $restorable->count();
+
+                            if ($blocked->isNotEmpty()) {
+                                Notification::make()
+                                    ->title('Berhasil Sebagian')
+                                    ->body("Berhasil memulihkan {$restoredCount} cabang. Yang tidak bisa dipulihkan karena nama bentrok: " . $blocked->pluck('name')->unique()->join(', '))
+                                    ->warning()
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->title('Berhasil')
+                                    ->body("Berhasil memulihkan {$restoredCount} cabang.")
+                                    ->success()
+                                    ->send();
+                            }
+                        }),
                 ]),
             ]);
     }
@@ -184,13 +264,13 @@ class DormResource extends Resource
             return parent::getEloquentQuery()->whereRaw('1 = 0');
         }
 
-        // ✅ super_admin boleh lihat/restore yang terhapus (TrashedFilter yang atur tampilan default)
+        // ✅ super_admin boleh lihat data terhapus
         if ($user->hasRole('super_admin')) {
             return parent::getEloquentQuery()
                 ->withoutGlobalScopes([SoftDeletingScope::class]);
         }
 
-        // main_admin tetap pakai SoftDeletingScope (jadi yang terhapus tidak muncul)
+        // main_admin tetap pakai SoftDeletingScope
         if ($user->hasRole('main_admin')) {
             return parent::getEloquentQuery();
         }
@@ -200,9 +280,7 @@ class DormResource extends Resource
 
     public static function canViewAny(): bool
     {
-        $user = auth()->user();
-
-        return $user?->hasRole(['super_admin', 'main_admin']) ?? false;
+        return auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false;
     }
 
     public static function canView($record): bool
@@ -212,30 +290,33 @@ class DormResource extends Resource
 
     public static function canCreate(): bool
     {
-        $user = auth()->user();
-
-        return $user?->hasRole(['super_admin', 'main_admin']) ?? false;
+        return auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false;
     }
 
     public static function canEdit($record): bool
     {
         $user = auth()->user();
 
-        return $user?->hasRole(['super_admin', 'main_admin']) ?? false;
+        if (! ($user?->hasRole(['super_admin', 'main_admin']) ?? false)) {
+            return false;
+        }
+
+        // ✅ Kunci: trashed tidak bisa diedit
+        if ($record && method_exists($record, 'trashed') && $record->trashed()) {
+            return false;
+        }
+
+        return true;
     }
 
     public static function canDelete($record): bool
     {
-        $user = auth()->user();
-
-        return $user?->hasRole(['super_admin', 'main_admin']) ?? false;
+        return auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false;
     }
 
     public static function canDeleteAny(): bool
     {
-        $user = auth()->user();
-
-        return $user?->hasRole(['super_admin', 'main_admin']) ?? false;
+        return auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false;
     }
 
     public static function getPages(): array

@@ -9,7 +9,9 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class CheckoutResident extends Page
 {
@@ -25,7 +27,6 @@ class CheckoutResident extends Page
     {
         $this->record = $record;
 
-        // Cek apakah punya kamar aktif
         if (!$record->activeRoomResident) {
             Notification::make()
                 ->title('Resident ini tidak memiliki kamar aktif')
@@ -43,6 +44,11 @@ class CheckoutResident extends Page
     public function form(Form $form): Form
     {
         $currentRoom = $this->record->activeRoomResident;
+
+        // Ambil tanggal masuk untuk validasi
+        $minCheckOutDate = $currentRoom?->check_in_date
+            ? Carbon::parse($currentRoom->check_in_date)->toDateString()
+            : null;
 
         return $form
             ->schema([
@@ -76,7 +82,22 @@ class CheckoutResident extends Page
                         Forms\Components\Placeholder::make('duration')
                             ->label('Lama Tinggal')
                             ->content(function () use ($currentRoom) {
-                                $days = now()->diffInDays($currentRoom->check_in_date);
+                                $checkIn = $currentRoom->check_in_date;
+
+                                if (!$checkIn) return '-';
+
+                                // Jika belum melewati tanggal masuk, tampilkan "Belum masuk"
+                                if (now()->lt(Carbon::parse($checkIn)->startOfDay())) {
+                                    return 'Belum melewati tanggal masuk';
+                                }
+
+                                $days = now()->diffInDays($checkIn);
+
+                                // Minimal 0 hari
+                                if ($days === 0) {
+                                    return '0 hari (hari ini)';
+                                }
+
                                 $months = floor($days / 30);
                                 $remainingDays = $days % 30;
 
@@ -96,7 +117,14 @@ class CheckoutResident extends Page
                             ->label('Tanggal Keluar')
                             ->required()
                             ->default(now()->toDateString())
-                            ->native(false),
+                            ->native(false)
+                            // Validasi: tanggal keluar harus >= tanggal masuk
+                            ->minDate($minCheckOutDate)
+                            ->helperText(
+                                $minCheckOutDate
+                                    ? "Tidak boleh sebelum tanggal masuk ({$minCheckOutDate})."
+                                    : null
+                            ),
 
                         Forms\Components\Textarea::make('notes')
                             ->label('Catatan/Alasan Keluar')
@@ -126,18 +154,32 @@ class CheckoutResident extends Page
 
         DB::transaction(function () use ($data) {
             $currentRoomResident = $this->record->activeRoomResident;
-            $checkOutDate = $data['check_out_date'];
+            $checkOutDate = Carbon::parse($data['check_out_date'])->startOfDay();
+            $checkInDate = Carbon::parse($currentRoomResident->check_in_date)->startOfDay();
 
-            // 1) Update RoomResident
-            $currentRoomResident->update([
-                'check_out_date' => $checkOutDate,
-            ]);
+            // VALIDASI: Tanggal keluar harus >= tanggal masuk
+            if ($checkOutDate->lt($checkInDate)) {
+                throw ValidationException::withMessages([
+                    'check_out_date' => 'Tanggal keluar tidak boleh sebelum tanggal masuk.',
+                ]);
+            }
+
+            // Cek apakah penghuni adalah PIC
+            $wasPic = $currentRoomResident->is_pic;
+            $roomId = $currentRoomResident->room_id;
+
+            // 1) Update RoomResident (TANPA events untuk menghindari auto-assign PIC dua kali)
+            $currentRoomResident->withoutEvents(function () use ($currentRoomResident, $checkOutDate) {
+                $currentRoomResident->update([
+                    'check_out_date' => $checkOutDate->toDateString(),
+                ]);
+            });
 
             // 2) Update RoomHistory
             RoomHistory::where('room_resident_id', $currentRoomResident->id)
                 ->whereNull('check_out_date')
                 ->update([
-                    'check_out_date' => $checkOutDate,
+                    'check_out_date' => $checkOutDate->toDateString(),
                     'movement_type' => 'checkout',
                     'notes' => $data['notes'] ?? 'Keluar dari asrama',
                 ]);
@@ -147,10 +189,34 @@ class CheckoutResident extends Page
                 'status' => 'inactive',
             ]);
 
-            // 4) Nonaktifkan user (optional, bisa disesuaikan)
+            // 4) Nonaktifkan user
             $this->record->update([
                 'is_active' => false,
             ]);
+
+            // 5) ASSIGN PIC BARU jika yang keluar adalah PIC
+            if ($wasPic) {
+                // Cari penghuni tertua yang masih aktif di kamar
+                $newPic = \App\Models\RoomResident::where('room_id', $roomId)
+                    ->whereNull('check_out_date')
+                    ->orderBy('check_in_date', 'asc')
+                    ->first();
+
+                if ($newPic) {
+                    // Update sebagai PIC tanpa trigger event
+                    \App\Models\RoomResident::withoutEvents(function () use ($newPic) {
+                        $newPic->update(['is_pic' => true]);
+                    });
+
+                    // Update history juga
+                    RoomHistory::where('room_resident_id', $newPic->id)
+                        ->whereNull('check_out_date')
+                        ->update([
+                            'is_pic' => true,
+                            'notes' => 'Auto-assigned sebagai PIC karena PIC sebelumnya checkout',
+                        ]);
+                }
+            }
         });
 
         Notification::make()

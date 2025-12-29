@@ -22,16 +22,21 @@ class ListDiscounts extends ListRecords
 
     public function getTabs(): array
     {
+        // Hanya super admin yang bisa melihat tabs
+        if (!auth()->user()?->hasRole('super_admin')) {
+            return [];
+        }
+
         return [
             'aktif' => Tab::make('Aktif')
                 ->icon('heroicon-m-check-circle')
-                ->badge(Discount::query()->whereNull('deleted_at')->count())
-                ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('deleted_at')),
+                ->badge(Discount::query()->withoutTrashed()->count())
+                ->modifyQueryUsing(fn(Builder $query) => $query->withoutTrashed()),
 
             'sampah' => Tab::make('Sampah')
                 ->icon('heroicon-m-trash')
                 ->badge(Discount::onlyTrashed()->count())
-                ->modifyQueryUsing(fn (Builder $query) => $query->onlyTrashed()),
+                ->modifyQueryUsing(fn(Builder $query) => $query->onlyTrashed()),
         ];
     }
 

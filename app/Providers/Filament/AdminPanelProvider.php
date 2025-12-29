@@ -31,6 +31,12 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Green,
             ])
+            ->navigationGroups([
+                'Penghuni',
+                'Asrama',
+                'Keuangan',
+                'Pengaturan',
+            ])
             ->authGuard('web')
             ->defaultThemeMode(ThemeMode::Light)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
