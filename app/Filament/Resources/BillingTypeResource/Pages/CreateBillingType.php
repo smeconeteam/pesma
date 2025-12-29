@@ -4,70 +4,63 @@ namespace App\Filament\Resources\BillingTypeResource\Pages;
 
 use App\Filament\Resources\BillingTypeResource;
 use App\Models\BillingType;
-use App\Models\Dorm;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 class CreateBillingType extends CreateRecord
 {
     protected static string $resource = BillingTypeResource::class;
 
-    protected function getRedirectUrl(): string
+    protected function mutateFormDataBeforeCreate(array $data): array
     {
-        return BillingTypeResource::getUrl('index');
+        // Jangan simpan dorm_ids di record utama
+        unset($data['dorm_ids']);
+        unset($data['dorm_id']);
+
+        return $data;
     }
 
-    protected function handleRecordCreation(array $data): Model
+    protected function afterCreate(): void
     {
-        return DB::transaction(function () use ($data) {
-            $baseName = trim((string) ($data['name'] ?? ''));
-            $appliesToAll = (bool) ($data['applies_to_all'] ?? false);
+        $data = $this->form->getState();
+        $record = $this->record;
 
-            $dormIds = $data['dorm_ids'] ?? [];
-            unset($data['dorm_ids']);
+        // Jika applies_to_all, tidak perlu attach dorm
+        if ($record->applies_to_all) {
+            return;
+        }
 
-            /** @var BillingType $first */
-            $first = null;
+        $dormIds = $data['dorm_ids'] ?? [];
 
-            if ($appliesToAll) {
-                $data['name'] = $baseName . ' - Semua Cabang';
-                $data['applies_to_all'] = true;
+        if (empty($dormIds)) {
+            return;
+        }
 
-                $first = BillingType::create($data);
-                $first->dorms()->sync([]);
+        // Jika hanya 1 cabang, attach saja
+        if (count($dormIds) === 1) {
+            $record->dorms()->attach($dormIds);
+            return;
+        }
 
-                return $first;
+        // Jika > 1 cabang, buat record baru untuk masing-masing
+        DB::transaction(function () use ($record, $dormIds) {
+            $firstDormId = array_shift($dormIds);
+            $record->dorms()->attach($firstDormId);
+
+            foreach ($dormIds as $dormId) {
+                $newBilling = $record->replicate();
+                $newBilling->save();
+                $newBilling->dorms()->attach($dormId);
             }
-
-            $dormIds = collect($dormIds)->filter()->unique()->values()->all();
-
-            $dorms = Dorm::query()
-                ->whereIn('id', $dormIds)
-                ->orderBy('name')
-                ->get(['id', 'name']);
-
-            foreach ($dorms as $dorm) {
-                $payload = $data;
-                $payload['applies_to_all'] = false;
-                $payload['name'] = $baseName . ' - ' . $dorm->name;
-
-                $record = BillingType::create($payload);
-                $record->dorms()->sync([$dorm->id]);
-
-                if (! $first) $first = $record;
-            }
-
-            // fallback aman
-            if (! $first) {
-                $data['name'] = $baseName . ' - Semua Cabang';
-                $data['applies_to_all'] = true;
-
-                $first = BillingType::create($data);
-                $first->dorms()->sync([]);
-            }
-
-            return $first;
         });
+
+        if (count($dormIds) > 0) {
+            Notification::make()
+                ->title('Berhasil')
+                ->body('Berhasil membuat ' . (count($dormIds) + 1) . ' data billing type untuk masing-masing cabang.')
+                ->success()
+                ->send();
+        }
     }
 }

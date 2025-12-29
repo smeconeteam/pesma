@@ -3,27 +3,27 @@
 namespace App\Filament\Resources\BillingTypeResource\Pages;
 
 use App\Filament\Resources\BillingTypeResource;
-use App\Models\Dorm;
+use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Validation\ValidationException;
 
 class EditBillingType extends EditRecord
 {
     protected static string $resource = BillingTypeResource::class;
 
-    protected function getRedirectUrl(): string
+    protected function getHeaderActions(): array
     {
-        return BillingTypeResource::getUrl('index');
+        return [
+            Actions\DeleteAction::make(),
+            Actions\RestoreAction::make(),
+        ];
     }
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        // isi dorm_id dari relasi existing (ambil 1 saja)
-        $data['dorm_id'] = $this->record->dorms()->pluck('dorms.id')->first();
-
-        // tampilkan base name (hapus suffix " - ...")
-        if (is_string($data['name'] ?? null) && str_contains($data['name'], ' - ')) {
-            $data['name'] = str($data['name'])->beforeLast(' - ')->toString();
+        // Load dorm_id untuk edit form
+        if (!($data['applies_to_all'] ?? false)) {
+            $firstDorm = $this->record->dorms()->first();
+            $data['dorm_id'] = $firstDorm?->id;
         }
 
         return $data;
@@ -31,32 +31,17 @@ class EditBillingType extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        $baseName = trim((string) ($data['name'] ?? ''));
-        $appliesToAll = (bool) ($data['applies_to_all'] ?? false);
-
         $dormId = $data['dorm_id'] ?? null;
+        
         unset($data['dorm_id']);
-        unset($data['dorm_ids']); // jaga-jaga kalau ada sisa state
+        unset($data['dorm_ids']);
 
-        if ($appliesToAll) {
-            $data['name'] = $baseName . ' - Semua Cabang';
-            $this->record->dorms()->sync([]);
-            return $data;
+        // Sync dorm jika tidak applies_to_all
+        if (!($data['applies_to_all'] ?? false) && $dormId) {
+            $this->record->dorms()->sync([$dormId]);
+        } elseif ($data['applies_to_all'] ?? false) {
+            $this->record->dorms()->detach();
         }
-
-        if (! $dormId) {
-            throw ValidationException::withMessages([
-                'dorm_id' => 'Cabang wajib dipilih.',
-            ]);
-        }
-
-        $dorm = Dorm::query()->find($dormId);
-
-        $data['name'] = $baseName . ' - ' . ($dorm?->name ?? 'Cabang');
-        $data['applies_to_all'] = false;
-
-        // edit: sync tepat 1 dorm
-        $this->record->dorms()->sync([(int) $dormId]);
 
         return $data;
     }

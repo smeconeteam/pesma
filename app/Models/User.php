@@ -67,7 +67,6 @@ class User extends Authenticatable implements FilamentUser
 
     public function blockIds()
     {
-        // block_admin: ambil komplek yang dia pegang
         return $this->adminScopes()
             ->where('type', 'block')
             ->whereNotNull('block_id')
@@ -81,8 +80,6 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        // Hanya role admin yang boleh login ke /admin
-        // Penghuni (resident) TIDAK boleh
         return $this->is_active && $this->hasAnyRole([
             'super_admin',
             'main_admin',
@@ -124,8 +121,41 @@ class User extends Authenticatable implements FilamentUser
 
     public function activeRoomResident(): HasOne
     {
-        return $this->hasOne(\App\Models\RoomResident::class)
+        return $this->hasOne(RoomResident::class)
             ->whereNull('check_out_date')
             ->latestOfMany('check_in_date');
+    }
+
+    // ✅ RELASI BARU: Billing
+    public function bills(): HasMany
+    {
+        return $this->hasMany(Bill::class);
+    }
+
+    public function verifiedPayments(): HasMany
+    {
+        return $this->hasMany(Payment::class, 'verified_by');
+    }
+
+    public function discountUsages(): HasMany
+    {
+        return $this->hasMany(DiscountUsage::class);
+    }
+
+    // Helper untuk cek tagihan unpaid
+    public function hasUnpaidBills(): bool
+    {
+        return $this->bills()
+            ->whereIn('status', ['pending', 'partial', 'overdue'])
+            ->exists();
+    }
+
+    // Helper untuk total tunggakan
+    public function getTotalOutstandingAmount(): int
+    {
+        return $this->bills()
+            ->whereIn('status', ['pending', 'partial', 'overdue'])
+            ->get()
+            ->sum(fn($bill) => $bill->final_amount - $bill->paid_amount);
     }
 }

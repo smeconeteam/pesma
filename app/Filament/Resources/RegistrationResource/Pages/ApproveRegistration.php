@@ -12,6 +12,7 @@ use App\Models\Room;
 use App\Models\RoomHistory;
 use App\Models\RoomResident;
 use App\Models\User;
+use App\Services\BillGeneratorService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -46,6 +47,7 @@ class ApproveRegistration extends Page
         $fillData = [
             'place_in_room' => false,
             'status' => 'registered',
+            'voucher_code' => null, // ✅ tambahan untuk voucher
         ];
 
         if ($record->preferred_dorm_id) {
@@ -116,12 +118,27 @@ class ApproveRegistration extends Page
                                         <li>Membuat akun user dengan email: <strong>' . $this->record->email . '</strong></li>
                                         <li>Memberikan role "resident"</li>
                                         <li>Membuat profil resident dengan status yang dipilih</li>
+                                        <li>Generate <strong>Tagihan Pendaftaran</strong> otomatis</li>
                                         <li>Jika dipilih "Tempatkan di Kamar", akan langsung menempatkan resident ke kamar</li>
                                     </ul>
                                 ');
                             })
                             ->columnSpanFull(),
                     ]),
+
+                // ✅ TAMBAHAN: Input Voucher
+                Forms\Components\Section::make('Diskon Pendaftaran')
+                    ->description('Opsional: Masukkan kode voucher untuk diskon')
+                    ->schema([
+                        Forms\Components\TextInput::make('voucher_code')
+                            ->label('Kode Voucher')
+                            ->placeholder('Contoh: DISKONEARLYBIRD10P')
+                            ->helperText('Kosongkan jika tidak ada diskon')
+                            ->maxLength(50)
+                            ->columnSpanFull(),
+                    ])
+                    ->collapsible()
+                    ->collapsed(),
 
                 Forms\Components\Section::make('Preferensi Pendaftar')
                     ->description('Informasi preferensi yang diinginkan pendaftar')
@@ -381,20 +398,31 @@ class ApproveRegistration extends Page
 
             $user->residentProfile()->create($profileData);
 
-            // 4) Jika status active, tempatkan di kamar
+            // 4) ✅ Generate Tagihan Pendaftaran
+            $billGenerator = new BillGeneratorService();
+            $dormId = $data['dorm_id'] ?? $registration->preferred_dorm_id;
+            $voucherCode = !empty($data['voucher_code']) ? trim($data['voucher_code']) : null;
+
+            try {
+                $bill = $billGenerator->generateRegistrationBill($user, $dormId, $voucherCode);
+            } catch (\Exception $e) {
+                throw ValidationException::withMessages([
+                    'voucher_code' => $e->getMessage(),
+                ]);
+            }
+
+            // 5) Jika status active, tempatkan di kamar
             if ($status === 'active' && !empty($data['room_id'])) {
                 $roomId = $data['room_id'];
                 $checkIn = $data['check_in_date'] ?? now()->toDateString();
                 $isPic = (bool)($data['is_pic'] ?? false);
 
-                // Lock untuk race condition
                 RoomResident::query()
                     ->where('room_id', $roomId)
                     ->whereNull('check_out_date')
                     ->lockForUpdate()
                     ->get();
 
-                // Cek gender kamar
                 $room = Room::find($roomId);
                 if (!$room->canAcceptGender($registration->gender)) {
                     throw ValidationException::withMessages([
@@ -402,14 +430,12 @@ class ApproveRegistration extends Page
                     ]);
                 }
 
-                // Cek kapasitas
                 if ($room->isFull()) {
                     throw ValidationException::withMessages([
                         'room_id' => 'Kamar ini sudah penuh.',
                     ]);
                 }
 
-                // Cek PIC
                 $activeCount = RoomResident::query()
                     ->where('room_id', $roomId)
                     ->whereNull('check_out_date')
@@ -429,7 +455,6 @@ class ApproveRegistration extends Page
                     ]);
                 }
 
-                // PERBAIKAN: Buat RoomResident TANPA events untuk menghindari duplikasi
                 $roomResident = RoomResident::withoutEvents(function () use ($roomId, $user, $checkIn, $isPic) {
                     return RoomResident::create([
                         'room_id' => $roomId,
@@ -440,7 +465,6 @@ class ApproveRegistration extends Page
                     ]);
                 });
 
-                // Buat SATU history saja secara manual
                 RoomHistory::create([
                     'user_id' => $user->id,
                     'room_id' => $roomId,
@@ -454,7 +478,7 @@ class ApproveRegistration extends Page
                 ]);
             }
 
-            // 5) Update Registration
+            // 6) Update Registration
             $registration->update([
                 'status' => 'approved',
                 'approved_by' => auth()->id(),
@@ -465,7 +489,7 @@ class ApproveRegistration extends Page
 
         Notification::make()
             ->title('Pendaftaran disetujui')
-            ->body('Resident berhasil dibuat dengan status: ' . ($data['status'] === 'active' ? 'Aktif' : 'Terdaftar'))
+            ->body('Resident berhasil dibuat dengan status: ' . ($data['status'] === 'active' ? 'Aktif' : 'Terdaftar') . '. Tagihan pendaftaran telah dibuat.')
             ->success()
             ->send();
 
