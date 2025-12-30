@@ -65,11 +65,24 @@ class RegistrationResource extends Resource
 
     public static function canDelete(Model $record): bool
     {
+        // ⛔️ Tidak dipakai lagi (kita tidak pakai DeleteAction).
+        // Biarkan false agar tidak ada fitur soft delete bawaan yang muncul.
+        return false;
+    }
+
+    public static function canForceDelete(Model $record): bool
+    {
         $u = auth()->user();
-        // Hanya super_admin dan main_admin bisa hapus
-        // Hanya bisa hapus jika status pending atau rejected
-        return in_array($record->status, ['pending', 'rejected'])
-            && ($u?->hasAnyRole(['super_admin', 'main_admin']) ?? false);
+
+        // ✅ Force delete boleh untuk SEMUA status (pending/approved/rejected)
+        // Batasi hanya super_admin dan main_admin
+        return $u?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
+    }
+
+    public static function canForceDeleteAny(): bool
+    {
+        $u = auth()->user();
+        return $u?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
     }
 
     public static function canView(Model $record): bool
@@ -103,7 +116,7 @@ class RegistrationResource extends Resource
                             ->label('Password')
                             ->password()
                             ->helperText('Kosongkan untuk generate otomatis (123456789)')
-                            ->dehydrateStateUsing(fn($state) => filled($state) ? bcrypt($state) : bcrypt('123456789'))
+                            ->dehydrateStateUsing(fn ($state) => filled($state) ? bcrypt($state) : bcrypt('123456789'))
                             ->maxLength(255)
                             ->columnSpanFull(),
                     ]),
@@ -113,7 +126,7 @@ class RegistrationResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('resident_category_id')
                             ->label('Kategori Penghuni')
-                            ->options(fn() => ResidentCategory::query()->orderBy('name')->pluck('name', 'id'))
+                            ->options(fn () => ResidentCategory::query()->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
                             ->required(),
@@ -186,11 +199,11 @@ class RegistrationResource extends Resource
 
                         Forms\Components\Select::make('country_id')
                             ->label('Asal Negara')
-                            ->options(fn() => Country::query()->orderBy('name')->pluck('name', 'id'))
+                            ->options(fn () => Country::query()->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
-                            ->disabled(fn(Forms\Get $get) => $get('citizenship_status') === 'WNI')
-                            ->default(fn() => Country::query()->where('iso2', 'ID')->value('id'))
+                            ->disabled(fn (Forms\Get $get) => $get('citizenship_status') === 'WNI')
+                            ->default(fn () => Country::query()->where('iso2', 'ID')->value('id'))
                             ->createOptionForm([
                                 Forms\Components\TextInput::make('name')
                                     ->label('Nama Negara')
@@ -202,7 +215,7 @@ class RegistrationResource extends Resource
                                     ->required()
                                     ->columnSpan(1),
                             ])
-                            ->createOptionUsing(fn(array $data) => Country::firstOrCreate(
+                            ->createOptionUsing(fn (array $data) => Country::firstOrCreate(
                                 ['name' => $data['name']],
                                 ['calling_code' => $data['calling_code'] ?? null]
                             )->id)
@@ -233,14 +246,14 @@ class RegistrationResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('preferred_dorm_id')
                             ->label('Cabang Yang Diinginkan')
-                            ->options(fn() => Dorm::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))
+                            ->options(fn () => Dorm::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
                             ->nullable(),
 
                         Forms\Components\Select::make('preferred_room_type_id')
                             ->label('Tipe Kamar Yang Diinginkan')
-                            ->options(fn() => RoomType::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))
+                            ->options(fn () => RoomType::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
                             ->nullable(),
@@ -282,7 +295,7 @@ class RegistrationResource extends Resource
                         'success' => 'approved',
                         'danger' => 'rejected',
                     ])
-                    ->formatStateUsing(fn($state) => match ($state) {
+                    ->formatStateUsing(fn ($state) => match ($state) {
                         'pending' => 'Menunggu',
                         'approved' => 'Disetujui',
                         'rejected' => 'Ditolak',
@@ -325,7 +338,7 @@ class RegistrationResource extends Resource
 
                 SelectFilter::make('preferred_dorm_id')
                     ->label('Cabang Pilihan')
-                    ->options(fn() => Dorm::query()->orderBy('name')->pluck('name', 'id'))
+                    ->options(fn () => Dorm::query()->orderBy('name')->pluck('name', 'id'))
                     ->searchable()
                     ->native(false),
             ])
@@ -335,32 +348,20 @@ class RegistrationResource extends Resource
 
                 Tables\Actions\EditAction::make()
                     ->label('Edit')
-                    ->visible(
-                        fn(Registration $record) =>
-                        $record->status === 'pending' &&
-                            $canApproveReject
-                    ),
+                    ->visible(fn (Registration $record) => $record->status === 'pending' && $canApproveReject),
 
                 Tables\Actions\Action::make('approve')
                     ->label('Setujui')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(
-                        fn(Registration $record) =>
-                        $record->status === 'pending' &&
-                            $canApproveReject
-                    )
-                    ->url(fn(Registration $record) => static::getUrl('approve', ['record' => $record])),
+                    ->visible(fn (Registration $record) => $record->status === 'pending' && $canApproveReject)
+                    ->url(fn (Registration $record) => static::getUrl('approve', ['record' => $record])),
 
                 Tables\Actions\Action::make('reject')
                     ->label('Tolak')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
-                    ->visible(
-                        fn(Registration $record) =>
-                        $record->status === 'pending' &&
-                            $canApproveReject
-                    )
+                    ->visible(fn (Registration $record) => $record->status === 'pending' && $canApproveReject)
                     ->form([
                         Forms\Components\Textarea::make('rejection_reason')
                             ->label('Alasan Penolakan')
@@ -380,13 +381,30 @@ class RegistrationResource extends Resource
                             ->send();
                     }),
 
-                Tables\Actions\DeleteAction::make()
+                // ✅ Ganti DeleteAction menjadi aksi Force Delete (hapus permanen)
+                // Tampil di SEMUA data (termasuk yang sudah disetujui)
+                Tables\Actions\Action::make('force_delete')
                     ->label('Hapus')
-                    ->visible(
-                        fn(Registration $record) =>
-                        in_array($record->status, ['pending', 'rejected']) &&
-                            $canApproveReject
-                    ),
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->visible(fn (Registration $record) => static::canForceDelete($record))
+                    ->requiresConfirmation()
+                    ->modalHeading('Hapus Permanen Pendaftaran')
+                    ->modalDescription(function (Registration $record): string {
+                        $desc = 'Apakah Anda yakin ingin menghapus permanen data pendaftaran ini? Data yang terhapus permanen tidak dapat dipulihkan.';
+
+                        if ($record->status === 'approved') {
+                            $desc .= "\n\nCatatan: status pendaftaran ini sudah disetujui.";
+                        }
+
+                        if (!blank($record->user_id)) {
+                            $desc .= "\n\nCatatan: pendaftaran ini terhubung ke akun user_id: {$record->user_id}. Aksi ini hanya menghapus data pendaftaran, bukan akun user.";
+                        }
+
+                        return $desc;
+                    })
+                    ->modalSubmitActionLabel('Ya, Hapus Permanen')
+                    ->action(fn (Registration $record) => $record->forceDelete()),
             ])
             ->defaultSort('created_at', 'desc');
     }
