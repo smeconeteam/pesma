@@ -155,104 +155,152 @@ class DormResource extends Resource
                             ->success()
                             ->send();
                     }),
+
+                /**
+                 * ✅ Force Delete (Hapus Permanen) — hanya super_admin dan hanya untuk data terhapus.
+                 *    Tetap ditolak jika cabang masih punya komplek (blocks).
+                 */
+                Tables\Actions\ForceDeleteAction::make()
+                    ->label('Hapus Permanen')
+                    ->visible(
+                        fn (Dorm $record): bool =>
+                            auth()->user()?->hasRole(['super_admin'])
+                            && $record->trashed()
+                    )
+                    ->requiresConfirmation()
+                    ->modalHeading('Hapus Permanen Cabang')
+                    ->modalDescription('Apakah Anda yakin ingin menghapus permanen cabang ini? Data yang dihapus permanen tidak dapat dipulihkan.')
+                    ->modalSubmitActionLabel('Ya, Hapus Permanen')
+                    ->before(function (Tables\Actions\ForceDeleteAction $action, Dorm $record) {
+                        if ($record->blocks()->exists()) {
+                            Notification::make()
+                                ->title('Tidak dapat menghapus permanen')
+                                ->body('Cabang yang memiliki komplek tidak dapat dihapus permanen. Hapus/lepaskan komplek terlebih dahulu.')
+                                ->danger()
+                                ->send();
+
+                            $action->cancel();
+                        }
+                    }),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn () => auth()->user()?->hasRole(['super_admin', 'main_admin']))
-                        ->action(function (Collection $records) {
-                            $allowed = $records->filter(fn (Dorm $r) => ! $r->blocks()->exists());
-                            $blocked = $records->diff($allowed);
+                // Bulk Delete (Soft Delete) — hanya di tab aktif
+                Tables\Actions\DeleteBulkAction::make()
+                    ->label('Hapus')
+                    ->visible(function ($livewire) {
+                        $user = auth()->user();
 
-                            if ($allowed->isEmpty()) {
-                                Notification::make()
-                                    ->title('Aksi Dibatalkan')
-                                    ->body('Tidak ada cabang yang bisa dihapus. Cabang yang memiliki komplek tidak dapat dihapus.')
-                                    ->danger()
-                                    ->send();
+                        if (! $user?->hasRole(['super_admin', 'main_admin'])) {
+                            return false;
+                        }
 
-                                return;
+                        // ✅ Hanya tampil di tab aktif (bukan tab terhapus)
+                        return ($livewire->activeTab ?? null) !== 'terhapus';
+                    })
+                    ->action(function (Collection $records) {
+                        $allowed = $records->filter(fn (Dorm $r) => ! $r->blocks()->exists());
+                        $blocked = $records->diff($allowed);
+
+                        if ($allowed->isEmpty()) {
+                            Notification::make()
+                                ->title('Aksi Dibatalkan')
+                                ->body('Tidak ada cabang yang bisa dihapus. Cabang yang memiliki komplek tidak dapat dihapus.')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
+                        foreach ($allowed as $r) {
+                            $r->delete();
+                        }
+
+                        $deleted = $allowed->count();
+
+                        if ($blocked->isNotEmpty()) {
+                            Notification::make()
+                                ->title('Berhasil Sebagian')
+                                ->body("Berhasil menghapus {$deleted} cabang. Yang tidak bisa dihapus: " . $blocked->pluck('name')->unique()->join(', '))
+                                ->warning()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('Berhasil')
+                                ->body("Berhasil menghapus {$deleted} cabang.")
+                                ->success()
+                                ->send();
+                        }
+                    })
+                    ->deselectRecordsAfterCompletion(),
+
+                /**
+                 * ✅ Restore massal — hanya di tab terhapus.
+                 *    Tolak yang namanya bentrok dengan dorm aktif.
+                 */
+                Tables\Actions\RestoreBulkAction::make()
+                    ->label('Pulihkan')
+                    ->visible(function ($livewire) {
+                        $user = auth()->user();
+
+                        if (! $user?->hasRole(['super_admin'])) {
+                            return false;
+                        }
+
+                        return ($livewire->activeTab ?? null) === 'terhapus';
+                    })
+                    ->action(function (Collection $records) {
+                        $restorable = collect();
+                        $blocked    = collect();
+
+                        foreach ($records as $record) {
+                            /** @var Dorm $record */
+                            if (! method_exists($record, 'trashed') || ! $record->trashed()) {
+                                continue;
                             }
 
-                            foreach ($allowed as $r) {
-                                $r->delete();
-                            }
+                            $existsActiveSameName = Dorm::query()
+                                ->where('name', $record->name)
+                                ->whereNull('deleted_at')
+                                ->exists();
 
-                            $deleted = $allowed->count();
-
-                            if ($blocked->isNotEmpty()) {
-                                Notification::make()
-                                    ->title('Berhasil Sebagian')
-                                    ->body("Berhasil menghapus {$deleted} cabang. Yang tidak bisa dihapus: " . $blocked->pluck('name')->join(', '))
-                                    ->warning()
-                                    ->send();
+                            if ($existsActiveSameName) {
+                                $blocked->push($record);
                             } else {
-                                Notification::make()
-                                    ->title('Berhasil')
-                                    ->body("Berhasil menghapus {$deleted} cabang.")
-                                    ->success()
-                                    ->send();
+                                $restorable->push($record);
                             }
-                        }),
+                        }
 
-                    /**
-                     * ✅ Restore massal: tolak yang namanya bentrok dengan dorm aktif.
-                     */
-                    Tables\Actions\RestoreBulkAction::make()
-                        ->visible(fn () => auth()->user()?->hasRole(['super_admin']))
-                        ->action(function (Collection $records) {
-                            $restorable = collect();
-                            $blocked    = collect();
+                        if ($restorable->isEmpty()) {
+                            Notification::make()
+                                ->title('Tidak Bisa Dipulihkan')
+                                ->body('Semua data yang dipilih bentrok dengan nama cabang aktif, sehingga tidak bisa dipulihkan.')
+                                ->danger()
+                                ->send();
 
-                            foreach ($records as $record) {
-                                /** @var Dorm $record */
-                                if (! method_exists($record, 'trashed') || ! $record->trashed()) {
-                                    continue;
-                                }
+                            return;
+                        }
 
-                                $existsActiveSameName = Dorm::query()
-                                    ->where('name', $record->name)
-                                    ->whereNull('deleted_at')
-                                    ->exists();
+                        foreach ($restorable as $r) {
+                            $r->restore();
+                        }
 
-                                if ($existsActiveSameName) {
-                                    $blocked->push($record);
-                                } else {
-                                    $restorable->push($record);
-                                }
-                            }
+                        $restoredCount = $restorable->count();
 
-                            if ($restorable->isEmpty()) {
-                                Notification::make()
-                                    ->title('Tidak Bisa Dipulihkan')
-                                    ->body('Semua data yang dipilih bentrok dengan nama cabang aktif, sehingga tidak bisa dipulihkan.')
-                                    ->danger()
-                                    ->send();
-
-                                return;
-                            }
-
-                            foreach ($restorable as $r) {
-                                $r->restore();
-                            }
-
-                            $restoredCount = $restorable->count();
-
-                            if ($blocked->isNotEmpty()) {
-                                Notification::make()
-                                    ->title('Berhasil Sebagian')
-                                    ->body("Berhasil memulihkan {$restoredCount} cabang. Yang tidak bisa dipulihkan karena nama bentrok: " . $blocked->pluck('name')->unique()->join(', '))
-                                    ->warning()
-                                    ->send();
-                            } else {
-                                Notification::make()
-                                    ->title('Berhasil')
-                                    ->body("Berhasil memulihkan {$restoredCount} cabang.")
-                                    ->success()
-                                    ->send();
-                            }
-                        }),
-                ]),
+                        if ($blocked->isNotEmpty()) {
+                            Notification::make()
+                                ->title('Berhasil Sebagian')
+                                ->body("Berhasil memulihkan {$restoredCount} cabang. Yang tidak bisa dipulihkan karena nama bentrok: " . $blocked->pluck('name')->unique()->join(', '))
+                                ->warning()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('Berhasil')
+                                ->body("Berhasil memulihkan {$restoredCount} cabang.")
+                                ->success()
+                                ->send();
+                        }
+                    })
+                    ->deselectRecordsAfterCompletion(),
             ]);
     }
 
