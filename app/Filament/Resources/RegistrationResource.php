@@ -95,8 +95,7 @@ class RegistrationResource extends Resource
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('name')
-                            ->label('Nama (Username)')
-                            ->helperText('Boleh sama dengan nama lengkap')
+                            ->label('Nama Panggilan')
                             ->required()
                             ->maxLength(255),
 
@@ -192,6 +191,21 @@ class RegistrationResource extends Resource
                             ->native(false)
                             ->disabled(fn(Forms\Get $get) => $get('citizenship_status') === 'WNI')
                             ->default(fn() => Country::query()->where('iso2', 'ID')->value('id'))
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('name')
+                                    ->label('Nama Negara')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->columnSpan(1),
+                                Forms\Components\TextInput::make('calling_code')
+                                    ->label('Kode Telepon')
+                                    ->required()
+                                    ->columnSpan(1),
+                            ])
+                            ->createOptionUsing(fn(array $data) => Country::firstOrCreate(
+                                ['name' => $data['name']],
+                                ['calling_code' => $data['calling_code'] ?? null]
+                            )->id)
                             ->required(),
 
                         Forms\Components\TextInput::make('phone_number')
@@ -213,7 +227,7 @@ class RegistrationResource extends Resource
                             ->nullable(),
                     ]),
 
-                Forms\Components\Section::make('Preferensi Kamar')
+                Forms\Components\Section::make('Pilihan Kamar')
                     ->description('Rencana kamar yang diinginkan')
                     ->columns(2)
                     ->schema([
@@ -222,14 +236,14 @@ class RegistrationResource extends Resource
                             ->options(fn() => Dorm::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
-                            ->required(),
+                            ->nullable(),
 
                         Forms\Components\Select::make('preferred_room_type_id')
                             ->label('Tipe Kamar Yang Diinginkan')
                             ->options(fn() => RoomType::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
-                            ->required(),
+                            ->nullable(),
 
                         Forms\Components\DatePicker::make('planned_check_in_date')
                             ->label('Rencana Tanggal Masuk')
@@ -239,7 +253,7 @@ class RegistrationResource extends Resource
                             ->minDate(now())
                             ->default(now()->addDays(7))
                             ->helperText('Minimal hari ini')
-                            ->required(),
+                            ->nullable(),
                     ]),
             ]);
     }
