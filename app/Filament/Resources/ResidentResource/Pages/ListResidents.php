@@ -12,57 +12,34 @@ class ListResidents extends ListRecords
 {
     protected static string $resource = ResidentResource::class;
 
-    public function getModel(): string
-    {
-        return User::class;
-    }
-
-    protected function getHeaderActions(): array
-    {
-        return [];
-    }
-
     public function getTabs(): array
     {
-        if (!auth()->user()?->hasRole('super_admin')) {
+        if (! auth()->user()?->hasRole('super_admin')) {
             return [];
         }
 
         return [
             'aktif' => Tab::make('Data Aktif')
-                ->modifyQueryUsing(function (Builder $query) {
-                    return $query->whereNull('users.deleted_at');
-                })
-                ->badge(
-                    fn() => User::query()
-                        ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
-                        ->whereNull('users.deleted_at')
-                        ->count()
+                ->modifyQueryUsing(fn (Builder $query) => $query->withoutTrashed())
+                ->badge(fn () => User::query()
+                    ->whereHas('roles', fn (Builder $q) => $q->where('name', 'resident'))
+                    ->withoutTrashed()
+                    ->count()
                 ),
 
             'terhapus' => Tab::make('Data Terhapus')
-                ->modifyQueryUsing(function (Builder $query) {
-                    return $query->whereNotNull('users.deleted_at');
-                })
-                ->badge(
-                    fn() => User::query()
-                        ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
-                        ->onlyTrashed()
-                        ->count()
+                ->modifyQueryUsing(fn (Builder $query) => $query->onlyTrashed())
+                ->badge(fn () => User::query()
+                    ->whereHas('roles', fn (Builder $q) => $q->where('name', 'resident'))
+                    ->onlyTrashed()
+                    ->count()
                 )
                 ->badgeColor('danger'),
         ];
     }
 
-    /**
-     * ✅ Fix bug: saat pindah tab, selection & state bulk action dibersihkan
-     * supaya bulk action tidak "nempel" dari tab sebelumnya.
-     */
     public function updatedActiveTab(): void
     {
         $this->deselectAllTableRecords();
-
-        // Kalau versi Filament kamu punya method ini, boleh diaktifkan:
-        // $this->resetTable();
     }
 }

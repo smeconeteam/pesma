@@ -41,7 +41,8 @@ class ListDorms extends ListRecords
 
             'terhapus' => Tab::make('Data Terhapus')
                 ->badge(fn () => Dorm::query()->onlyTrashed()->count())
-                ->modifyQueryUsing(fn (Builder $query) => $query->onlyTrashed()),
+                ->modifyQueryUsing(fn (Builder $query) => $query->onlyTrashed())
+                ->badgeColor('danger'),
         ];
     }
 }
