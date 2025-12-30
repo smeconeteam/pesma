@@ -31,6 +31,7 @@ use Filament\Infolists\Components\IconEntry;
 
 use Filament\Notifications\Notification;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class ResidentResource extends Resource
 {
@@ -505,6 +506,13 @@ class ResidentResource extends Resource
 
                             $action->cancel();
                         }
+                    })
+                    // ✅ Hapus akun penghuni + soft delete residentProfile biar konsisten
+                    ->action(function (User $record) {
+                        DB::transaction(function () use ($record) {
+                            $record->residentProfile()?->delete(); // soft delete profile (kalau pakai SoftDeletes)
+                            $record->delete();                     // soft delete user (akun)
+                        });
                     }),
 
                 Tables\Actions\ForceDeleteAction::make()
@@ -548,128 +556,131 @@ class ResidentResource extends Resource
                         }
 
                         return method_exists($record, 'trashed') && $record->trashed();
+                    })
+                    // ✅ Restore akun + restore profile
+                    ->action(function (User $record) {
+                        DB::transaction(function () use ($record) {
+                            $record->restore();
+                            $record->residentProfile()?->withTrashed()?->restore();
+                        });
                     }),
             ])
+            // ✅ Bulk actions TANPA GROUP + fix tab state pakai $livewire->activeTab
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    // Bulk Delete Action
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->label('Hapus')
-                        ->visible(function () {
-                            $user = auth()->user();
-                            
-                            // Cek role
-                            if (!$user?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin'])) {
-                                return false;
+                Tables\Actions\DeleteBulkAction::make()
+                    ->label('Hapus')
+                    ->visible(function ($livewire) {
+                        $user = auth()->user();
+
+                        if (!$user?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin'])) {
+                            return false;
+                        }
+
+                        // ✅ state tab dari Livewire (bukan request)
+                        return ($livewire->activeTab ?? null) !== 'terhapus';
+                    })
+                    ->action(function (Collection $records) {
+                        $cannotDelete = collect();
+                        $canDelete = collect();
+
+                        foreach ($records as $record) {
+                            $reasons = [];
+
+                            if ($record->is_active) {
+                                $reasons[] = 'status masih aktif';
                             }
 
-                            // Hanya tampil di tab aktif (bukan tab terhapus)
-                            return request()->query('activeTab') !== 'terhapus';
-                        })
-                        ->before(function (Tables\Actions\DeleteBulkAction $action, Collection $records) {
-                            // Pisahkan data yang bisa dan tidak bisa dihapus
-                            $cannotDelete = collect();
-                            $canDelete = collect();
-                            
-                            foreach ($records as $record) {
-                                $reasons = [];
-                                
-                                // Cek apakah masih aktif
-                                if ($record->is_active) {
-                                    $reasons[] = 'status masih aktif';
-                                }
-                                
-                                // Cek apakah masih menempati kamar
-                                if ($record->roomResidents()->whereNull('check_out_date')->exists()) {
-                                    $reasons[] = 'masih menempati kamar';
-                                }
-                                
-                                if (!empty($reasons)) {
-                                    $cannotDelete->push([
-                                        'record' => $record,
-                                        'reasons' => $reasons
-                                    ]);
-                                } else {
-                                    $canDelete->push($record);
-                                }
+                            if ($record->roomResidents()->whereNull('check_out_date')->exists()) {
+                                $reasons[] = 'masih menempati kamar';
                             }
-                            
-                            // Jika ada yang tidak bisa dihapus, tampilkan notifikasi
-                            if ($cannotDelete->count() > 0) {
-                                $message = "Terdapat {$cannotDelete->count()} penghuni yang tidak dapat dihapus:\n\n";
-                                
-                                foreach ($cannotDelete->take(5) as $item) {
-                                    $name = $item['record']->residentProfile->full_name ?? $item['record']->name;
-                                    $reasonText = implode(' dan ', $item['reasons']);
-                                    $message .= "• {$name} ({$reasonText})\n";
-                                }
-                                
-                                if ($cannotDelete->count() > 5) {
-                                    $remaining = $cannotDelete->count() - 5;
-                                    $message .= "\ndan {$remaining} penghuni lainnya.";
-                                }
-                                
-                                if ($canDelete->count() > 0) {
-                                    $message .= "\n\n{$canDelete->count()} penghuni lainnya akan tetap dihapus.";
-                                    
-                                    Notification::make()
-                                        ->warning()
-                                        ->title('Sebagian Data Tidak Dapat Dihapus')
-                                        ->body($message)
-                                        ->persistent()
-                                        ->send();
 
-                                    // Jalankan delete manual hanya untuk data yang boleh dihapus
-                                    $canDelete->each->delete();
-
-                                    // Batalkan delete default Filament
-                                    $action->cancel();
-                                } else {
-                                    // Semua data tidak bisa dihapus
-                                    Notification::make()
-                                        ->danger()
-                                        ->title('Tidak Ada Data yang Dapat Dihapus')
-                                        ->body($message)
-                                        ->persistent()
-                                        ->send();
-                                    
-                                    $action->cancel();
-                                }
+                            if (!empty($reasons)) {
+                                $cannotDelete->push([
+                                    'record' => $record,
+                                    'reasons' => $reasons,
+                                ]);
+                            } else {
+                                $canDelete->push($record);
                             }
-                        })
-                        ->after(function (Collection $records) {
-                            // Hitung berapa yang berhasil dihapus
-                            $deletedCount = $records->filter(function ($record) {
-                                return method_exists($record, 'trashed') ? $record->trashed() : false;
-                            })->count();
-                            
-                            if ($deletedCount > 0) {
+                        }
+
+                        if ($cannotDelete->count() > 0) {
+                            $message = "Terdapat {$cannotDelete->count()} penghuni yang tidak dapat dihapus:\n\n";
+
+                            foreach ($cannotDelete->take(5) as $item) {
+                                $name = $item['record']->residentProfile->full_name ?? $item['record']->name;
+                                $reasonText = implode(' dan ', $item['reasons']);
+                                $message .= "• {$name} ({$reasonText})\n";
+                            }
+
+                            if ($cannotDelete->count() > 5) {
+                                $remaining = $cannotDelete->count() - 5;
+                                $message .= "\ndan {$remaining} penghuni lainnya.";
+                            }
+
+                            if ($canDelete->count() > 0) {
+                                $message .= "\n\n{$canDelete->count()} penghuni lainnya akan tetap dihapus.";
+
                                 Notification::make()
-                                    ->success()
-                                    ->title('Berhasil Menghapus')
-                                    ->body("{$deletedCount} penghuni berhasil dihapus.")
+                                    ->warning()
+                                    ->title('Sebagian Data Tidak Dapat Dihapus')
+                                    ->body($message)
+                                    ->persistent()
                                     ->send();
-                            }
-                        })
-                        ->deselectRecordsAfterCompletion(),
+                            } else {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Tidak Ada Data yang Dapat Dihapus')
+                                    ->body($message)
+                                    ->persistent()
+                                    ->send();
 
-                    // Bulk Restore Action
-                    Tables\Actions\RestoreBulkAction::make()
-                        ->label('Pulihkan')
-                        ->visible(function () {
-                            $user = auth()->user();
-                            
-                            // Cek role
-                            if (!$user?->hasRole('super_admin')) {
-                                return false;
+                                return;
                             }
+                        }
 
-                            // Hanya tampil di tab data terhapus
-                            return request()->query('activeTab') === 'terhapus';
-                        })
-                        ->successNotificationTitle('Data berhasil dipulihkan')
-                        ->deselectRecordsAfterCompletion(),
-                ]),
+                        // ✅ Hapus akun + profile dalam 1 transaksi
+                        DB::transaction(function () use ($canDelete) {
+                            foreach ($canDelete as $record) {
+                                $record->residentProfile()?->delete();
+                                $record->delete();
+                            }
+                        });
+
+                        Notification::make()
+                            ->success()
+                            ->title('Berhasil Menghapus')
+                            ->body("{$canDelete->count()} penghuni berhasil dihapus.")
+                            ->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
+
+                Tables\Actions\RestoreBulkAction::make()
+                    ->label('Pulihkan')
+                    ->visible(function ($livewire) {
+                        $user = auth()->user();
+
+                        if (!$user?->hasRole('super_admin')) {
+                            return false;
+                        }
+
+                        // ✅ state tab dari Livewire (bukan request)
+                        return ($livewire->activeTab ?? null) === 'terhapus';
+                    })
+                    ->action(function (Collection $records) {
+                        DB::transaction(function () use ($records) {
+                            foreach ($records as $record) {
+                                $record->restore();
+                                $record->residentProfile()?->withTrashed()?->restore();
+                            }
+                        });
+
+                        Notification::make()
+                            ->success()
+                            ->title('Data berhasil dipulihkan')
+                            ->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
             ])
             ->persistFiltersInSession()
             ->deselectAllRecordsWhenFiltered(true)

@@ -4,7 +4,6 @@ namespace App\Filament\Resources\ResidentResource\Pages;
 
 use App\Filament\Resources\ResidentResource;
 use App\Models\User;
-use Filament\Actions;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
@@ -40,6 +39,7 @@ class ListResidents extends ListRecords
                         ->whereNull('users.deleted_at')
                         ->count()
                 ),
+
             'terhapus' => Tab::make('Data Terhapus')
                 ->modifyQueryUsing(function (Builder $query) {
                     return $query->whereNotNull('users.deleted_at');
@@ -52,5 +52,17 @@ class ListResidents extends ListRecords
                 )
                 ->badgeColor('danger'),
         ];
+    }
+
+    /**
+     * ✅ Fix bug: saat pindah tab, selection & state bulk action dibersihkan
+     * supaya bulk action tidak "nempel" dari tab sebelumnya.
+     */
+    public function updatedActiveTab(): void
+    {
+        $this->deselectAllTableRecords();
+
+        // Kalau versi Filament kamu punya method ini, boleh diaktifkan:
+        // $this->resetTable();
     }
 }
