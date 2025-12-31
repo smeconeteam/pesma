@@ -30,7 +30,7 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Nama (Username)</label>
+                        <label class="block text-sm font-medium">Nama Panggilan</label>
                         <input name="name" type="text" value="{{ old('name') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
                     </div>
 

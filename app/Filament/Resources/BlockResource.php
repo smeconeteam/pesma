@@ -12,6 +12,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Collection;
 use Filament\Notifications\Notification;
 use Illuminate\Validation\Rules\Unique;
@@ -213,6 +214,38 @@ class BlockResource extends Resource
                             && ! $record->rooms()->exists()
                     ),
 
+                Tables\Actions\ForceDeleteAction::make()
+                    ->label('Hapus Permanen')
+                    ->visible(
+                        fn (Block $record): bool =>
+                            auth()->user()?->hasRole('super_admin')
+                            && $record->trashed()
+                    )
+                    ->requiresConfirmation()
+                    ->modalHeading('Hapus Permanen Komplek')
+                    ->modalDescription('Apakah Anda yakin ingin menghapus permanen data ini? Data yang terhapus permanen tidak dapat dipulihkan.')
+                    ->modalSubmitActionLabel('Ya, Hapus Permanen')
+                    ->before(function (Tables\Actions\ForceDeleteAction $action, Block $record): void {
+                        if ($record->rooms()->exists()) {
+                            Notification::make()
+                                ->title('Tidak dapat menghapus permanen')
+                                ->body('Komplek yang memiliki kamar tidak dapat dihapus permanen.')
+                                ->danger()
+                                ->send();
+
+                            $action->cancel();
+                        }
+                    })
+                    ->action(function (Block $record): void {
+                        $record->forceDelete();
+
+                        Notification::make()
+                            ->title('Berhasil')
+                            ->body('Data komplek berhasil dihapus permanen.')
+                            ->success()
+                            ->send();
+                    }),
+
                 /**
                  * ✅ Restore diblok kalau ada duplikat aktif dengan dorm_id + name sama
                  */
@@ -248,84 +281,101 @@ class BlockResource extends Resource
                             ->send();
                     }),
             ])
+            // ✅ Bulk actions TANPA GROUP + tab-aware (aktif/terhapus)
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn () => auth()->user()?->hasRole(['super_admin', 'main_admin', 'branch_admin']))
-                        ->action(function (Collection $records) {
+                Tables\Actions\DeleteBulkAction::make()
+                    ->label('Hapus')
+                    ->visible(function ($livewire): bool {
+                        $user = auth()->user();
 
-                            $allowed = $records->filter(fn (Block $r) => ! $r->rooms()->exists());
-                            $blocked = $records->diff($allowed);
+                        if (! $user?->hasRole(['super_admin', 'main_admin'])) {
+                            return false;
+                        }
 
-                            if ($allowed->isEmpty()) {
-                                Notification::make()
-                                    ->title('Aksi Dibatalkan')
-                                    ->body('Tidak ada komplek yang bisa dihapus. Komplek yang memiliki kamar tidak dapat dihapus.')
-                                    ->danger()
-                                    ->send();
-                                return;
-                            }
+                        return ($livewire->activeTab ?? null) !== 'terhapus';
+                    })
+                    ->action(function (Collection $records): void {
+                        $allowed = $records->filter(fn (Block $r) => ! $r->rooms()->exists());
+                        $blocked = $records->diff($allowed);
 
-                            foreach ($allowed as $r) {
-                                $r->delete();
-                            }
+                        if ($allowed->isEmpty()) {
+                            Notification::make()
+                                ->title('Aksi Dibatalkan')
+                                ->body('Tidak ada komplek yang bisa dihapus. Komplek yang memiliki kamar tidak dapat dihapus.')
+                                ->danger()
+                                ->send();
 
-                            $deleted = $allowed->count();
+                            return;
+                        }
 
-                            if ($blocked->isNotEmpty()) {
-                                Notification::make()
-                                    ->title('Berhasil Sebagian')
-                                    ->body("Berhasil menghapus {$deleted} komplek. Yang tidak bisa dihapus: " . $blocked->pluck('name')->join(', '))
-                                    ->warning()
-                                    ->send();
-                            } else {
-                                Notification::make()
-                                    ->title('Berhasil')
-                                    ->body("Berhasil menghapus {$deleted} komplek.")
-                                    ->success()
-                                    ->send();
-                            }
-                        }),
+                        foreach ($allowed as $r) {
+                            $r->delete();
+                        }
 
-                    /**
-                     * ✅ Restore bulk diblok kalau ada duplikat aktif (dorm_id + name sama)
-                     */
-                    Tables\Actions\RestoreBulkAction::make()
-                        ->visible(fn () => auth()->user()?->hasRole('super_admin'))
-                        ->action(function (Collection $records): void {
-                            $allowed = $records->filter(fn (Block $r) => ! static::hasActiveDuplicateForRestore($r));
-                            $blocked = $records->diff($allowed);
+                        $deleted = $allowed->count();
 
-                            if ($allowed->isEmpty()) {
-                                Notification::make()
-                                    ->title('Gagal Memulihkan')
-                                    ->body('Semua data yang dipilih tidak bisa dipulihkan karena sudah ada duplikat aktif pada cabang yang sama.')
-                                    ->danger()
-                                    ->send();
-                                return;
-                            }
+                        if ($blocked->isNotEmpty()) {
+                            Notification::make()
+                                ->title('Berhasil Sebagian')
+                                ->body("Berhasil menghapus {$deleted} komplek. Yang tidak bisa dihapus: " . $blocked->pluck('name')->join(', '))
+                                ->warning()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('Berhasil')
+                                ->body("Berhasil menghapus {$deleted} komplek.")
+                                ->success()
+                                ->send();
+                        }
+                    })
+                    ->deselectRecordsAfterCompletion(),
 
-                            foreach ($allowed as $r) {
-                                $r->restore();
-                            }
+                Tables\Actions\RestoreBulkAction::make()
+                    ->label('Pulihkan')
+                    ->visible(function ($livewire): bool {
+                        $user = auth()->user();
 
-                            $restored = $allowed->count();
+                        if (! $user?->hasRole('super_admin')) {
+                            return false;
+                        }
 
-                            if ($blocked->isNotEmpty()) {
-                                Notification::make()
-                                    ->title('Berhasil Sebagian')
-                                    ->body("Berhasil memulihkan {$restored} komplek. Yang tidak bisa dipulihkan karena duplikat: " . $blocked->pluck('name')->join(', '))
-                                    ->warning()
-                                    ->send();
-                            } else {
-                                Notification::make()
-                                    ->title('Berhasil')
-                                    ->body("Berhasil memulihkan {$restored} komplek.")
-                                    ->success()
-                                    ->send();
-                            }
-                        }),
-                ]),
+                        return ($livewire->activeTab ?? null) === 'terhapus';
+                    })
+                    ->action(function (Collection $records): void {
+                        $allowed = $records->filter(fn (Block $r) => ! static::hasActiveDuplicateForRestore($r));
+                        $blocked = $records->diff($allowed);
+
+                        if ($allowed->isEmpty()) {
+                            Notification::make()
+                                ->title('Gagal Memulihkan')
+                                ->body('Semua data yang dipilih tidak bisa dipulihkan karena sudah ada duplikat aktif pada cabang yang sama.')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
+                        foreach ($allowed as $r) {
+                            $r->restore();
+                        }
+
+                        $restored = $allowed->count();
+
+                        if ($blocked->isNotEmpty()) {
+                            Notification::make()
+                                ->title('Berhasil Sebagian')
+                                ->body("Berhasil memulihkan {$restored} komplek. Yang tidak bisa dipulihkan karena duplikat: " . $blocked->pluck('name')->join(', '))
+                                ->warning()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('Berhasil')
+                                ->body("Berhasil memulihkan {$restored} komplek.")
+                                ->success()
+                                ->send();
+                        }
+                    })
+                    ->deselectRecordsAfterCompletion(),
             ]);
     }
 
@@ -336,8 +386,12 @@ class BlockResource extends Resource
     {
         $user = auth()->user();
 
-        $query = parent::getEloquentQuery()
-            ->whereHas('dorm');
+        $query = parent::getEloquentQuery()->whereHas('dorm');
+
+        // ✅ Hanya super_admin yang boleh melihat data terhapus (untuk tab)
+        if ($user?->hasRole('super_admin')) {
+            $query->withoutGlobalScopes([SoftDeletingScope::class]);
+        }
 
         if (! $user) {
             return $query->whereRaw('1 = 0');

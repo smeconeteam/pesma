@@ -52,7 +52,7 @@ class EditResident extends EditRecord
 
                     Forms\Components\Select::make('residentProfile.resident_category_id')
                         ->label('Kategori Penghuni')
-                        ->options(fn() => ResidentCategory::query()->orderBy('name')->pluck('name', 'id'))
+                        ->options(fn () => ResidentCategory::query()->orderBy('name')->pluck('name', 'id'))
                         ->searchable()
                         ->native(false)
                         ->required(),
@@ -65,15 +65,23 @@ class EditResident extends EditRecord
                         ])
                         ->native(false)
                         ->required()
-                        ->reactive(),
+                        ->reactive()
+                        // ✅ Jika pilih WNI, otomatis set negara = Indonesia (id: 1)
+                        ->afterStateUpdated(function ($state, Forms\Set $set) {
+                            if ($state === 'WNI') {
+                                $set('residentProfile.country_id', 1); // Indonesia
+                            } else {
+                                $set('residentProfile.country_id', null);
+                            }
+                        }),
 
                     Forms\Components\Select::make('residentProfile.country_id')
                         ->label('Negara')
                         ->relationship('residentProfile.country', 'name')
                         ->searchable()
                         ->native(false)
-                        ->required(fn(Forms\Get $get) => $get('residentProfile.citizenship_status') === 'WNA')
-                        ->visible(fn(Forms\Get $get) => $get('residentProfile.citizenship_status') === 'WNA'),
+                        ->required(fn (Forms\Get $get) => $get('residentProfile.citizenship_status') === 'WNA')
+                        ->visible(fn (Forms\Get $get) => $get('residentProfile.citizenship_status') === 'WNA'),
 
                     Forms\Components\TextInput::make('residentProfile.national_id')
                         ->label('NIK')
@@ -138,7 +146,7 @@ class EditResident extends EditRecord
                         ->content(function ($record) {
                             $active = $record->activeRoomResident;
 
-                            if (!$active?->room) return '-';
+                            if (! $active?->room) return '-';
 
                             $room = $active->room;
                             $block = $room->block;
@@ -161,7 +169,7 @@ class EditResident extends EditRecord
                             return $active?->is_pic ? '✓ Ya' : '✗ Tidak';
                         }),
                 ])
-                ->visible(fn($record) => $record->activeRoomResident !== null)
+                ->visible(fn ($record) => $record->activeRoomResident !== null)
                 ->collapsible()
                 ->collapsed(),
         ]);
@@ -172,11 +180,19 @@ class EditResident extends EditRecord
         $record = $this->record;
         $profile = $record->residentProfile;
 
+        $citizenship = $profile?->citizenship_status ?? 'WNI';
+        $countryId = $profile?->country_id;
+
+        // ✅ Kalau WNI tapi country kosong, isi Indonesia
+        if ($citizenship === 'WNI' && blank($countryId)) {
+            $countryId = 1; // Indonesia
+        }
+
         // Fill data profil
         $data['residentProfile'] = [
             'resident_category_id'  => $profile?->resident_category_id,
-            'citizenship_status'    => $profile?->citizenship_status ?? 'WNI',
-            'country_id'            => $profile?->country_id,
+            'citizenship_status'    => $citizenship,
+            'country_id'            => $countryId,
             'national_id'           => $profile?->national_id,
             'student_id'            => $profile?->student_id,
             'full_name'             => $profile?->full_name ?? $record->name,
@@ -206,6 +222,11 @@ class EditResident extends EditRecord
             // 2) Update/Create resident profile
             if (isset($data['residentProfile'])) {
                 $profileData = $data['residentProfile'];
+
+                // ✅ Paksa Indonesia kalau WNI
+                if (($profileData['citizenship_status'] ?? 'WNI') === 'WNI') {
+                    $profileData['country_id'] = 1;
+                }
 
                 $record->residentProfile()->updateOrCreate(
                     ['user_id' => $record->id],
@@ -242,7 +263,7 @@ class EditResident extends EditRecord
         return [
             Actions\ViewAction::make(),
             Actions\DeleteAction::make()
-                ->visible(fn() => auth()->user()?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin'])),
+                ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin'])),
         ];
     }
 

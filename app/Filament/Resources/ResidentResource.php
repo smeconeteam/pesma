@@ -5,13 +5,9 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ResidentResource\Pages;
 use App\Models\Block;
 use App\Models\Dorm;
-use App\Models\ResidentCategory;
 use App\Models\User;
-use App\Models\RoomResident;
 
-use Filament\Forms;
 use Filament\Forms\Form;
-
 use Filament\Resources\Resource;
 
 use Filament\Tables;
@@ -29,6 +25,10 @@ use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Components\IconEntry;
 
+use Filament\Notifications\Notification;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+
 class ResidentResource extends Resource
 {
     protected static ?string $model = User::class;
@@ -41,7 +41,7 @@ class ResidentResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        $user = auth()->user();
+        $user  = auth()->user();
         $query = parent::getEloquentQuery();
 
         // Hanya super_admin yang bisa lihat data terhapus
@@ -49,13 +49,16 @@ class ResidentResource extends Resource
             $query->withoutGlobalScopes([SoftDeletingScope::class]);
         }
 
-        $query->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
+        $query->whereHas('roles', fn (Builder $q) => $q->where('name', 'resident'))
             ->with([
-                'residentProfile.residentCategory',
+                // ✅ penting: load residentProfile meskipun profile-nya ikut soft delete
+                'residentProfile' => function ($q) {
+                    $q->withTrashed()->with(['residentCategory', 'country']);
+                },
                 'roomResidents.room.block.dorm',
             ]);
 
-        if (!$user) {
+        if (! $user) {
             return $query->whereRaw('1 = 0');
         }
 
@@ -70,7 +73,7 @@ class ResidentResource extends Resource
 
             return $query->whereHas('roomResidents', function (Builder $q) use ($dormIds) {
                 $q->whereNull('check_out_date')
-                    ->whereHas('room.block', fn(Builder $b) => $b->whereIn('dorm_id', $dormIds));
+                    ->whereHas('room.block', fn (Builder $b) => $b->whereIn('dorm_id', $dormIds));
             });
         }
 
@@ -80,30 +83,35 @@ class ResidentResource extends Resource
 
             return $query->whereHas('roomResidents', function (Builder $q) use ($blockIds) {
                 $q->whereNull('check_out_date')
-                    ->whereHas('room', fn(Builder $room) => $room->whereIn('block_id', $blockIds));
+                    ->whereHas('room', fn (Builder $room) => $room->whereIn('block_id', $blockIds));
             });
         }
 
         return $query->whereRaw('1 = 0');
     }
 
+    // ✅ agar halaman view bisa resolve record trashed (mengikuti getEloquentQuery)
+    public static function resolveRecordRouteBinding(int|string $key): ?Model
+    {
+        return static::getEloquentQuery()
+            ->whereKey($key)
+            ->first();
+    }
+
     protected static function getAccessibleDormIds(): ?array
     {
         $user = auth()->user();
-        if (!$user) return null;
+        if (! $user) return null;
 
-        // Super admin dan main admin: akses semua
         if ($user->hasRole(['super_admin', 'main_admin'])) {
             return null;
         }
 
-        // Branch admin: hanya cabangnya
         if ($user->hasRole('branch_admin')) {
             $ids = $user->branchDormIds()->toArray();
-            return !empty($ids) ? $ids : [];
+            return ! empty($ids) ? $ids : [];
         }
 
-        // Block admin: ambil dorm_id dari block yang dia pegang
         if ($user->hasRole('block_admin')) {
             $blockIds = $user->blockIds()->toArray();
             if (empty($blockIds)) return [];
@@ -114,7 +122,7 @@ class ResidentResource extends Resource
                 ->values()
                 ->all();
 
-            return !empty($ids) ? $ids : [];
+            return ! empty($ids) ? $ids : [];
         }
 
         return null;
@@ -123,17 +131,15 @@ class ResidentResource extends Resource
     protected static function getAccessibleBlockIds(): ?array
     {
         $user = auth()->user();
-        if (!$user) return null;
+        if (! $user) return null;
 
-        // Super admin, main admin, branch admin: akses semua block
         if ($user->hasRole(['super_admin', 'main_admin', 'branch_admin'])) {
             return null;
         }
 
-        // Block admin: hanya kompleknya
         if ($user->hasRole('block_admin')) {
             $ids = $user->blockIds()->toArray();
-            return !empty($ids) ? $ids : [];
+            return ! empty($ids) ? $ids : [];
         }
 
         return null;
@@ -148,8 +154,10 @@ class ResidentResource extends Resource
     {
         return $table
             ->columns([
+                // ✅ fallback jika profile null (data lama)
                 Tables\Columns\TextColumn::make('residentProfile.full_name')
                     ->label('Nama')
+                    ->getStateUsing(fn (User $record) => $record->residentProfile?->full_name ?? $record->name ?? '-')
                     ->searchable()
                     ->sortable(),
 
@@ -179,7 +187,7 @@ class ResidentResource extends Resource
                             ->latest('check_in_date')
                             ->first();
 
-                        if (!$active?->room) return '-';
+                        if (! $active?->room) return '-';
                         $room = $active->room;
                         return ($room->code ?? '-') . ($room->number ? " ({$room->number})" : '');
                     })
@@ -199,7 +207,7 @@ class ResidentResource extends Resource
                     ->native(false)
                     ->query(function (Builder $query, array $data) {
                         return $query->when($data['value'] ?? null, function (Builder $q, $value) {
-                            $q->whereHas('residentProfile', fn(Builder $p) => $p->where('gender', $value));
+                            $q->whereHas('residentProfile', fn (Builder $p) => $p->where('gender', $value));
                         });
                     }),
 
@@ -211,12 +219,12 @@ class ResidentResource extends Resource
                         return $query->when($data['value'] ?? null, function (Builder $q, $dormId) {
                             $q->whereHas('roomResidents', function (Builder $rr) use ($dormId) {
                                 $rr->whereNull('check_out_date')
-                                    ->whereHas('room.block', fn(Builder $b) => $b->where('dorm_id', $dormId));
+                                    ->whereHas('room.block', fn (Builder $b) => $b->where('dorm_id', $dormId));
                             });
                         });
                     })
                     ->form([
-                        Forms\Components\Select::make('value')
+                        \Filament\Forms\Components\Select::make('value')
                             ->label('Cabang')
                             ->native(false)
                             ->searchable()
@@ -225,14 +233,14 @@ class ResidentResource extends Resource
                                 $ids = static::getAccessibleDormIds();
 
                                 return Dorm::query()
-                                    ->when(is_array($ids), fn($q) => $q->whereIn('id', $ids))
+                                    ->when(is_array($ids), fn ($q) => $q->whereIn('id', $ids))
                                     ->orderBy('name')
                                     ->pluck('name', 'id')
                                     ->toArray();
                             })
                             ->default(function () {
                                 $user = auth()->user();
-                                if (!$user) return null;
+                                if (! $user) return null;
 
                                 if ($user->hasRole('branch_admin')) {
                                     return $user->branchDormIds()->first();
@@ -240,18 +248,18 @@ class ResidentResource extends Resource
 
                                 if ($user->hasRole('block_admin')) {
                                     $blockId = $user->blockIds()->first();
-                                    if (!$blockId) return null;
+                                    if (! $blockId) return null;
 
                                     return Block::whereKey($blockId)->value('dorm_id');
                                 }
 
                                 return null;
                             })
-                            ->afterStateHydrated(function (Forms\Components\Select $component, $state) {
+                            ->afterStateHydrated(function (\Filament\Forms\Components\Select $component, $state) {
                                 $user = auth()->user();
-                                if (!$user) return;
+                                if (! $user) return;
 
-                                if (!blank($state)) return;
+                                if (! blank($state)) return;
 
                                 if ($user->hasRole('branch_admin')) {
                                     $component->state($user->branchDormIds()->first());
@@ -260,14 +268,14 @@ class ResidentResource extends Resource
 
                                 if ($user->hasRole('block_admin')) {
                                     $blockId = $user->blockIds()->first();
-                                    if (!$blockId) return;
+                                    if (! $blockId) return;
 
                                     $dormId = Block::whereKey($blockId)->value('dorm_id');
                                     $component->state($dormId);
                                 }
                             })
-                            ->disabled(fn() => auth()->user()?->hasRole(['branch_admin', 'block_admin']) ?? false)
-                            ->afterStateUpdated(function (Forms\Set $set, $state) {
+                            ->disabled(fn () => auth()->user()?->hasRole(['branch_admin', 'block_admin']) ?? false)
+                            ->afterStateUpdated(function (\Filament\Forms\Set $set, $state) {
                                 $user = auth()->user();
 
                                 $set('../block_id.value', null);
@@ -291,9 +299,9 @@ class ResidentResource extends Resource
                         if (blank($id)) return null;
 
                         $name = Dorm::query()->whereKey($id)->value('name');
-                        if (!$name) return null;
+                        if (! $name) return null;
 
-                        $user = auth()->user();
+                        $user   = auth()->user();
                         $locked = $user?->hasAnyRole(['branch_admin', 'block_admin']) ?? false;
 
                         return [
@@ -310,12 +318,12 @@ class ResidentResource extends Resource
                         return $query->when($data['value'] ?? null, function (Builder $q, $blockId) {
                             $q->whereHas('roomResidents', function (Builder $rr) use ($blockId) {
                                 $rr->whereNull('check_out_date')
-                                    ->whereHas('room', fn(Builder $room) => $room->where('block_id', $blockId));
+                                    ->whereHas('room', fn (Builder $room) => $room->where('block_id', $blockId));
                             });
                         });
                     })
                     ->form([
-                        Forms\Components\Select::make('value')
+                        \Filament\Forms\Components\Select::make('value')
                             ->label('Komplek')
                             ->native(false)
                             ->searchable()
@@ -323,7 +331,7 @@ class ResidentResource extends Resource
                             ->placeholder('Pilih cabang terlebih dahulu')
                             ->default(function () {
                                 $user = auth()->user();
-                                if (!$user) return null;
+                                if (! $user) return null;
 
                                 if ($user->hasRole('block_admin')) {
                                     return $user->blockIds()->first();
@@ -331,17 +339,17 @@ class ResidentResource extends Resource
 
                                 return null;
                             })
-                            ->afterStateHydrated(function (Forms\Components\Select $component, $state) {
+                            ->afterStateHydrated(function (\Filament\Forms\Components\Select $component, $state) {
                                 $user = auth()->user();
-                                if (!$user) return;
+                                if (! $user) return;
 
-                                if (!blank($state)) return;
+                                if (! blank($state)) return;
 
                                 if ($user->hasRole('block_admin')) {
                                     $component->state($user->blockIds()->first());
                                 }
                             })
-                            ->disabled(function (Forms\Get $get) {
+                            ->disabled(function (\Filament\Forms\Get $get) {
                                 $user = auth()->user();
 
                                 if ($user?->hasRole('block_admin')) {
@@ -358,9 +366,9 @@ class ResidentResource extends Resource
 
                                 return blank($dormId);
                             })
-                            ->options(function (Forms\Get $get) {
+                            ->options(function (\Filament\Forms\Get $get) {
                                 $user = auth()->user();
-                                if (!$user) return [];
+                                if (! $user) return [];
 
                                 $dormState =
                                     $get('../dorm_id.value') ??
@@ -394,7 +402,7 @@ class ResidentResource extends Resource
 
                                 if ($user->hasRole('branch_admin')) {
                                     $allowedDormIds = $user->branchDormIds()->toArray();
-                                    if (!in_array((int) $dormId, array_map('intval', $allowedDormIds), true)) {
+                                    if (! in_array((int) $dormId, array_map('intval', $allowedDormIds), true)) {
                                         return [];
                                     }
                                     return $query->pluck('name', 'id')->toArray();
@@ -406,7 +414,7 @@ class ResidentResource extends Resource
 
                                 return [];
                             })
-                            ->helperText(function (Forms\Get $get) {
+                            ->helperText(function (\Filament\Forms\Get $get) {
                                 $dormState =
                                     $get('../dorm_id.value') ??
                                     $get('../../dorm_id.value') ??
@@ -419,7 +427,7 @@ class ResidentResource extends Resource
                                     ? 'Komplek baru bisa dipilih setelah cabang dipilih.'
                                     : null;
                             })
-                            ->afterStateUpdated(function (Forms\Set $set, $state) {
+                            ->afterStateUpdated(function (\Filament\Forms\Set $set, $state) {
                                 $user = auth()->user();
 
                                 if (($user?->hasRole('block_admin') ?? false) && blank($state)) {
@@ -435,9 +443,9 @@ class ResidentResource extends Resource
                         if (blank($id)) return null;
 
                         $name = Block::query()->whereKey($id)->value('name');
-                        if (!$name) return null;
+                        if (! $name) return null;
 
-                        $user = auth()->user();
+                        $user   = auth()->user();
                         $locked = $user?->hasRole('block_admin') ?? false;
 
                         return [
@@ -451,29 +459,225 @@ class ResidentResource extends Resource
 
                 Tables\Actions\EditAction::make()->label('Edit')
                     ->visible(function (User $record) {
-                        $user = auth()->user();
+                        $user    = auth()->user();
                         $allowed = $user?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin']) ?? false;
 
-                        if (!$allowed) {
+                        if (! $allowed) {
                             return false;
                         }
 
-                        return !(method_exists($record, 'trashed') && $record->trashed());
+                        return ! (method_exists($record, 'trashed') && $record->trashed());
                     }),
 
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn() => auth()->user()?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin'])),
+                    ->label('Hapus')
+                    ->visible(function (User $record) {
+                        $user = auth()->user();
+                        if (! $user?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin'])) {
+                            return false;
+                        }
+
+                        if (method_exists($record, 'trashed') && $record->trashed()) {
+                            return false;
+                        }
+
+                        return true;
+                    })
+                    ->before(function (Tables\Actions\DeleteAction $action, User $record) {
+                        if ($record->is_active) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Tidak dapat menghapus')
+                                ->body('Penghuni dengan status aktif tidak dapat dihapus. Nonaktifkan terlebih dahulu.')
+                                ->send();
+
+                            $action->cancel();
+                        }
+
+                        $hasActiveRoom = $record->roomResidents()
+                            ->whereNull('check_out_date')
+                            ->exists();
+
+                        if ($hasActiveRoom) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Tidak dapat menghapus')
+                                ->body('Penghuni masih menempati kamar. Checkout terlebih dahulu.')
+                                ->send();
+
+                            $action->cancel();
+                        }
+                    })
+                    ->action(function (User $record) {
+                        DB::transaction(function () use ($record) {
+                            // ✅ profile ikut soft delete (tapi sekarang tampil karena withTrashed)
+                            $record->residentProfile()?->delete();
+                            $record->delete();
+                        });
+                    }),
+
+                Tables\Actions\ForceDeleteAction::make()
+                    ->label('Hapus Permanen')
+                    ->visible(function (User $record) {
+                        $user = auth()->user();
+                        if (! $user?->hasRole('super_admin')) {
+                            return false;
+                        }
+
+                        return method_exists($record, 'trashed') && $record->trashed();
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Hapus Permanen Data Penghuni')
+                    ->modalDescription('Apakah Anda yakin ingin menghapus permanen data ini? Data yang terhapus permanen tidak dapat dipulihkan.')
+                    ->modalSubmitActionLabel('Ya, Hapus Permanen')
+                    ->before(function (Tables\Actions\ForceDeleteAction $action, User $record) {
+                        $hasActiveRoom = $record->roomResidents()
+                            ->whereNull('check_out_date')
+                            ->exists();
+
+                        if ($hasActiveRoom) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Tidak dapat menghapus permanen')
+                                ->body('Penghuni masih menempati kamar. Checkout terlebih dahulu.')
+                                ->send();
+
+                            $action->cancel();
+                        }
+                    }),
 
                 Tables\Actions\RestoreAction::make()
-                    ->visible(fn($record) => auth()->user()?->hasRole('super_admin') && $record?->trashed()),
+                    ->label('Pulihkan')
+                    ->visible(function (User $record) {
+                        $user = auth()->user();
+                        if (! $user?->hasRole('super_admin')) {
+                            return false;
+                        }
+
+                        return method_exists($record, 'trashed') && $record->trashed();
+                    })
+                    ->action(function (User $record) {
+                        DB::transaction(function () use ($record) {
+                            $record->restore();
+                            $record->residentProfile()->withTrashed()->restore();
+                        });
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make()
-                    ->visible(fn() => auth()->user()?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin'])),
+                    ->label('Hapus')
+                    ->visible(function ($livewire) {
+                        $user = auth()->user();
+
+                        if (! $user?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin'])) {
+                            return false;
+                        }
+
+                        return ($livewire->activeTab ?? null) !== 'terhapus';
+                    })
+                    ->action(function (Collection $records) {
+                        $cannotDelete = collect();
+                        $canDelete    = collect();
+
+                        foreach ($records as $record) {
+                            $reasons = [];
+
+                            if ($record->is_active) {
+                                $reasons[] = 'status masih aktif';
+                            }
+
+                            if ($record->roomResidents()->whereNull('check_out_date')->exists()) {
+                                $reasons[] = 'masih menempati kamar';
+                            }
+
+                            if (! empty($reasons)) {
+                                $cannotDelete->push([
+                                    'record'  => $record,
+                                    'reasons' => $reasons,
+                                ]);
+                            } else {
+                                $canDelete->push($record);
+                            }
+                        }
+
+                        if ($cannotDelete->count() > 0) {
+                            $message = "Terdapat {$cannotDelete->count()} penghuni yang tidak dapat dihapus:\n\n";
+
+                            foreach ($cannotDelete->take(5) as $item) {
+                                $name       = $item['record']->residentProfile?->full_name ?? $item['record']->name;
+                                $reasonText = implode(' dan ', $item['reasons']);
+                                $message   .= "• {$name} ({$reasonText})\n";
+                            }
+
+                            if ($cannotDelete->count() > 5) {
+                                $remaining = $cannotDelete->count() - 5;
+                                $message  .= "\ndan {$remaining} penghuni lainnya.";
+                            }
+
+                            if ($canDelete->count() > 0) {
+                                $message .= "\n\n{$canDelete->count()} penghuni lainnya akan tetap dihapus.";
+
+                                Notification::make()
+                                    ->warning()
+                                    ->title('Sebagian Data Tidak Dapat Dihapus')
+                                    ->body($message)
+                                    ->persistent()
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Tidak Ada Data yang Dapat Dihapus')
+                                    ->body($message)
+                                    ->persistent()
+                                    ->send();
+
+                                return;
+                            }
+                        }
+
+                        DB::transaction(function () use ($canDelete) {
+                            foreach ($canDelete as $record) {
+                                $record->residentProfile()?->delete();
+                                $record->delete();
+                            }
+                        });
+
+                        Notification::make()
+                            ->success()
+                            ->title('Berhasil Menghapus')
+                            ->body("{$canDelete->count()} penghuni berhasil dihapus.")
+                            ->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
 
                 Tables\Actions\RestoreBulkAction::make()
-                    ->visible(fn() => auth()->user()?->hasRole('super_admin')),
+                    ->label('Pulihkan')
+                    ->visible(function ($livewire) {
+                        $user = auth()->user();
+
+                        if (! $user?->hasRole('super_admin')) {
+                            return false;
+                        }
+
+                        return ($livewire->activeTab ?? null) === 'terhapus';
+                    })
+                    ->action(function (Collection $records) {
+                        DB::transaction(function () use ($records) {
+                            foreach ($records as $record) {
+                                $record->restore();
+                                $record->residentProfile()->withTrashed()->restore();
+                            }
+                        });
+
+                        Notification::make()
+                            ->success()
+                            ->title('Data berhasil dipulihkan')
+                            ->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
             ])
+            ->persistFiltersInSession()
+            ->deselectAllRecordsWhenFiltered(true)
             ->defaultSort('id', 'desc');
     }
 
@@ -508,7 +712,7 @@ class ResidentResource extends Resource
                                 ->latest('check_in_date')
                                 ->first();
 
-                            if (!$active?->room) return '-';
+                            if (! $active?->room) return '-';
 
                             $room = $active->room;
                             return ($room->code ?? '-') . ($room->number ? " ({$room->number})" : '');
@@ -546,10 +750,10 @@ class ResidentResource extends Resource
 
     public static function canEdit(Model $record): bool
     {
-        $user = auth()->user();
-
+        $user    = auth()->user();
         $allowed = $user?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin']) ?? false;
-        if (!$allowed) {
+
+        if (! $allowed) {
             return false;
         }
 
