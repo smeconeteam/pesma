@@ -37,6 +37,13 @@ class ListRegistrations extends ListRecords
         ];
     }
 
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            RegistrationResource\Widgets\RegistrationStatsOverview::class,
+        ];
+    }
+
     public function getTabs(): array
     {
         return [
