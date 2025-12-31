@@ -42,4 +42,11 @@ class ListResidents extends ListRecords
     {
         $this->deselectAllTableRecords();
     }
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            ResidentResource\Widgets\ResidentStatsOverview::class,
+        ];
+    }
 }

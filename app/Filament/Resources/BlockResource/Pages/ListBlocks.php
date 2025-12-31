@@ -20,6 +20,13 @@ class ListBlocks extends ListRecords
         ];
     }
 
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            BlockResource\Widgets\BlockStatsOverview::class,
+        ];
+    }
+
     public function getTabs(): array
     {
         if (! auth()->user()?->hasRole('super_admin')) {

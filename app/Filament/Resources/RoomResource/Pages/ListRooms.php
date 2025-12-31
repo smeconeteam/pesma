@@ -20,6 +20,13 @@ class ListRooms extends ListRecords
         ];
     }
 
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            RoomResource\Widgets\RoomStatsOverview::class,
+        ];
+    }
+
     public function getTabs(): array
     {
         if (!auth()->user()?->hasRole('super_admin')) {

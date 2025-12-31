@@ -20,9 +20,13 @@ class ListDorms extends ListRecords
         ];
     }
 
-    /**
-     * ✅ Saat pindah tab, hilangkan selection agar bulk action ikut refresh.
-     */
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            DormResource\Widgets\DormStatsOverview::class,
+        ];
+    }
+
     public function updatedActiveTab(): void
     {
         $this->deselectAllTableRecords();

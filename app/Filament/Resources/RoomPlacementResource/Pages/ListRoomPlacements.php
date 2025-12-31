@@ -55,4 +55,11 @@ class ListRoomPlacements extends ListRecords
                 ->badgeColor('success'),
         ];
     }
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            RoomPlacementResource\Widgets\RoomPlacementStatsOverview::class,
+        ];
+    }
 }

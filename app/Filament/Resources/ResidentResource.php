@@ -49,7 +49,7 @@ class ResidentResource extends Resource
             $query->withoutGlobalScopes([SoftDeletingScope::class]);
         }
 
-        $query->whereHas('roles', fn (Builder $q) => $q->where('name', 'resident'))
+        $query->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
             ->with([
                 // ✅ penting: load residentProfile meskipun profile-nya ikut soft delete
                 'residentProfile' => function ($q) {
@@ -73,7 +73,7 @@ class ResidentResource extends Resource
 
             return $query->whereHas('roomResidents', function (Builder $q) use ($dormIds) {
                 $q->whereNull('check_out_date')
-                    ->whereHas('room.block', fn (Builder $b) => $b->whereIn('dorm_id', $dormIds));
+                    ->whereHas('room.block', fn(Builder $b) => $b->whereIn('dorm_id', $dormIds));
             });
         }
 
@@ -83,7 +83,7 @@ class ResidentResource extends Resource
 
             return $query->whereHas('roomResidents', function (Builder $q) use ($blockIds) {
                 $q->whereNull('check_out_date')
-                    ->whereHas('room', fn (Builder $room) => $room->whereIn('block_id', $blockIds));
+                    ->whereHas('room', fn(Builder $room) => $room->whereIn('block_id', $blockIds));
             });
         }
 
@@ -157,7 +157,7 @@ class ResidentResource extends Resource
                 // ✅ fallback jika profile null (data lama)
                 Tables\Columns\TextColumn::make('residentProfile.full_name')
                     ->label('Nama')
-                    ->getStateUsing(fn (User $record) => $record->residentProfile?->full_name ?? $record->name ?? '-')
+                    ->getStateUsing(fn(User $record) => $record->residentProfile?->full_name ?? $record->name ?? '-')
                     ->searchable()
                     ->sortable(),
 
@@ -176,7 +176,8 @@ class ResidentResource extends Resource
 
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('Aktif')
-                    ->boolean(),
+                    ->boolean()
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('current_room')
                     ->label('Kamar Aktif')
@@ -207,7 +208,7 @@ class ResidentResource extends Resource
                     ->native(false)
                     ->query(function (Builder $query, array $data) {
                         return $query->when($data['value'] ?? null, function (Builder $q, $value) {
-                            $q->whereHas('residentProfile', fn (Builder $p) => $p->where('gender', $value));
+                            $q->whereHas('residentProfile', fn(Builder $p) => $p->where('gender', $value));
                         });
                     }),
 
@@ -219,7 +220,7 @@ class ResidentResource extends Resource
                         return $query->when($data['value'] ?? null, function (Builder $q, $dormId) {
                             $q->whereHas('roomResidents', function (Builder $rr) use ($dormId) {
                                 $rr->whereNull('check_out_date')
-                                    ->whereHas('room.block', fn (Builder $b) => $b->where('dorm_id', $dormId));
+                                    ->whereHas('room.block', fn(Builder $b) => $b->where('dorm_id', $dormId));
                             });
                         });
                     })
@@ -233,7 +234,7 @@ class ResidentResource extends Resource
                                 $ids = static::getAccessibleDormIds();
 
                                 return Dorm::query()
-                                    ->when(is_array($ids), fn ($q) => $q->whereIn('id', $ids))
+                                    ->when(is_array($ids), fn($q) => $q->whereIn('id', $ids))
                                     ->orderBy('name')
                                     ->pluck('name', 'id')
                                     ->toArray();
@@ -274,7 +275,7 @@ class ResidentResource extends Resource
                                     $component->state($dormId);
                                 }
                             })
-                            ->disabled(fn () => auth()->user()?->hasRole(['branch_admin', 'block_admin']) ?? false)
+                            ->disabled(fn() => auth()->user()?->hasRole(['branch_admin', 'block_admin']) ?? false)
                             ->afterStateUpdated(function (\Filament\Forms\Set $set, $state) {
                                 $user = auth()->user();
 
@@ -318,7 +319,7 @@ class ResidentResource extends Resource
                         return $query->when($data['value'] ?? null, function (Builder $q, $blockId) {
                             $q->whereHas('roomResidents', function (Builder $rr) use ($blockId) {
                                 $rr->whereNull('check_out_date')
-                                    ->whereHas('room', fn (Builder $room) => $room->where('block_id', $blockId));
+                                    ->whereHas('room', fn(Builder $room) => $room->where('block_id', $blockId));
                             });
                         });
                     })
@@ -678,7 +679,7 @@ class ResidentResource extends Resource
             ])
             ->persistFiltersInSession()
             ->deselectAllRecordsWhenFiltered(true)
-            ->defaultSort('id', 'desc');
+            ->defaultSort('is_active', 'desc');
     }
 
     public static function infolist(Infolist $infolist): Infolist
