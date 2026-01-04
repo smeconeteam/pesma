@@ -90,7 +90,7 @@ class ApproveRegistration extends Page
         }
 
         if ($record->planned_check_in_date) {
-            $fillData['check_in_date'] = $record->planned_check_in_date->format('Y-m-d');
+            $fillData['check_in_date'] = \Carbon\Carbon::parse($record->planned_check_in_date)->format('Y-m-d');
         }
 
         $this->form->fill($fillData);
@@ -139,7 +139,7 @@ class ApproveRegistration extends Page
 
                         Forms\Components\Placeholder::make('planned_check_in')
                             ->label('Rencana Masuk')
-                            ->content(fn() => $this->record->planned_check_in_date?->format('d/m/Y') ?? '-'),
+                            ->content(fn() => $this->record->planned_check_in_date ? \Carbon\Carbon::parse($this->record->planned_check_in_date)->format('d/m/Y') : '-'),
                     ]),
 
                 Forms\Components\Section::make('Status Resident Setelah Approval')
@@ -286,11 +286,9 @@ class ApproveRegistration extends Page
                         Forms\Components\DatePicker::make('check_in_date')
                             ->label('Tanggal Masuk')
                             ->required(fn(Forms\Get $get) => $get('status') === 'active')
-                            ->default(function () {
-                                return $this->record->planned_check_in_date
-                                    ? $this->record->planned_check_in_date->format('Y-m-d')
-                                    : now()->toDateString();
-                            })
+                            ->default(fn() => $this->record->planned_check_in_date
+                                ? \Carbon\Carbon::parse($this->record->planned_check_in_date)->format('Y-m-d')
+                                : now()->toDateString())
                             ->native(false)
                             ->displayFormat('d/m/Y')
                             ->format('Y-m-d'),
