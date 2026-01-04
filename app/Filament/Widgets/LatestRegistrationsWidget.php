@@ -36,7 +36,7 @@ class LatestRegistrationsWidget extends BaseWidget
 
         return $table
             ->query($query)
-            ->heading('Pendaftaran Terbaru (Pending)')
+            ->heading('Pendaftaran Terbaru')
             ->columns([
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Tanggal')
@@ -49,15 +49,6 @@ class LatestRegistrationsWidget extends BaseWidget
                     ->sortable()
                     ->weight('bold'),
 
-                Tables\Columns\TextColumn::make('email')
-                    ->label('Email')
-                    ->searchable()
-                    ->copyable(),
-
-                Tables\Columns\TextColumn::make('phone_number')
-                    ->label('No. HP')
-                    ->searchable(),
-
                 Tables\Columns\TextColumn::make('residentCategory.name')
                     ->label('Kategori')
                     ->badge()
@@ -68,11 +59,6 @@ class LatestRegistrationsWidget extends BaseWidget
                     ->sortable()
                     ->searchable()
                     ->limit(20),
-
-                Tables\Columns\TextColumn::make('preferredRoomType.name')
-                    ->label('Tipe Kamar')
-                    ->badge()
-                    ->color('gray'),
 
                 Tables\Columns\TextColumn::make('planned_check_in_date')
                     ->label('Rencana Masuk')
@@ -88,9 +74,10 @@ class LatestRegistrationsWidget extends BaseWidget
                         'rejected' => 'danger',
                     })
                     ->formatStateUsing(fn(string $state): string => match ($state) {
-                        'pending' => 'Pending',
+                        'pending' => 'Menunggu Persetujuan',
                         'approved' => 'Disetujui',
                         'rejected' => 'Ditolak',
+                        default => '-',
                     }),
             ])
             ->defaultSort('created_at', 'desc')
