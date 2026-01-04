@@ -80,6 +80,15 @@ class ResidentStatusWidget extends ChartWidget
                     'position' => 'bottom',
                 ],
             ],
+            'scales' => [
+                'y' => [
+                    'display' => false,
+                ],
+                'x' => [
+                    'display' => false,
+                ],
+            ],
+            'maintainAspectRatio' => true,
         ];
     }
 
