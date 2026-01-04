@@ -19,12 +19,13 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class RoomTypeResource extends Resource
 {
     protected static ?string $model = RoomType::class;
 
-    protected static ?string $navigationGroup = 'Pengaturan';
+    protected static ?string $navigationGroup = 'Asrama';
     protected static ?int $navigationSort = 10;
 
     protected static ?string $navigationLabel = 'Tipe Kamar';
@@ -83,7 +84,7 @@ class RoomTypeResource extends Resource
                         ->columnSpanFull()
                         ->live(onBlur: true)
                         ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
-                            $set('name', static::buildAutoName($state, $get('default_capacity')));
+                            $set('name', static::buildAutoName($state));
                         }),
 
                     // 2) Kapasitas Default - KIRI
@@ -93,11 +94,7 @@ class RoomTypeResource extends Resource
                         ->minValue(1)
                         ->required()
                         ->helperText('Jumlah penghuni default dalam satu kamar.')
-                        ->columnSpan(1)
-                        ->live(onBlur: true)
-                        ->afterStateUpdated(function (Set $set, Get $get, $state) {
-                            $set('name', static::buildAutoName($get('base_name'), $state));
-                        }),
+                        ->columnSpan(1),
 
                     // 3) Tarif Bulanan Default - KANAN
                     Forms\Components\TextInput::make('default_monthly_rate')
@@ -117,13 +114,13 @@ class RoomTypeResource extends Resource
                         ->columnSpanFull()
                         // ✅ Saat buka edit, pastikan terisi (kalau DB kosong)
                         ->afterStateHydrated(function (Set $set, Get $get, $state) {
-                            $computed = static::buildAutoName($get('base_name'), $get('default_capacity'));
+                            $computed = static::buildAutoName($get('base_name'));
                             $set('name', $state ?: $computed);
                         })
                         // ✅ PENTING: Saat submit, hitung ulang walaupun user belum blur
                         ->dehydrated(true)
                         ->dehydrateStateUsing(function ($state, Get $get) {
-                            return static::buildAutoName($get('base_name'), $get('default_capacity'));
+                            return static::buildAutoName($get('base_name'));
                         }),
 
                     // 5) Deskripsi - FULL
@@ -151,7 +148,7 @@ class RoomTypeResource extends Resource
                     ->sortable()
                     ->searchable()
                     // ✅ fallback kalau data lama masih kosong
-                    ->formatStateUsing(fn ($state, RoomType $record) => $state ?: static::buildAutoName($record->base_name, $record->default_capacity)),
+                    ->formatStateUsing(fn ($state, RoomType $record) => $state ?: static::buildAutoName($record->base_name)),
 
                 Tables\Columns\TextColumn::make('default_capacity')
                     ->label('Kapasitas')
@@ -212,11 +209,22 @@ class RoomTypeResource extends Resource
                         auth()->user()?->hasRole(['super_admin'])
                         && $record->trashed()
                     ),
+
+                // ✅ Force Delete hanya tampil untuk data terhapus
+                Tables\Actions\ForceDeleteAction::make()
+                    ->label('Hapus Permanen')
+                    ->visible(fn (RoomType $record): bool =>
+                        auth()->user()?->hasRole('super_admin')
+                        && $record->trashed()
+                    ),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
+                    // ✅ Bulk Delete hanya di tab data aktif
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn () => auth()->user()?->hasRole(['super_admin', 'main_admin']))
+                        ->visible(fn ($livewire = null): bool =>
+                            auth()->user()?->hasRole(['super_admin', 'main_admin'])
+                            && (($livewire?->activeTab ?? 'aktif') === 'aktif')
+                        )
                         ->action(function (Collection $records) {
                             $allowed = $records->filter(fn (RoomType $r) => ! $r->rooms()->exists());
                             $blocked = $records->diff($allowed);
@@ -225,7 +233,7 @@ class RoomTypeResource extends Resource
                                 Notification::make()
                                     ->title('Aksi Dibatalkan')
                                     ->body('Tidak ada tipe kamar yang bisa dihapus. Tipe kamar yang sudah dipakai oleh kamar tidak dapat dihapus.')
-                                    ->danger()
+                                    ->warning()
                                     ->send();
                                 return;
                             }
@@ -239,7 +247,7 @@ class RoomTypeResource extends Resource
                             if ($blocked->isNotEmpty()) {
                                 Notification::make()
                                     ->title('Berhasil Sebagian')
-                                    ->body("Berhasil menghapus {$deleted} tipe kamar. Yang tidak bisa dihapus: " . $blocked->pluck('name')->join(', '))
+                                    ->body("Berhasil menghapus {$deleted} tipe kamar. Tipe kamar yang tidak bisa dihapus: " . $blocked->pluck('name')->join(', '))
                                     ->warning()
                                     ->send();
                             } else {
@@ -251,9 +259,12 @@ class RoomTypeResource extends Resource
                             }
                         }),
 
+                    // ✅ Bulk Restore hanya di tab data terhapus
                     Tables\Actions\RestoreBulkAction::make()
-                        ->visible(fn () => auth()->user()?->hasRole('super_admin')),
-                ]),
+                        ->visible(fn ($livewire = null): bool =>
+                            auth()->user()?->hasRole('super_admin')
+                            && (($livewire?->activeTab ?? 'aktif') === 'terhapus')
+                        ),
             ]);
     }
 
@@ -268,7 +279,7 @@ class RoomTypeResource extends Resource
                 ->schema([
                     TextEntry::make('name')
                         ->label('Nama Tipe')
-                        ->state(fn (RoomType $record) => $record->name ?: static::buildAutoName($record->base_name, $record->default_capacity))
+                        ->state(fn (RoomType $record) => $record->name ?: static::buildAutoName($record->base_name))
                         ->placeholder('-'),
 
                     TextEntry::make('default_capacity')
@@ -312,15 +323,16 @@ class RoomTypeResource extends Resource
         ];
     }
 
-    public static function buildAutoName(?string $baseName, $capacity): string
+    // ✅ Nama otomatis: lowercase + "-" untuk spasi (slug)
+    public static function buildAutoName(?string $baseName): string
     {
         $baseName = trim((string) $baseName);
-        $capacity = (int) ($capacity ?? 0);
 
-        if ($baseName === '' || $capacity <= 0) {
+        if ($baseName === '') {
             return '';
         }
 
-        return "{$baseName} {$capacity} orang";
+        // contoh: "VIP Room" => "vip-room"
+        return Str::slug($baseName, '-');
     }
 }

@@ -49,11 +49,15 @@ class EditRoom extends EditRecord
         // 3) Default capacity & monthly_rate dari room type (jika kosong)
         $roomType = RoomType::find($data['room_type_id'] ?? null);
 
-        if (empty($data['capacity'])) {
+        // Jika user tidak mengisi capacity, gunakan default dari room type
+        // Jika user sudah mengisi (baik dari auto-fill atau manual), biarkan apa adanya
+        if (blank($data['capacity'] ?? null)) {
             $data['capacity'] = $roomType?->default_capacity;
         }
 
-        if (empty($data['monthly_rate'])) {
+        // Jika user tidak mengisi monthly_rate, gunakan default dari room type
+        // Jika user sudah mengisi (baik dari auto-fill atau manual), biarkan apa adanya
+        if (blank($data['monthly_rate'] ?? null)) {
             $data['monthly_rate'] = $roomType?->default_monthly_rate;
         }
 

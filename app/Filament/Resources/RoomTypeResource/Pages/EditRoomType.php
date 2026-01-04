@@ -12,9 +12,9 @@ class EditRoomType extends EditRecord
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        // "VIP 4 orang" => base_name = "VIP"
+        // "vip-room" => base_name = "vip room"
         $name = (string) ($data['name'] ?? '');
-        $data['base_name'] = preg_replace('/\s+\d+\s+orang\s*$/i', '', $name) ?: $name;
+        $data['base_name'] = str_replace('-', ' ', $name);
 
         return $data;
     }
@@ -22,8 +22,7 @@ class EditRoomType extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $data['name'] = RoomTypeResource::buildAutoName(
-            $data['base_name'] ?? null,
-            $data['default_capacity'] ?? null
+            $data['base_name'] ?? null
         );
 
         unset($data['base_name']);

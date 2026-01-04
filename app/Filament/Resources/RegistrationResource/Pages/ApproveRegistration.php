@@ -293,8 +293,7 @@ class ApproveRegistration extends Page
                             })
                             ->native(false)
                             ->displayFormat('d/m/Y')
-                            ->format('Y-m-d')
-                            ->minDate(now()),
+                            ->format('Y-m-d'),
 
                         Forms\Components\Toggle::make('is_pic')
                             ->label('Jadikan PIC?')

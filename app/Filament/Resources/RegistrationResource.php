@@ -263,7 +263,6 @@ class RegistrationResource extends Resource
                             ->native(false)
                             ->displayFormat('d/m/Y')
                             ->format('Y-m-d')
-                            ->minDate(now())
                             ->default(now()->addDays(7))
                             ->helperText('Minimal hari ini')
                             ->nullable(),
