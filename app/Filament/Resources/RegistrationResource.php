@@ -115,10 +115,16 @@ class RegistrationResource extends Resource
                         Forms\Components\TextInput::make('password')
                             ->label('Password')
                             ->password()
-                            ->helperText('Kosongkan untuk generate otomatis (123456789)')
-                            ->dehydrateStateUsing(fn ($state) => filled($state) ? bcrypt($state) : bcrypt('123456789'))
+                            ->required(fn (string $operation) => $operation === 'create')
+                            ->dehydrated(fn ($state) => filled($state))
+                            ->revealable()
+                            ->default('123456789')
+                            ->minLength(8)
                             ->maxLength(255)
-                            ->columnSpanFull(),
+                            ->columnSpanFull()
+                            ->helperText(fn (string $operation) => $operation === 'edit' 
+                                ? 'Kosongkan jika tidak ingin mengubah password.' 
+                                : 'Minimal 8 karakter.'),
                     ]),
 
                 Forms\Components\Section::make('Profil Calon Penghuni')
