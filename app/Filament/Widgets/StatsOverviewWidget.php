@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Registration;
+use App\Models\ResidentProfile;
 use App\Models\Room;
 use App\Models\RoomResident;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
@@ -39,15 +40,51 @@ class StatsOverviewWidget extends BaseWidget
         // Get data
         $totalRooms = $roomQuery->count();
         $occupiedRooms = $roomQuery->whereHas('activeRoomResidents')->count();
-        $activeResidents = $residentQuery->count();
+
+        // Total active residents (semua yang status active, tidak harus punya kamar)
+        $activeResidentsQuery = ResidentProfile::query()->where('status', 'active');
+
+        // Residents yang punya kamar
+        $residentsWithRoomQuery = RoomResident::query()->whereNull('room_residents.check_out_date');
+
+        // Apply role-based filters untuk residents
+        if ($user->hasRole(['super_admin', 'main_admin'])) {
+            // Lihat semua
+        } elseif ($user->hasRole('branch_admin')) {
+            $dormIds = $user->branchDormIds();
+            // Filter residents yang ada di dorm tertentu
+            $userIdsInDorm = RoomResident::query()
+                ->join('rooms', 'room_residents.room_id', '=', 'rooms.id')
+                ->join('blocks', 'rooms.block_id', '=', 'blocks.id')
+                ->whereIn('blocks.dorm_id', $dormIds)
+                ->pluck('room_residents.user_id')
+                ->unique();
+            $activeResidentsQuery->whereIn('user_id', $userIdsInDorm);
+            $residentsWithRoomQuery->join('rooms', 'room_residents.room_id', '=', 'rooms.id')
+                ->join('blocks', 'rooms.block_id', '=', 'blocks.id')
+                ->whereIn('blocks.dorm_id', $dormIds);
+        } elseif ($user->hasRole('block_admin')) {
+            $blockIds = $user->blockIds();
+            $userIdsInBlock = RoomResident::query()
+                ->join('rooms', 'room_residents.room_id', '=', 'rooms.id')
+                ->whereIn('rooms.block_id', $blockIds)
+                ->pluck('room_residents.user_id')
+                ->unique();
+            $activeResidentsQuery->whereIn('user_id', $userIdsInBlock);
+            $residentsWithRoomQuery->join('rooms', 'room_residents.room_id', '=', 'rooms.id')
+                ->whereIn('rooms.block_id', $blockIds);
+        }
+
+        $totalActiveResidents = $activeResidentsQuery->count();
+        $residentsWithRoom = $residentsWithRoomQuery->distinct('user_id')->count('user_id');
         $pendingRegistrations = $registrationQuery->count();
 
         return [
-            Stat::make('Total Penghuni Aktif', $activeResidents)
-                ->description('Penghuni yang sedang menghuni')
+            Stat::make('Total Penghuni Aktif', $totalActiveResidents)
+                ->description("Penghuni memiliki kamar: {$residentsWithRoom}")
                 ->descriptionIcon('heroicon-m-user-group')
                 ->color('success')
-                ->chart([7, 12, 15, 18, 22, 25, $activeResidents]),
+                ->chart([7, 12, 15, 18, 22, 25, $totalActiveResidents]),
 
             Stat::make('Total Kamar Terisi', $occupiedRooms)
                 ->description("dari {$totalRooms} total kamar")
