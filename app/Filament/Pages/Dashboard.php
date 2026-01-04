@@ -16,6 +16,7 @@ class Dashboard extends BaseDashboard
             \App\Filament\Widgets\GenderDistributionWidget::class,
             \App\Filament\Widgets\ResidentStatusWidget::class,
             \App\Filament\Widgets\GrowthChartWidget::class,
+            \App\Filament\Widgets\ResidentCategoryWidget::class,
             \App\Filament\Widgets\DormSummaryTableWidget::class,
             \App\Filament\Widgets\LatestRegistrationsWidget::class,
         ];
