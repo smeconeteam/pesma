@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ResidentResource\Pages;
+use App\Filament\Resources\RoomPlacementResource;
 use App\Models\Block;
 use App\Models\Dorm;
 use App\Models\User;
@@ -51,7 +52,7 @@ class ResidentResource extends Resource
 
         $query->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
             ->with([
-                // ✅ penting: load residentProfile meskipun profile-nya ikut soft delete
+                // penting: load residentProfile meskipun profile-nya ikut soft delete
                 'residentProfile' => function ($q) {
                     $q->withTrashed()->with(['residentCategory', 'country']);
                 },
@@ -90,7 +91,7 @@ class ResidentResource extends Resource
         return $query->whereRaw('1 = 0');
     }
 
-    // ✅ agar halaman view bisa resolve record trashed (mengikuti getEloquentQuery)
+    // agar halaman view bisa resolve record trashed (mengikuti getEloquentQuery)
     public static function resolveRecordRouteBinding(int|string $key): ?Model
     {
         return static::getEloquentQuery()
@@ -154,7 +155,7 @@ class ResidentResource extends Resource
     {
         return $table
             ->columns([
-                // ✅ fallback jika profile null (data lama)
+                // fallback jika profile null (data lama)
                 Tables\Columns\TextColumn::make('residentProfile.full_name')
                     ->label('Nama')
                     ->getStateUsing(fn(User $record) => $record->residentProfile?->full_name ?? $record->name ?? '-')
@@ -456,121 +457,171 @@ class ResidentResource extends Resource
                     }),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make()->label('Lihat'),
+                Tables\Actions\ActionGroup::make([
 
-                Tables\Actions\EditAction::make()->label('Edit')
-                    ->visible(function (User $record) {
-                        $user    = auth()->user();
-                        $allowed = $user?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin']) ?? false;
+                    Tables\Actions\ViewAction::make()->label('Lihat'),
 
-                        if (! $allowed) {
-                            return false;
-                        }
+                    Tables\Actions\EditAction::make()->label('Edit')
+                        ->visible(function (User $record) {
+                            $user    = auth()->user();
+                            $allowed = $user?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin']) ?? false;
 
-                        return ! (method_exists($record, 'trashed') && $record->trashed());
-                    }),
+                            if (! $allowed) {
+                                return false;
+                            }
 
-                Tables\Actions\DeleteAction::make()
-                    ->label('Hapus')
-                    ->visible(function (User $record) {
-                        $user = auth()->user();
-                        if (! $user?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin'])) {
-                            return false;
-                        }
+                            return ! (method_exists($record, 'trashed') && $record->trashed());
+                        }),
 
-                        if (method_exists($record, 'trashed') && $record->trashed()) {
-                            return false;
-                        }
+                    Tables\Actions\Action::make('checkout')
+                        ->label('Keluar')
+                        ->icon('heroicon-o-arrow-left-on-rectangle')
+                        ->color('warning')
+                        ->visible(function (User $record) {
+                            $user = auth()->user();
 
-                        return true;
-                    })
-                    ->before(function (Tables\Actions\DeleteAction $action, User $record) {
-                        if ($record->is_active) {
+                            // Hanya super_admin dan main_admin yang bisa checkout
+                            if (!$user?->hasAnyRole(['super_admin', 'main_admin'])) {
+                                return false;
+                            }
+
+                            // Tidak bisa checkout jika sudah soft deleted
+                            if (method_exists($record, 'trashed') && $record->trashed()) {
+                                return false;
+                            }
+
+                            // Hanya tampil jika penghuni memiliki kamar aktif
+                            return $record->roomResidents()
+                                ->whereNull('check_out_date')
+                                ->exists();
+                        })
+                        ->url(fn(User $record) => RoomPlacementResource::getUrl('checkout', ['record' => $record]))
+                        ->openUrlInNewTab(false),
+
+                    Tables\Actions\DeleteAction::make()
+                        ->label('Hapus')
+                        ->visible(function (User $record) {
+                            $user = auth()->user();
+                            // Hanya super_admin dan main_admin yang bisa hapus
+                            if (! $user?->hasAnyRole(['super_admin', 'main_admin'])) {
+                                return false;
+                            }
+
+                            if (method_exists($record, 'trashed') && $record->trashed()) {
+                                return false;
+                            }
+
+                            return true;
+                        })
+                        ->before(function (Tables\Actions\DeleteAction $action, User $record) {
+                            // VALIDASI 1: Penghuni harus sudah tidak aktif
+                            if ($record->is_active) {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Tidak dapat menghapus')
+                                    ->body('Penghuni dengan status aktif tidak dapat dihapus. Nonaktifkan terlebih dahulu.')
+                                    ->send();
+
+                                $action->cancel();
+                                return;
+                            }
+
+                            // VALIDASI 2: Penghuni HARUS sudah checkout dari semua kamar
+                            $hasActiveRoom = $record->roomResidents()
+                                ->whereNull('check_out_date')
+                                ->exists();
+
+                            if ($hasActiveRoom) {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Tidak dapat menghapus')
+                                    ->body('Penghuni masih menempati kamar. Lakukan CHECKOUT terlebih dahulu sebelum menghapus.')
+                                    ->persistent()
+                                    ->send();
+
+                                $action->cancel();
+                                return;
+                            }
+                        })
+                        ->action(function (User $record) {
+                            DB::transaction(function () use ($record) {
+                                // profile ikut soft delete (tapi sekarang tampil karena withTrashed)
+                                $record->residentProfile()?->delete();
+                                $record->delete();
+                            });
+
                             Notification::make()
-                                ->danger()
-                                ->title('Tidak dapat menghapus')
-                                ->body('Penghuni dengan status aktif tidak dapat dihapus. Nonaktifkan terlebih dahulu.')
+                                ->success()
+                                ->title('Data penghuni berhasil dihapus')
+                                ->body('Data telah dipindahkan ke tab "Terhapus".')
                                 ->send();
+                        }),
 
-                            $action->cancel();
-                        }
+                    // FORCE DELETE - Hapus permanen (karena sudah pasti checkout)
+                    Tables\Actions\ForceDeleteAction::make()
+                        ->label('Hapus Permanen')
+                        ->visible(function (User $record) {
+                            $user = auth()->user();
+                            if (! $user?->hasRole('super_admin')) {
+                                return false;
+                            }
 
-                        $hasActiveRoom = $record->roomResidents()
-                            ->whereNull('check_out_date')
-                            ->exists();
+                            return method_exists($record, 'trashed') && $record->trashed();
+                        })
+                        ->requiresConfirmation()
+                        ->modalHeading('Hapus Permanen Data Penghuni')
+                        ->modalDescription('Apakah Anda yakin ingin menghapus permanen data ini? Data yang terhapus permanen tidak dapat dipulihkan.')
+                        ->modalSubmitActionLabel('Ya, Hapus Permanen')
+                        ->before(function (Tables\Actions\ForceDeleteAction $action, User $record) {
+                            // Double check: pastikan tidak ada kamar aktif
+                            $hasActiveRoom = $record->roomResidents()
+                                ->whereNull('check_out_date')
+                                ->exists();
 
-                        if ($hasActiveRoom) {
+                            if ($hasActiveRoom) {
+                                Notification::make()
+                                    ->danger()
+                                    ->title('Tidak dapat menghapus permanen')
+                                    ->body('Penghuni masih menempati kamar. Ini tidak seharusnya terjadi. Hubungi administrator.')
+                                    ->send();
+
+                                $action->cancel();
+                            }
+                        }),
+
+                    // RESTORE
+                    Tables\Actions\RestoreAction::make()
+                        ->label('Pulihkan')
+                        ->visible(function (User $record) {
+                            $user = auth()->user();
+                            if (! $user?->hasRole('super_admin')) {
+                                return false;
+                            }
+
+                            return method_exists($record, 'trashed') && $record->trashed();
+                        })
+                        ->action(function (User $record) {
+                            DB::transaction(function () use ($record) {
+                                $record->restore();
+                                $record->residentProfile()->withTrashed()->restore();
+                            });
+
                             Notification::make()
-                                ->danger()
-                                ->title('Tidak dapat menghapus')
-                                ->body('Penghuni masih menempati kamar. Checkout terlebih dahulu.')
+                                ->success()
+                                ->title('Data penghuni berhasil dipulihkan')
                                 ->send();
-
-                            $action->cancel();
-                        }
-                    })
-                    ->action(function (User $record) {
-                        DB::transaction(function () use ($record) {
-                            // ✅ profile ikut soft delete (tapi sekarang tampil karena withTrashed)
-                            $record->residentProfile()?->delete();
-                            $record->delete();
-                        });
-                    }),
-
-                Tables\Actions\ForceDeleteAction::make()
-                    ->label('Hapus Permanen')
-                    ->visible(function (User $record) {
-                        $user = auth()->user();
-                        if (! $user?->hasRole('super_admin')) {
-                            return false;
-                        }
-
-                        return method_exists($record, 'trashed') && $record->trashed();
-                    })
-                    ->requiresConfirmation()
-                    ->modalHeading('Hapus Permanen Data Penghuni')
-                    ->modalDescription('Apakah Anda yakin ingin menghapus permanen data ini? Data yang terhapus permanen tidak dapat dipulihkan.')
-                    ->modalSubmitActionLabel('Ya, Hapus Permanen')
-                    ->before(function (Tables\Actions\ForceDeleteAction $action, User $record) {
-                        $hasActiveRoom = $record->roomResidents()
-                            ->whereNull('check_out_date')
-                            ->exists();
-
-                        if ($hasActiveRoom) {
-                            Notification::make()
-                                ->danger()
-                                ->title('Tidak dapat menghapus permanen')
-                                ->body('Penghuni masih menempati kamar. Checkout terlebih dahulu.')
-                                ->send();
-
-                            $action->cancel();
-                        }
-                    }),
-
-                Tables\Actions\RestoreAction::make()
-                    ->label('Pulihkan')
-                    ->visible(function (User $record) {
-                        $user = auth()->user();
-                        if (! $user?->hasRole('super_admin')) {
-                            return false;
-                        }
-
-                        return method_exists($record, 'trashed') && $record->trashed();
-                    })
-                    ->action(function (User $record) {
-                        DB::transaction(function () use ($record) {
-                            $record->restore();
-                            $record->residentProfile()->withTrashed()->restore();
-                        });
-                    }),
+                        }),
+                ])
             ])
             ->bulkActions([
+                // BULK SOFT DELETE - dengan validasi checkout
                 Tables\Actions\DeleteBulkAction::make()
                     ->label('Hapus')
                     ->visible(function ($livewire) {
                         $user = auth()->user();
 
-                        if (! $user?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin'])) {
+                        // Hanya super_admin dan main_admin yang bisa bulk delete
+                        if (! $user?->hasAnyRole(['super_admin', 'main_admin'])) {
                             return false;
                         }
 
@@ -587,8 +638,9 @@ class ResidentResource extends Resource
                                 $reasons[] = 'status masih aktif';
                             }
 
+                            // VALIDASI UTAMA: Harus sudah checkout
                             if ($record->roomResidents()->whereNull('check_out_date')->exists()) {
-                                $reasons[] = 'masih menempati kamar';
+                                $reasons[] = 'masih menempati kamar (belum checkout)';
                             }
 
                             if (! empty($reasons)) {
@@ -614,6 +666,8 @@ class ResidentResource extends Resource
                                 $remaining = $cannotDelete->count() - 5;
                                 $message  .= "\ndan {$remaining} penghuni lainnya.";
                             }
+
+                            $message .= "\n\n⚠️ Lakukan CHECKOUT terlebih dahulu untuk penghuni yang masih menempati kamar.";
 
                             if ($canDelete->count() > 0) {
                                 $message .= "\n\n{$canDelete->count()} penghuni lainnya akan tetap dihapus.";
@@ -651,6 +705,7 @@ class ResidentResource extends Resource
                     })
                     ->deselectRecordsAfterCompletion(),
 
+                // BULK RESTORE
                 Tables\Actions\RestoreBulkAction::make()
                     ->label('Pulihkan')
                     ->visible(function ($livewire) {
@@ -673,6 +728,7 @@ class ResidentResource extends Resource
                         Notification::make()
                             ->success()
                             ->title('Data berhasil dipulihkan')
+                            ->body("{$records->count()} penghuni berhasil dipulihkan.")
                             ->send();
                     })
                     ->deselectRecordsAfterCompletion(),

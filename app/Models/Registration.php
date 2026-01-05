@@ -36,12 +36,16 @@ class Registration extends Model
         'approved_by',
         'approved_at',
         'user_id',
+        'created_at', // ✅ Tambahkan ini agar bisa diisi manual
+        'updated_at',
     ];
 
     protected $casts = [
         'birth_date' => 'date',
         'planned_check_in_date' => 'date',
         'approved_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     protected $hidden = [

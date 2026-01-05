@@ -29,6 +29,8 @@ class TransferResident extends Page implements HasActions
     protected static string $resource = RoomPlacementResource::class;
     protected static string $view = 'filament.resources.room-placement-resource.pages.transfer-resident';
 
+    protected static ?string $title = 'Pindahkan Penghuni';
+
     public ?array $data = [];
     public User $record;
 
