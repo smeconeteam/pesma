@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ResidentResource\Pages;
 
 use App\Filament\Resources\ResidentResource;
 use App\Models\ResidentCategory;
+use App\Models\Country;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -80,10 +81,27 @@ class EditResident extends EditRecord
 
                     Forms\Components\Select::make('residentProfile.resident_category_id')
                         ->label('Kategori Penghuni')
-                        ->options(fn () => ResidentCategory::query()->orderBy('name')->pluck('name', 'id'))
+                        ->relationship('residentProfile.residentCategory', 'name', function ($query) {
+                            return $query->whereNull('deleted_at')->orderBy('name');
+                        })
                         ->searchable()
                         ->native(false)
-                        ->required(),
+                        ->required()
+                        ->createOptionForm([
+                            Forms\Components\TextInput::make('name')
+                                ->label('Nama Kategori')
+                                ->required()
+                                ->unique(ignoreRecord: true)
+                                ->maxLength(255),
+                            Forms\Components\Textarea::make('description')
+                                ->label('Deskripsi')
+                                ->maxLength(500)
+                                ->rows(3),
+                        ])
+                        ->createOptionUsing(function (array $data) {
+                            $category = ResidentCategory::create($data);
+                            return $category->id;
+                        }),
 
                     Forms\Components\Select::make('residentProfile.citizenship_status')
                         ->label('Status Kewarganegaraan')
@@ -93,23 +111,49 @@ class EditResident extends EditRecord
                         ])
                         ->native(false)
                         ->required()
-                        ->reactive()
+                        ->live()
                         // ✅ Jika pilih WNI, otomatis set negara = Indonesia (id: 1)
                         ->afterStateUpdated(function ($state, Forms\Set $set) {
                             if ($state === 'WNI') {
                                 $set('residentProfile.country_id', 1); // Indonesia
-                            } else {
-                                $set('residentProfile.country_id', null);
                             }
                         }),
 
                     Forms\Components\Select::make('residentProfile.country_id')
-                        ->label('Negara')
-                        ->relationship('residentProfile.country', 'name')
+                        ->label('Asal Negara')
+                        ->relationship('residentProfile.country', 'name', function ($query) {
+                            return $query->orderBy('name');
+                        })
                         ->searchable()
                         ->native(false)
-                        ->required(fn (Forms\Get $get) => $get('residentProfile.citizenship_status') === 'WNA')
-                        ->visible(fn (Forms\Get $get) => $get('residentProfile.citizenship_status') === 'WNA'),
+                        ->required()
+                        ->preload()
+                        ->createOptionForm([
+                            Forms\Components\TextInput::make('name')
+                                ->label('Nama Negara')
+                                ->required()
+                                ->unique(ignoreRecord: true)
+                                ->maxLength(255),
+                            Forms\Components\TextInput::make('iso2')
+                                ->label('Kode ISO2')
+                                ->length(2)
+                                ->unique(ignoreRecord: true)
+                                ->placeholder('contoh: ID'),
+                            Forms\Components\TextInput::make('iso3')
+                                ->label('Kode ISO3')
+                                ->length(3)
+                                ->unique(ignoreRecord: true)
+                                ->placeholder('Contoh: IDN'),
+                            Forms\Components\TextInput::make('calling_code')
+                                ->label('Kode Telepon')
+                                ->required()
+                                ->maxLength(10)
+                                ->placeholder('Contoh: 62'),
+                        ])
+                        ->createOptionUsing(function (array $data) {
+                            $country = Country::create($data);
+                            return $country->id;
+                        }),
 
                     Forms\Components\TextInput::make('residentProfile.national_id')
                         ->label('NIK')
@@ -199,7 +243,7 @@ class EditResident extends EditRecord
                 ])
                 ->visible(fn ($record) => $record->activeRoomResident !== null)
                 ->collapsible()
-                ->collapsed(),
+                ->collapsed(false), // ✅ Default terbuka
         ]);
     }
 
@@ -265,8 +309,8 @@ class EditResident extends EditRecord
             if (isset($data['residentProfile'])) {
                 $profileData = $data['residentProfile'];
 
-                // ✅ Paksa Indonesia kalau WNI
-                if (($profileData['citizenship_status'] ?? 'WNI') === 'WNI') {
+                // ✅ Paksa Indonesia kalau WNI dan country kosong
+                if (($profileData['citizenship_status'] ?? 'WNI') === 'WNI' && blank($profileData['country_id'])) {
                     $profileData['country_id'] = 1;
                 }
 

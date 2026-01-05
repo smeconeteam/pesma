@@ -92,7 +92,7 @@ class ViewResident extends ViewRecord
                     TextEntry::make('residentProfile.national_id')->label('NIK')->placeholder('-'),
                     TextEntry::make('residentProfile.student_id')->label('NIM')->placeholder('-'),
                     TextEntry::make('residentProfile.citizenship_status')->label('Kewarganegaraan')->placeholder('-')->badge(),
-                    TextEntry::make('residentProfile.country.name')->label('Negara')->placeholder('-'),
+                    TextEntry::make('residentProfile.country.name')->label('Asal Negara')->placeholder('-'),
                     TextEntry::make('residentProfile.birth_place')->label('Tempat Lahir')->placeholder('-'),
                     TextEntry::make('residentProfile.birth_date')->label('Tanggal Lahir')->date('d M Y')->placeholder('-'),
                     TextEntry::make('residentProfile.university_school')->label('Universitas/Sekolah')->placeholder('-'),
