@@ -177,7 +177,9 @@ class EditResident extends EditRecord
 
                     Forms\Components\DatePicker::make('residentProfile.birth_date')
                         ->label('Tanggal Lahir')
-                        ->native(false),
+                        ->native(false)
+                        ->displayFormat('d F Y') // Format tampilan: 1 Januari 2004
+                        ->format('Y-m-d'), // Format penyimpanan ke database
 
                     Forms\Components\TextInput::make('residentProfile.university_school')
                         ->label('Universitas/Sekolah')
@@ -210,23 +212,19 @@ class EditResident extends EditRecord
                 ]),
 
             Forms\Components\Section::make('Kamar Aktif')
-                ->description('Untuk mengubah penempatan kamar, gunakan menu "Penempatan Kamar"')
+                ->description(function ($record) {
+                    $active = $record->activeRoomResident;
+
+                    if (! $active?->room) return 'Kamar Saat Ini: -';
+
+                    $room = $active->room;
+                    $block = $room->block;
+                    $dorm = $block->dorm;
+
+                    return "Kamar Saat Ini: {$dorm->name} - {$block->name} - {$room->code}";
+                })
                 ->columns(2)
                 ->schema([
-                    Forms\Components\Placeholder::make('current_room')
-                        ->label('Kamar Saat Ini')
-                        ->content(function ($record) {
-                            $active = $record->activeRoomResident;
-
-                            if (! $active?->room) return '-';
-
-                            $room = $active->room;
-                            $block = $room->block;
-                            $dorm = $block->dorm;
-
-                            return "{$dorm->name} - {$block->name} - {$room->code}";
-                        }),
-
                     Forms\Components\Placeholder::make('check_in_date')
                         ->label('Tanggal Masuk')
                         ->content(function ($record) {
