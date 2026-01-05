@@ -10,6 +10,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class EditResident extends EditRecord
 {
@@ -39,6 +40,33 @@ class EditResident extends EditRecord
                     Forms\Components\Toggle::make('is_active')
                         ->label('Aktif')
                         ->default(true),
+
+                    // ✅ Password baru (opsional)
+                    Forms\Components\TextInput::make('new_password')
+                        ->label('Password Baru')
+                        ->password()
+                        ->revealable()
+                        ->minLength(8)
+                        ->maxLength(255)
+                        ->dehydrated(false) // tidak otomatis masuk ke $data
+                        ->live(onBlur: true) // trigger saat keluar dari field
+                        ->helperText('Kosongkan jika tidak ingin mengubah password. Minimal 8 karakter.')
+                        ->columnSpanFull(),
+
+                    Forms\Components\TextInput::make('new_password_confirmation')
+                        ->label('Konfirmasi Password Baru')
+                        ->password()
+                        ->revealable()
+                        ->same('new_password')
+                        ->dehydrated(false)
+                        ->requiredWith('new_password')
+                        ->disabled(fn (Forms\Get $get) => blank($get('new_password')))
+                        ->helperText(fn (Forms\Get $get) => 
+                            blank($get('new_password')) 
+                                ? 'Isi password baru terlebih dahulu untuk mengaktifkan field ini.'
+                                : 'Masukkan ulang password baru untuk konfirmasi.'
+                        )
+                        ->columnSpanFull(),
                 ]),
 
             Forms\Components\Section::make('Profil Penghuni')
@@ -206,18 +234,32 @@ class EditResident extends EditRecord
             'photo_path'            => $profile?->photo_path,
         ];
 
+        // ✅ Password fields tidak perlu diisi saat load form
+        $data['new_password'] = null;
+        $data['new_password_confirmation'] = null;
+
         return $data;
     }
 
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
         return DB::transaction(function () use ($record, $data) {
-            // 1) Update user (email & is_active)
-            $record->update([
+            // ✅ Ambil password baru dari form state (karena dehydrated=false)
+            $newPassword = $this->form->getRawState()['new_password'] ?? null;
+
+            $updateData = [
                 'email'     => $data['email'],
                 'is_active' => (bool) ($data['is_active'] ?? true),
                 'name'      => $data['residentProfile']['full_name'] ?? $record->name,
-            ]);
+            ];
+
+            // ✅ Jika password baru diisi, hash dan update
+            if (filled($newPassword)) {
+                $updateData['password'] = Hash::make($newPassword);
+            }
+
+            // 1) Update user (email, is_active, name, dan password jika ada)
+            $record->update($updateData);
 
             // 2) Update/Create resident profile
             if (isset($data['residentProfile'])) {

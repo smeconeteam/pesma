@@ -54,14 +54,12 @@ class RoomResource extends Resource
                             ->options(function (?Room $record) {
                                 $query = Dorm::query()->orderBy('name');
 
-                                // ✅ Saat EDIT: tampilkan yang aktif + yang sudah terpilih
                                 if ($record && $record->exists && $record->block?->dorm_id) {
                                     $query->where(function ($q) use ($record) {
                                         $q->where('is_active', true)
                                             ->orWhere('id', $record->block->dorm_id);
                                     });
                                 } else {
-                                    // ✅ Saat CREATE: hanya yang aktif
                                     $query->where('is_active', true);
                                 }
 
@@ -117,14 +115,12 @@ class RoomResource extends Resource
                                     ->where('dorm_id', $dormId)
                                     ->orderBy('name');
 
-                                // ✅ Saat EDIT: tampilkan yang aktif + yang sudah terpilih
                                 if ($record && $record->exists && $record->block_id) {
                                     $query->where(function ($q) use ($record) {
                                         $q->where('is_active', true)
                                             ->orWhere('id', $record->block_id);
                                     });
                                 } else {
-                                    // ✅ Saat CREATE: hanya yang aktif
                                     $query->where('is_active', true);
                                 }
 
@@ -165,14 +161,12 @@ class RoomResource extends Resource
                             ->options(function (?Room $record) {
                                 $query = RoomType::query()->orderBy('name');
 
-                                // ✅ Saat EDIT: tampilkan yang aktif + yang sudah terpilih
                                 if ($record && $record->exists && $record->room_type_id) {
                                     $query->where(function ($q) use ($record) {
                                         $q->where('is_active', true)
                                             ->orWhere('id', $record->room_type_id);
                                     });
                                 } else {
-                                    // ✅ Saat CREATE: hanya yang aktif
                                     $query->where('is_active', true);
                                 }
 
@@ -182,7 +176,19 @@ class RoomResource extends Resource
                             ->native(false)
                             ->required()
                             ->live()
-                            ->afterStateUpdated(fn (Set $set, Get $get) => static::generateRoomCode($set, $get)),
+                            ->afterStateUpdated(function (Set $set, Get $get, $state) {
+                                // Generate room code
+                                static::generateRoomCode($set, $get);
+                                
+                                // Auto-fill capacity dan monthly_rate dari room type
+                                if ($state) {
+                                    $roomType = RoomType::find($state);
+                                    if ($roomType) {
+                                        $set('capacity', $roomType->default_capacity);
+                                        $set('monthly_rate', $roomType->default_monthly_rate);
+                                    }
+                                }
+                            }),
 
                         Forms\Components\TextInput::make('number')
                             ->label('Nomor Kamar')
@@ -209,7 +215,7 @@ class RoomResource extends Resource
                             ->numeric()
                             ->minValue(1)
                             ->nullable()
-                            ->helperText('Boleh kosong, nanti bisa mengikuti kapasitas default dari tipe kamar.'),
+                            ->helperText('Otomatis terisi dari tipe kamar, dapat diubah sesuai kebutuhan.'),
 
                         Forms\Components\TextInput::make('monthly_rate')
                             ->label('Tarif Bulanan')
@@ -217,7 +223,7 @@ class RoomResource extends Resource
                             ->minValue(0)
                             ->nullable()
                             ->prefix('Rp')
-                            ->helperText('Boleh kosong, nanti bisa mengikuti tarif default dari tipe kamar.'),
+                            ->helperText('Otomatis terisi dari tipe kamar, dapat diubah sesuai kebutuhan.'),
 
                         Forms\Components\Toggle::make('is_active')
                             ->label('Aktif')
@@ -324,7 +330,6 @@ class RoomResource extends Resource
                                 $user = auth()->user();
                                 if (!$user) return [];
 
-                                // ✅ tampilkan juga cabang nonaktif (yang penting tidak terhapus)
                                 $query = Dorm::query()
                                     ->whereNull('deleted_at')
                                     ->orderBy('name');

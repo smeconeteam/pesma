@@ -97,13 +97,6 @@ class BillingTypeResource extends Resource
                         ->maxLength(255)
                         ->helperText('Nama akan otomatis menjadi "Nama - Cabang" saat disimpan.'),
 
-                    Forms\Components\TextInput::make('amount')
-                        ->label('Nominal')
-                        ->numeric()
-                        ->minValue(0)
-                        ->required()
-                        ->prefix('Rp'),
-
                     Forms\Components\Textarea::make('description')
                         ->label('Deskripsi')
                         ->rows(3)
@@ -152,7 +145,7 @@ class BillingTypeResource extends Resource
                             fn (Get $get, string $operation) =>
                                 $operation === 'create' && ! (bool) $get('applies_to_all')
                         )
-                        ->helperText('Jika memilih beberapa cabang, sistem akan membuat data baru 1 per cabang (nominal sama).'),
+                        ->helperText('Jika memilih beberapa cabang, sistem akan membuat data baru 1 per cabang.'),
 
                     // EDIT: wajib 1 cabang saja
                     Forms\Components\Select::make('dorm_id')
@@ -190,11 +183,6 @@ class BillingTypeResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nama')
                     ->searchable()
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('amount')
-                    ->label('Nominal')
-                    ->formatStateUsing(fn ($state) => 'Rp ' . number_format((float) $state, 0, ',', '.'))
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('cabang')

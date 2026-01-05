@@ -17,8 +17,7 @@ class CreateRoomType extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['name'] = RoomTypeResource::buildAutoName(
-            $data['base_name'] ?? null,
-            $data['default_capacity'] ?? null
+            $data['base_name'] ?? null
         );
 
         unset($data['base_name']);
