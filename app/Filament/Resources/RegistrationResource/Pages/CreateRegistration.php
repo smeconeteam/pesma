@@ -42,6 +42,11 @@ class CreateRegistration extends CreateRecord
         // Set status pending
         $data['status'] = 'pending';
 
+        // Jika created_at tidak diisi, gunakan waktu sekarang
+        if (empty($data['created_at'])) {
+            $data['created_at'] = now();
+        }
+
         return $data;
     }
 
