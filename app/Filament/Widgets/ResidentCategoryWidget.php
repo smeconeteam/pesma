@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class ResidentCategoryWidget extends ChartWidget
 {
-    protected static ?string $heading = 'Penghuni per Kategori';
+    protected static ?string $heading = 'Kategori Penghuni';
 
     protected static ?int $sort = 4;
 

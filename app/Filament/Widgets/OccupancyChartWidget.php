@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 
 class OccupancyChartWidget extends ChartWidget
 {
-    protected static ?string $heading = 'Tingkat Okupansi Kamar';
+    protected static ?string $heading = 'Okupansi';
 
     protected static ?int $sort = 2;
 
@@ -94,6 +94,6 @@ class OccupancyChartWidget extends ChartWidget
         $occupiedRooms = $roomQuery->whereHas('activeRoomResidents')->count();
         $occupancyRate = $totalRooms > 0 ? round(($occupiedRooms / $totalRooms) * 100, 1) : 0;
 
-        return "Tingkat okupansi: {$occupancyRate}%";
+        return "Tingkat okupansi kamar: {$occupancyRate}%";
     }
 }

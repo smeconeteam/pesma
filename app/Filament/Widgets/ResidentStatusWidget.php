@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 
 class ResidentStatusWidget extends ChartWidget
 {
-    protected static ?string $heading = 'Status Penempatan Penghuni';
+    protected static ?string $heading = 'Status Penempatan';
 
     protected static ?int $sort = 4;
 
@@ -122,6 +122,6 @@ class ResidentStatusWidget extends ChartWidget
 
         $percentage = $totalResidents > 0 ? round(($residentsWithRoom / $totalResidents) * 100, 1) : 0;
 
-        return "{$percentage}% penghuni sudah mendapat kamar";
+        return "{$percentage}% sudah mendapat kamar";
     }
 }
