@@ -20,6 +20,9 @@ class CheckoutResident extends Page
     protected static string $resource = RoomPlacementResource::class;
     protected static string $view = 'filament.resources.room-placement-resource.pages.checkout-resident';
 
+    protected static ?string $title = 'Keluarkan Penghuni';
+
+
     public ?array $data = [];
     public User $record;
 
@@ -29,7 +32,7 @@ class CheckoutResident extends Page
 
         if (!$record->activeRoomResident) {
             Notification::make()
-                ->title('Resident ini tidak memiliki kamar aktif')
+                ->title('Penghuni ini tidak memiliki kamar aktif')
                 ->warning()
                 ->send();
 
@@ -52,7 +55,7 @@ class CheckoutResident extends Page
 
         return $form
             ->schema([
-                Forms\Components\Section::make('Informasi Resident')
+                Forms\Components\Section::make('Informasi Penghuni')
                     ->columns(2)
                     ->schema([
                         Forms\Components\Placeholder::make('full_name')
@@ -110,7 +113,7 @@ class CheckoutResident extends Page
                             ->columnSpanFull(),
                     ]),
 
-                Forms\Components\Section::make('Data Checkout')
+                Forms\Components\Section::make('Data Keluar')
                     ->columns(2)
                     ->schema([
                         Forms\Components\DatePicker::make('check_out_date')
@@ -137,8 +140,8 @@ class CheckoutResident extends Page
                             ->content(new \Illuminate\Support\HtmlString('
                                 <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                                     <p class="text-sm text-yellow-800">
-                                        <strong>Perhatian:</strong> Setelah checkout, status resident akan menjadi <strong>Nonaktif</strong>. 
-                                        Resident tidak akan bisa login ke sistem dan tidak akan muncul di daftar penghuni aktif.
+                                        <strong>Perhatian:</strong> Setelah keluar, status penghuni akan menjadi <strong>Nonaktif</strong>. 
+                                        Penghuni tidak akan bisa login ke sistem dan tidak akan muncul di daftar penghuni aktif.
                                     </p>
                                 </div>
                             '))
@@ -213,15 +216,15 @@ class CheckoutResident extends Page
                         ->whereNull('check_out_date')
                         ->update([
                             'is_pic' => true,
-                            'notes' => 'Auto-assigned sebagai PIC karena PIC sebelumnya checkout',
+                            'notes' => 'Auto-assigned sebagai PIC karena PIC sebelumnya keluar',
                         ]);
                 }
             }
         });
 
         Notification::make()
-            ->title('Resident berhasil checkout')
-            ->body('Status resident: Nonaktif')
+            ->title('Penghuni berhasil keluar')
+            ->body('Status penghuni: Nonaktif')
             ->success()
             ->send();
 
@@ -232,11 +235,11 @@ class CheckoutResident extends Page
     {
         return [
             \Filament\Actions\Action::make('checkout')
-                ->label('Checkout dari Kamar')
+                ->label('Keluar dari Kamar')
                 ->color('danger')
                 ->requiresConfirmation()
-                ->modalHeading('Konfirmasi Checkout')
-                ->modalDescription('Apakah Anda yakin ingin checkout resident ini? Status akan menjadi Nonaktif.')
+                ->modalHeading('Konfirmasi Keluar')
+                ->modalDescription('Apakah Anda yakin ingin mengeluarkan penghuni ini? Status akan menjadi Nonaktif.')
                 ->action('checkout'),
 
             \Filament\Actions\Action::make('cancel')

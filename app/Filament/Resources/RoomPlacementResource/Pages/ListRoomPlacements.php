@@ -27,7 +27,7 @@ class ListRoomPlacements extends ListRecords
     public function getTabs(): array
     {
         return [
-            'semua' => Tab::make('Semua Resident')
+            'semua' => Tab::make('Semua Penghuni')
                 ->badge(fn () => $this->baseCountQuery()->count()),
 
             'belum_kamar' => Tab::make('Belum Ada Kamar')
