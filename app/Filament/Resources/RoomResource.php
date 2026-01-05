@@ -225,10 +225,6 @@ class RoomResource extends Resource
                             ->prefix('Rp')
                             ->helperText('Otomatis terisi dari tipe kamar, dapat diubah sesuai kebutuhan.'),
 
-                        Forms\Components\Toggle::make('is_active')
-                            ->label('Aktif')
-                            ->default(true),
-
                         Select::make('resident_category_id')
                             ->label('Kategori Kamar')
                             ->relationship('residentCategory', 'name')
@@ -238,7 +234,25 @@ class RoomResource extends Resource
                             ->disabled(function (?Room $record) {
                                 if (!$record) return false;
                                 return !$record->isEmpty();
+                            })
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('name')
+                                    ->label('Nama Kategori')
+                                    ->required()
+                                    ->unique(ignoreRecord: true)
+                                    ->maxLength(255),
+                                Forms\Components\Textarea::make('description')
+                                    ->label('Deskripsi')
+                                    ->rows(3)
+                                    ->maxLength(500),
+                            ])
+                            ->createOptionUsing(function (array $data) {
+                                return \App\Models\ResidentCategory::create($data)->id;
                             }),
+                            
+                            Forms\Components\Toggle::make('is_active')
+                                ->label('Aktif')
+                                ->default(true),
                     ])
                     ->columns(2),
             ]);

@@ -124,7 +124,21 @@ class RegistrationResource extends Resource
                             ->options(fn() => ResidentCategory::query()->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
-                            ->required(),
+                            ->required()
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('name')
+                                    ->label('Nama Kategori')
+                                    ->required()
+                                    ->unique(ignoreRecord: true)
+                                    ->maxLength(255),
+                                Forms\Components\Textarea::make('description')
+                                    ->label('Deskripsi')
+                                    ->rows(3)
+                                    ->maxLength(500),
+                            ])
+                            ->createOptionUsing(function (array $data) {
+                                return ResidentCategory::create($data)->id;
+                            }),
 
                         Forms\Components\TextInput::make('full_name')
                             ->label('Nama Lengkap')
