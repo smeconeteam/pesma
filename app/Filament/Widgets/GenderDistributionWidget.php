@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class GenderDistributionWidget extends ChartWidget
 {
-    protected static ?string $heading = 'Distribusi Gender Penghuni';
+    protected static ?string $heading = 'Gender';
 
     protected static ?int $sort = 3;
 
@@ -84,5 +84,9 @@ class GenderDistributionWidget extends ChartWidget
             ],
             'maintainAspectRatio' => true,
         ];
+    }
+    public function getDescription(): ?string
+    {
+        return 'Distribusi penghuni berdasarkan kategori';
     }
 }

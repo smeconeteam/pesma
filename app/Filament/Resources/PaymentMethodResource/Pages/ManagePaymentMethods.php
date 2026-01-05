@@ -115,28 +115,6 @@ class ManagePaymentMethods extends Page implements HasForms
         return $form
             ->statePath('data')
             ->schema([
-                Forms\Components\Section::make('QRIS')
-                    ->disabled(fn () => ! $this->isEditing)
-                    ->schema([
-                        Forms\Components\Toggle::make('qris.is_active')
-                            ->label('Aktifkan QRIS')
-                            ->live(),
-
-                        Forms\Components\Textarea::make('qris.instructions')
-                            ->label('Instruksi')
-                            ->rows(3)
-                            ->columnSpanFull(),
-
-                        Forms\Components\FileUpload::make('qris.qr_image_path')
-                            ->label('Gambar QR')
-                            ->image()
-                            ->disk('public')
-                            ->directory('payment-methods/qris')
-                            ->visibility('public')
-                            ->visible(fn (Get $get) => (bool) $get('qris.is_active'))
-                            ->required(fn (Get $get) => (bool) $get('qris.is_active')),
-                    ]),
-
                 Forms\Components\Section::make('Transfer Bank')
                     ->disabled(fn () => ! $this->isEditing)
                     ->schema([
@@ -177,6 +155,28 @@ class ManagePaymentMethods extends Page implements HasForms
                             ])
                             ->columns(2)
                             ->defaultItems(0),
+                    ]),
+
+                Forms\Components\Section::make('QRIS')
+                    ->disabled(fn () => ! $this->isEditing)
+                    ->schema([
+                        Forms\Components\Toggle::make('qris.is_active')
+                            ->label('Aktifkan QRIS')
+                            ->live(),
+
+                        Forms\Components\Textarea::make('qris.instructions')
+                            ->label('Instruksi')
+                            ->rows(3)
+                            ->columnSpanFull(),
+
+                        Forms\Components\FileUpload::make('qris.qr_image_path')
+                            ->label('Gambar QR')
+                            ->image()
+                            ->disk('public')
+                            ->directory('payment-methods/qris')
+                            ->visibility('public')
+                            ->visible(fn (Get $get) => (bool) $get('qris.is_active'))
+                            ->required(fn (Get $get) => (bool) $get('qris.is_active')),
                     ]),
 
                 Forms\Components\Section::make('Tunai')

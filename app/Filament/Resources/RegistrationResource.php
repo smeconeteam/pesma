@@ -124,7 +124,21 @@ class RegistrationResource extends Resource
                             ->options(fn() => ResidentCategory::query()->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
-                            ->required(),
+                            ->required()
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('name')
+                                    ->label('Nama Kategori')
+                                    ->required()
+                                    ->unique(ignoreRecord: true)
+                                    ->maxLength(255),
+                                Forms\Components\Textarea::make('description')
+                                    ->label('Deskripsi')
+                                    ->rows(3)
+                                    ->maxLength(500),
+                            ])
+                            ->createOptionUsing(function (array $data) {
+                                return ResidentCategory::create($data)->id;
+                            }),
 
                         Forms\Components\TextInput::make('full_name')
                             ->label('Nama Lengkap')
@@ -184,10 +198,13 @@ class RegistrationResource extends Resource
                             ->native(false)
                             ->default('WNI')
                             ->reactive()
-                            ->afterStateUpdated(function ($state, Forms\Set $set) {
-                                if ($state === 'WNI') {
+                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                                // Set default Indonesia hanya jika country_id masih kosong
+                                if ($state === 'WNI' && blank($get('country_id'))) {
                                     $indoId = Country::query()->where('iso2', 'ID')->value('id');
-                                    if ($indoId) $set('country_id', $indoId);
+                                    if ($indoId) {
+                                        $set('country_id', $indoId);
+                                    }
                                 }
                             })
                             ->required(),
@@ -197,7 +214,6 @@ class RegistrationResource extends Resource
                             ->options(fn() => Country::query()->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
-                            ->disabled(fn(Forms\Get $get) => $get('citizenship_status') === 'WNI')
                             ->default(fn() => Country::query()->where('iso2', 'ID')->value('id'))
                             ->createOptionForm([
                                 Forms\Components\TextInput::make('name')
