@@ -61,6 +61,17 @@ class Room extends Model
             ->whereNull('check_out_date');
     }
 
+    public function bills(): HasMany
+    {
+        return $this->hasMany(Bill::class);
+    }
+
+    public function activeBills(): HasMany
+    {
+        return $this->bills()
+            ->whereIn('status', ['issued', 'partial', 'overdue']);
+    }
+
     // Helper methods
     public function isEmpty(): bool
     {

@@ -101,7 +101,7 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->hasOne(AdminProfile::class);
     }
-    
+
     public function roomResidents(): HasMany
     {
         return $this->hasMany(RoomResident::class);
@@ -133,5 +133,39 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasOne(\App\Models\RoomResident::class)
             ->whereNull('check_out_date')
             ->latestOfMany('check_in_date');
+    }
+
+
+    public function bills(): HasMany
+    {
+        return $this->hasMany(Bill::class);
+    }
+
+    public function billPayments(): HasMany
+    {
+        return $this->hasMany(BillPayment::class, 'paid_by_user_id');
+    }
+
+    public function issuedBills(): HasMany
+    {
+        return $this->hasMany(Bill::class, 'issued_by');
+    }
+
+    public function verifiedPayments(): HasMany
+    {
+        return $this->hasMany(BillPayment::class, 'verified_by');
+    }
+
+    public function activeBills(): HasMany
+    {
+        return $this->bills()
+            ->whereIn('status', ['issued', 'partial', 'overdue']);
+    }
+
+    public function getTotalUnpaidBillsAttribute(): int
+    {
+        return $this->bills()
+            ->whereIn('status', ['issued', 'partial', 'overdue'])
+            ->sum('remaining_amount');
     }
 }
