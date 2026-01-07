@@ -12,6 +12,7 @@ class PaymentMethodBankAccount extends Model
         'bank_name',
         'account_number',
         'account_name',
+        'account_holder',
         'is_active',
     ];
 
