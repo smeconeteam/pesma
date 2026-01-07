@@ -2,8 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\RoomType;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class RoomTypeSeeder extends Seeder
 {
@@ -18,29 +19,38 @@ class RoomTypeSeeder extends Seeder
             ],
             [
                 'name' => 'VIP',
-                'description' => 'Kamar VIP 2 orang, AC, kamar mandi dalam',
+                'description' => 'Kamar nyaman 1-2 orang, AC',
                 'default_capacity' => 2,
                 'default_monthly_rate' => 1500000,
             ],
             [
-                'name' => 'Reguler 4',
-                'description' => 'Kamar standar 4 orang, kipas angin',
+                'name' => 'Standar',
+                'description' => 'Kamar standar 2-4 orang',
                 'default_capacity' => 4,
-                'default_monthly_rate' => 800000,
-            ],
-            [
-                'name' => 'Reguler 8',
-                'description' => 'Kamar ekonomis 6-8 orang',
-                'default_capacity' => 8,
-                'default_monthly_rate' => 500000,
+                'default_monthly_rate' => 1000000,
             ],
         ];
 
-        foreach ($roomTypes as $type) {
-            RoomType::firstOrCreate(
-                ['name' => $type['name']],
-                $type
-            );
+        foreach ($roomTypes as $item) {
+            $code = Str::slug($item['name']); // contoh: "Kamar VIP" -> "kamar-vip"
+
+            // Kalau ada kemungkinan nama sama, bikin code unik
+            $baseCode = $code;
+            $i = 2;
+            while (DB::table('room_types')->where('code', $code)->exists()) {
+                $code = "{$baseCode}-{$i}";
+                $i++;
+            }
+
+            DB::table('room_types')->insert([
+                'code' => $code,
+                'name' => $item['name'],
+                'description' => $item['description'],
+                'default_capacity' => $item['default_capacity'],
+                'default_monthly_rate' => $item['default_monthly_rate'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         }
     }
 }
