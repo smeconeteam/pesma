@@ -25,9 +25,9 @@ class ResidentCategoryResource extends Resource
     protected static ?string $navigationGroup = 'Asrama';
     protected static ?int $navigationSort = 12;
 
-    protected static ?string $navigationLabel = 'Kategori Kamar';
-    protected static ?string $pluralLabel = 'Kategori Kamar';
-    protected static ?string $modelLabel = 'Kategori Kamar';
+    protected static ?string $navigationLabel = 'Kategori';
+    protected static ?string $pluralLabel = 'Kategori';
+    protected static ?string $modelLabel = 'Kategori';
 
     public static function form(Form $form): Form
     {
