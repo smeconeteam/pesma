@@ -40,6 +40,9 @@ class StatsOverviewWidget extends BaseWidget
         // Get data
         $totalRooms = $roomQuery->count();
         $occupiedRooms = $roomQuery->whereHas('activeRoomResidents')->count();
+        
+        // Hitung total kapasitas dari semua kamar
+        $totalCapacity = (clone $roomQuery)->sum('capacity');
 
         // Total active residents (semua yang status active, tidak harus punya kamar)
         $activeResidentsQuery = ResidentProfile::query()->where('status', 'active');
@@ -79,15 +82,50 @@ class StatsOverviewWidget extends BaseWidget
         $residentsWithRoom = $residentsWithRoomQuery->distinct('user_id')->count('user_id');
         $pendingRegistrations = $registrationQuery->count();
 
+        // Hitung residents without room untuk status penempatan
+        $totalResidentsQuery = ResidentProfile::query()->where('status', '!=', 'inactive');
+        
+        if ($user->hasRole(['super_admin', 'main_admin'])) {
+            // Lihat semua
+        } elseif ($user->hasRole('branch_admin')) {
+            $dormIds = $user->branchDormIds();
+            $userIdsWithRoom = RoomResident::query()
+                ->join('rooms', 'room_residents.room_id', '=', 'rooms.id')
+                ->join('blocks', 'rooms.block_id', '=', 'blocks.id')
+                ->whereIn('blocks.dorm_id', $dormIds)
+                ->whereNull('room_residents.check_out_date')
+                ->pluck('room_residents.user_id')
+                ->unique();
+            $totalResidentsQuery->whereIn('user_id', $userIdsWithRoom);
+        } elseif ($user->hasRole('block_admin')) {
+            $blockIds = $user->blockIds();
+            $userIdsWithRoom = RoomResident::query()
+                ->join('rooms', 'room_residents.room_id', '=', 'rooms.id')
+                ->whereIn('rooms.block_id', $blockIds)
+                ->whereNull('room_residents.check_out_date')
+                ->pluck('room_residents.user_id')
+                ->unique();
+            $totalResidentsQuery->whereIn('user_id', $userIdsWithRoom);
+        }
+
+        $totalResidents = $totalResidentsQuery->count();
+        $residentsWithoutRoom = max(0, $totalResidents - $residentsWithRoom);
+        $placementPercentage = $totalResidents > 0 ? round(($residentsWithRoom / $totalResidents) * 100, 1) : 0;
+        
+        // Hitung okupansi kapasitas
+        $occupancyPercentage = $totalCapacity > 0 ? round(($residentsWithRoom / $totalCapacity) * 100, 1) : 0;
+        $availableCapacity = max(0, $totalCapacity - $residentsWithRoom);
+
         return [
+            // Baris pertama
             Stat::make('Total Penghuni Aktif', $totalActiveResidents)
                 ->description("Penghuni memiliki kamar: {$residentsWithRoom}")
                 ->descriptionIcon('heroicon-m-user-group')
                 ->color('success')
                 ->chart([7, 12, 15, 18, 22, 25, $totalActiveResidents]),
 
-            Stat::make('Total Kamar Terisi', $occupiedRooms)
-                ->description("dari {$totalRooms} total kamar")
+            Stat::make('Total Kamar', $totalRooms)
+                ->description("dan {$occupiedRooms} kamar terisi")
                 ->descriptionIcon('heroicon-m-home')
                 ->color('info')
                 ->chart([$totalRooms - $occupiedRooms, $occupiedRooms]),
@@ -96,6 +134,25 @@ class StatsOverviewWidget extends BaseWidget
                 ->description('Menunggu persetujuan')
                 ->descriptionIcon('heroicon-m-clock')
                 ->color($pendingRegistrations > 0 ? 'warning' : 'success'),
+
+            // Baris kedua
+            Stat::make('Total Kapasitas', $totalCapacity)
+                ->description("Terisi: {$residentsWithRoom} | Tersedia: {$availableCapacity}")
+                ->descriptionIcon('heroicon-m-building-office-2')
+                ->color('primary')
+                ->chart([$residentsWithRoom, $availableCapacity]),
+
+            Stat::make('Okupansi Kapasitas', "{$occupancyPercentage}%")
+                ->description("Penghuni: {$residentsWithRoom} dari {$totalCapacity} kapasitas")
+                ->descriptionIcon('heroicon-m-chart-bar')
+                ->color($occupancyPercentage >= 80 ? 'danger' : ($occupancyPercentage >= 60 ? 'warning' : 'success'))
+                ->chart([$residentsWithRoom, $availableCapacity]),
+
+            Stat::make('Status Penempatan', "{$placementPercentage}%")
+                ->description("Sudah ada kamar: {$residentsWithRoom} | Belum: {$residentsWithoutRoom}")
+                ->descriptionIcon('heroicon-m-check-circle')
+                ->color($placementPercentage >= 80 ? 'success' : ($placementPercentage >= 50 ? 'warning' : 'danger'))
+                ->chart([$residentsWithRoom, $residentsWithoutRoom]),
         ];
     }
 

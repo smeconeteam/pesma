@@ -11,7 +11,7 @@ class ResidentCategoryWidget extends ChartWidget
 {
     protected static ?string $heading = 'Kategori Penghuni';
 
-    protected static ?int $sort = 4;
+    protected static ?int $sort = 3;
 
     protected function getData(): array
     {
