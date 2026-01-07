@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class ResidentCategory extends Model
 {
@@ -44,5 +45,18 @@ class ResidentCategory extends Model
     public function registrations(): HasMany
     {
         return $this->hasMany(Registration::class, 'resident_category_id');
+    }
+
+    /**
+     * Get the bank accounts for this category
+     */
+    public function bankAccounts(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            PaymentMethodBankAccount::class,
+            'resident_category_bank_account',
+            'resident_category_id',
+            'payment_method_bank_account_id'
+        )->withTimestamps();
     }
 }
