@@ -25,9 +25,9 @@ class ResidentCategoryResource extends Resource
     protected static ?string $navigationGroup = 'Asrama';
     protected static ?int $navigationSort = 12;
 
-    protected static ?string $navigationLabel = 'Kategori Kamar';
-    protected static ?string $pluralLabel = 'Kategori Kamar';
-    protected static ?string $modelLabel = 'Kategori Kamar';
+    protected static ?string $navigationLabel = 'Kategori';
+    protected static ?string $pluralLabel = 'Kategori';
+    protected static ?string $modelLabel = 'Kategori';
 
     public static function form(Form $form): Form
     {
@@ -49,6 +49,31 @@ class ResidentCategoryResource extends Resource
                             ->helperText('Penjelasan singkat tentang kategori ini'),
                     ])
                     ->columns(1),
+
+                Forms\Components\Section::make('Rekening Bank untuk Pembayaran')
+                    ->description('Pilih rekening bank yang akan digunakan untuk pembayaran kategori ini (opsional)')
+                    ->schema([
+                        Forms\Components\CheckboxList::make('bank_accounts')
+                            ->label('Pilih Rekening Bank')
+                            ->relationship(
+                                'bankAccounts',
+                                'bank_name',
+                                fn ($query) => $query->where('is_active', true)
+                            )
+                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_name)
+                            ->helperText('Rekening yang dipilih akan menjadi opsi pembayaran untuk kategori ini')
+                            ->searchable()
+                            ->bulkToggleable()
+                            ->columnSpanFull()
+                            ->visible(fn () => \App\Models\PaymentMethodBankAccount::where('is_active', true)->exists()),
+
+                        Forms\Components\Placeholder::make('no_bank_accounts')
+                            ->label('')
+                            ->content('Belum ada rekening bank aktif. Silakan tambahkan rekening bank terlebih dahulu di menu Metode Pembayaran.')
+                            ->visible(fn () => !\App\Models\PaymentMethodBankAccount::where('is_active', true)->exists()),
+                    ])
+                    ->columns(1)
+                    ->collapsible(),
             ]);
     }
 
@@ -67,6 +92,19 @@ class ResidentCategoryResource extends Resource
                     ->searchable()
                     ->limit(50)
                     ->toggleable(),
+
+                Tables\Columns\TextColumn::make('bankAccounts.account_holder')
+                    ->label('Rekening Bank')
+                    ->listWithLineBreaks()
+                    ->limitList(2)
+                    ->expandableLimitedList()
+                    ->placeholder('-')
+                    ->toggleable()
+                    ->searchable(query: function ($query, $search) {
+                        return $query->whereHas('bankAccounts', function ($q) use ($search) {
+                            $q->where('account_holder', 'like', "%{$search}%");
+                        });
+                    }),
 
                 Tables\Columns\TextColumn::make('rooms_count')
                     ->label('Jumlah Kamar')
@@ -298,6 +336,26 @@ class ResidentCategoryResource extends Resource
                             ->suffix(' kamar'),
                     ])
                     ->columns(2),
+
+                InfoSection::make('Rekening Bank untuk Pembayaran')
+                    ->schema([
+                        TextEntry::make('bankAccounts')
+                            ->label('Rekening yang Digunakan')
+                            ->listWithLineBreaks()
+                            ->bulleted()
+                            ->state(function (ResidentCategory $record) {
+                                $accounts = $record->bankAccounts()
+                                    ->where('is_active', true)
+                                    ->get();
+                                
+                                if ($accounts->isEmpty()) {
+                                    return ['-'];
+                                }
+                                
+                                return $accounts->map(fn ($account) => $account->display_name)->toArray();
+                            }),
+                    ])
+                    ->columns(1),
 
                 InfoSection::make('Waktu')
                     ->schema([

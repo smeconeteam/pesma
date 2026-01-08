@@ -11,7 +11,9 @@ class ResidentCategoryWidget extends ChartWidget
 {
     protected static ?string $heading = 'Kategori Penghuni';
 
-    protected static ?int $sort = 4;
+    protected static ?int $sort = 2;
+
+    protected int | string | array $columnSpan = 1;
 
     protected function getData(): array
     {
@@ -89,6 +91,6 @@ class ResidentCategoryWidget extends ChartWidget
 
     public function getDescription(): ?string
     {
-        return 'Distribusi penghuni berdasarkan kategori';
+        return 'Distribusi kategori penghuni';
     }
 }

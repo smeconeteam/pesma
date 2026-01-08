@@ -19,9 +19,9 @@ class LatestRegistrationsWidget extends BaseWidget
         $user = Auth::user();
 
         $query = Registration::query()
-            ->where('status', 'pending')
             ->with(['preferredDorm', 'preferredRoomType', 'residentCategory'])
-            ->latest();
+            ->latest()
+            ->limit(10);
 
         // Apply role-based filters
         if ($user->hasRole(['super_admin', 'main_admin'])) {
