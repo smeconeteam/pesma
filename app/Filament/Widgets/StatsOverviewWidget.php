@@ -121,12 +121,12 @@ class StatsOverviewWidget extends BaseWidget
 
         return [
             // Baris pertama
-            Stat::make('Total Penghuni Aktif', $totalActiveResidents)
+            Stat::make('Penghuni Aktif', $totalActiveResidents)
                 ->description("Penghuni memiliki kamar: {$residentsWithRoom}")
                 ->descriptionIcon('heroicon-m-user-group')
                 ->color('success'),
 
-            Stat::make('Total Kamar', $totalRooms)
+            Stat::make('Kamar', $totalRooms)
                 ->description("dan {$occupiedRooms} kamar terisi")
                 ->descriptionIcon('heroicon-m-home')
                 ->color('info'),
@@ -137,7 +137,7 @@ class StatsOverviewWidget extends BaseWidget
                 ->color($pendingRegistrations > 0 ? 'warning' : 'success'),
 
             // Baris kedua
-            Stat::make('Total Kapasitas', $totalCapacity)
+            Stat::make('Kapasitas', $totalCapacity)
                 ->description("Terisi: {$residentsWithRoom} | Tersedia: {$availableCapacity}")
                 ->descriptionIcon('heroicon-m-building-office-2')
                 ->color('primary'),
