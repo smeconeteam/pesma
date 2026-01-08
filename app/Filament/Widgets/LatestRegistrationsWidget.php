@@ -19,7 +19,6 @@ class LatestRegistrationsWidget extends BaseWidget
         $user = Auth::user();
 
         $query = Registration::query()
-            ->where('status', 'pending')
             ->with(['preferredDorm', 'preferredRoomType', 'residentCategory'])
             ->latest();
 

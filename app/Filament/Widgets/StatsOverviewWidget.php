@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Auth;
 
 class StatsOverviewWidget extends BaseWidget
 {
+
+    protected int | string | array $columnSpan = 'full';
+    
     protected function getStats(): array
     {
         $user = Auth::user();
@@ -121,14 +124,12 @@ class StatsOverviewWidget extends BaseWidget
             Stat::make('Total Penghuni Aktif', $totalActiveResidents)
                 ->description("Penghuni memiliki kamar: {$residentsWithRoom}")
                 ->descriptionIcon('heroicon-m-user-group')
-                ->color('success')
-                ->chart([7, 12, 15, 18, 22, 25, $totalActiveResidents]),
+                ->color('success'),
 
             Stat::make('Total Kamar', $totalRooms)
                 ->description("dan {$occupiedRooms} kamar terisi")
                 ->descriptionIcon('heroicon-m-home')
-                ->color('info')
-                ->chart([$totalRooms - $occupiedRooms, $occupiedRooms]),
+                ->color('info'),
 
             Stat::make('Pendaftaran Pending', $pendingRegistrations)
                 ->description('Menunggu persetujuan')
@@ -139,20 +140,17 @@ class StatsOverviewWidget extends BaseWidget
             Stat::make('Total Kapasitas', $totalCapacity)
                 ->description("Terisi: {$residentsWithRoom} | Tersedia: {$availableCapacity}")
                 ->descriptionIcon('heroicon-m-building-office-2')
-                ->color('primary')
-                ->chart([$residentsWithRoom, $availableCapacity]),
+                ->color('primary'),
 
             Stat::make('Okupansi Kapasitas', "{$occupancyPercentage}%")
                 ->description("Penghuni: {$residentsWithRoom} dari {$totalCapacity} kapasitas")
                 ->descriptionIcon('heroicon-m-chart-bar')
-                ->color($occupancyPercentage >= 80 ? 'danger' : ($occupancyPercentage >= 60 ? 'warning' : 'success'))
-                ->chart([$residentsWithRoom, $availableCapacity]),
+                ->color($occupancyPercentage >= 80 ? 'danger' : ($occupancyPercentage >= 60 ? 'warning' : 'success')),
 
             Stat::make('Status Penempatan', "{$placementPercentage}%")
                 ->description("Sudah ada kamar: {$residentsWithRoom} | Belum: {$residentsWithoutRoom}")
                 ->descriptionIcon('heroicon-m-check-circle')
-                ->color($placementPercentage >= 80 ? 'success' : ($placementPercentage >= 50 ? 'warning' : 'danger'))
-                ->chart([$residentsWithRoom, $residentsWithoutRoom]),
+                ->color($placementPercentage >= 80 ? 'success' : ($placementPercentage >= 50 ? 'warning' : 'danger')),
         ];
     }
 

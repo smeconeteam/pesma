@@ -14,6 +14,8 @@ class GenderDistributionWidget extends ChartWidget
 
     protected static ?int $sort = 4;
 
+    protected int | string | array $columnSpan = 1;
+
     protected function getData(): array
     {
         $user = Auth::user();
@@ -87,6 +89,6 @@ class GenderDistributionWidget extends ChartWidget
     }
     public function getDescription(): ?string
     {
-        return 'Perbandingan Laki-laki dan Perempuan';
+        return 'Distribusi gender penghuni';
     }
 }

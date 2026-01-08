@@ -13,9 +13,9 @@ class Dashboard extends BaseDashboard
         return [
             \App\Filament\Widgets\StatsOverviewWidget::class,
             \App\Filament\Widgets\OccupancyChartWidget::class,
+            \App\Filament\Widgets\ResidentCategoryWidget::class,
             \App\Filament\Widgets\GenderDistributionWidget::class,
             \App\Filament\Widgets\GrowthChartWidget::class,
-            \App\Filament\Widgets\ResidentCategoryWidget::class,
             \App\Filament\Widgets\DormSummaryTableWidget::class,
             \App\Filament\Widgets\LatestRegistrationsWidget::class,
         ];
@@ -24,8 +24,12 @@ class Dashboard extends BaseDashboard
     public function getColumns(): int | string | array
     {
         return [
-            'md' => 2,
+            'default' => 1,
+            'sm' => 2,
+            'md' => 3,
+            'lg' => 3,
             'xl' => 3,
+            '2xl' => 3,
         ];
     }
 }
