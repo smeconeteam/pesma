@@ -100,27 +100,41 @@ class AdminPanelProvider extends PanelProvider
                     <div 
                         class="flex items-center gap-3 px-3 py-2 text-sm border-r border-gray-200 dark:border-gray-700" 
                         x-data="{ 
+                            dayName: '',
+                            dateStr: '',
                             time: '',
-                            updateClock() {
+                            updateDateTime() {
                                 const now = new Date();
+                                
+                                // Update jam
                                 const hours = String(now.getHours()).padStart(2, '0');
                                 const minutes = String(now.getMinutes()).padStart(2, '0');
                                 const seconds = String(now.getSeconds()).padStart(2, '0');
                                 this.time = hours + ':' + minutes + ':' + seconds;
+                                
+                                // Update hari dalam bahasa Indonesia
+                                const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                                this.dayName = days[now.getDay()];
+                                
+                                // Update tanggal dalam bahasa Indonesia
+                                const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+                                               'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                                const day = now.getDate();
+                                const month = months[now.getMonth()];
+                                const year = now.getFullYear();
+                                this.dateStr = day + ' ' + month + ' ' + year;
                             }
                         }" 
                         x-init="
-                            updateClock();
-                            setInterval(() => { updateClock(); }, 1000);
+                            updateDateTime();
+                            setInterval(() => { updateDateTime(); }, 1000);
                         "
                     >
                         <div class="text-right leading-tight flex gap-2 items-center">
-                            <div class="font-semibold text-sm">
-                                {{ \Carbon\Carbon::now()->locale('id')->isoFormat('dddd') }},
-                                {{ \Carbon\Carbon::now()->locale('id')->isoFormat('D MMMM YYYY') }}
+                            <div class="flex flex-row">
+                                <div class="font-semibold text-sm" x-text="dayName"></div>,&nbsp;
+                                <div class="font-semibold text-sm" x-text="dateStr"></div>
                             </div>
-
-                            |
 
                             <div 
                                 class="text-base font-mono font-bold" 
