@@ -36,7 +36,7 @@ class LatestRegistrationsWidget extends BaseWidget
 
         return $table
             ->query($query)
-            ->heading('Pendaftaran Terbaru')
+            ->heading(false)
             ->columns([
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Tanggal')
