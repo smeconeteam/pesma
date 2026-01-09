@@ -46,7 +46,7 @@ class StatsOverviewWidget extends BaseWidget
 
         // Get data
         $totalRooms = $roomQuery->count();
-        $occupiedRooms = $roomQuery->whereHas('activeRoomResidents')->count();
+        $occupiedRooms = (clone $roomQuery)->whereHas('activeRoomResidents')->count();
         
         // Hitung total kapasitas dari semua kamar
         $totalCapacity = (clone $roomQuery)->sum('capacity');
