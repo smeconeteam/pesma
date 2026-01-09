@@ -272,6 +272,10 @@ class RoomResource extends Resource
                     ->sortable()
                     ->searchable(),
 
+                Tables\Columns\TextColumn::make('number')
+                ->label('Nomor')
+                ->sortable(),
+
                 Tables\Columns\TextColumn::make('roomType.name')
                     ->label('Tipe Kamar')
                     ->sortable()
@@ -281,10 +285,6 @@ class RoomResource extends Resource
                     ->label('Kode')
                     ->sortable()
                     ->searchable(),
-
-                Tables\Columns\TextColumn::make('number')
-                    ->label('Nomor')
-                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('capacity')
                     ->label('Kapasitas')
