@@ -143,7 +143,9 @@ class RoomTypeResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nama Tipe')
                     ->sortable()
-                    ->searchable(),
+                    ->searchable()
+                    // ✅ fallback kalau data lama masih kosong
+                    ->formatStateUsing(fn ($state, RoomType $record) => $state ?: static::buildAutoName($record->base_name, $record->default_capacity)),
 
                 Tables\Columns\TextColumn::make('code')
                     ->label('Kode')
@@ -200,18 +202,16 @@ class RoomTypeResource extends Resource
                     }),
 
                 Tables\Actions\DeleteAction::make()
-                    ->visible(
-                        fn(RoomType $record): bool =>
+                    ->visible(fn (RoomType $record): bool =>
                         auth()->user()?->hasRole(['super_admin', 'main_admin'])
-                            && ! $record->trashed()
-                            && ! $record->rooms()->exists()
+                        && ! $record->trashed()
+                        && ! $record->rooms()->exists()
                     ),
 
                 Tables\Actions\RestoreAction::make()
-                    ->visible(
-                        fn(RoomType $record): bool =>
+                    ->visible(fn (RoomType $record): bool =>
                         auth()->user()?->hasRole(['super_admin'])
-                            && $record->trashed()
+                        && $record->trashed()
                     ),
 
                 Tables\Actions\ForceDeleteAction::make()

@@ -29,6 +29,13 @@
                         {{ __('Dasbor') }}
                     </x-nav-link>
                     @endif
+
+                    {{-- Menu Kamar Saya --}}
+                    @if (\Illuminate\Support\Facades\Route::has('resident.my-room'))
+                    <x-nav-link :href="route('resident.my-room')" :active="request()->routeIs('resident.my-room')">
+                        {{ __('Kamar Saya') }}
+                    </x-nav-link>
+                    @endif
                     @endauth
 
                     @guest
@@ -122,6 +129,31 @@
                 {{ __('Dasbor') }}
             </x-responsive-nav-link>
             @endif
+
+            {{-- Menu Kamar Saya (mobile) --}}
+            @if (\Illuminate\Support\Facades\Route::has('resident.my-room'))
+            <x-responsive-nav-link :href="route('resident.my-room')" :active="request()->routeIs('resident.my-room')">
+                {{ __('Kamar Saya') }}
+            </x-responsive-nav-link>
+            @endif
+
+            {{-- ✅ Tanpa informasi profil (nama/email). Link Profil tetap ada. --}}
+            @if (\Illuminate\Support\Facades\Route::has('profile.edit'))
+            <x-responsive-nav-link :href="route('profile.edit')" :active="request()->routeIs('profile.edit')">
+                {{ __('Profil') }}
+            </x-responsive-nav-link>
+            @endif
+
+            {{-- ✅ Logout tetap tersedia di mobile --}}
+            @if (\Illuminate\Support\Facades\Route::has('logout'))
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <x-responsive-nav-link :href="route('logout')"
+                    onclick="event.preventDefault(); this.closest('form').submit();">
+                    {{ __('Keluar') }}
+                </x-responsive-nav-link>
+            </form>
+            @endif
             @endauth
 
             @guest
@@ -138,33 +170,5 @@
             @endif
             @endguest
         </div>
-
-        @auth
-        <!-- Opsi Pengaturan Responsif -->
-        <div class="border-t border-gray-200 pb-1 pt-4">
-            <div class="px-4">
-                <div class="text-base font-medium text-gray-800">{{ auth()->user()->name }}</div>
-                <div class="text-sm font-medium text-gray-500">{{ auth()->user()->email }}</div>
-            </div>
-
-            <div class="mt-3 space-y-1">
-                @if (\Illuminate\Support\Facades\Route::has('profile.edit'))
-                <x-responsive-nav-link :href="route('profile.edit')">
-                    {{ __('Profil') }}
-                </x-responsive-nav-link>
-                @endif
-
-                @if (\Illuminate\Support\Facades\Route::has('logout'))
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <x-responsive-nav-link :href="route('logout')"
-                        onclick="event.preventDefault(); this.closest('form').submit();">
-                        {{ __('Keluar') }}
-                    </x-responsive-nav-link>
-                </form>
-                @endif
-            </div>
-        </div>
-        @endauth
     </div>
 </nav>

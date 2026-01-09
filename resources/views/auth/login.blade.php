@@ -52,19 +52,31 @@
             </label>
         </div>
 
-        <div class="mt-4 flex items-center justify-end">
-            @if (Route::has('password.request'))
+        <div class="mt-4 flex items-center justify-between">
+            <!-- Link ke Pendaftaran -->
+            <div class="text-sm">
                 <a
-                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                    href="{{ route('password.request') }}"
+                    href="{{ url('/pendaftaran') }}"
+                    class="text-green-600 underline hover:text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 rounded-md"
                 >
-                    {{ __('Lupa kata sandi?') }}
+                    {{ __('Belum punya akun? Daftar di sini') }}
                 </a>
-            @endif
+            </div>
 
-            <x-primary-button class="ms-3">
-                {{ __('Masuk') }}
-            </x-primary-button>
+            <div class="flex items-center">
+                @if (Route::has('password.request'))
+                    <a
+                        class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                        href="{{ route('password.request') }}"
+                    >
+                        {{ __('Lupa kata sandi?') }}
+                    </a>
+                @endif
+
+                <x-primary-button class="ms-3">
+                    {{ __('Masuk') }}
+                </x-primary-button>
+            </div>
         </div>
     </form>
 </x-guest-layout>
