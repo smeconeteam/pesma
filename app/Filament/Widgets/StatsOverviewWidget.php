@@ -18,7 +18,7 @@ class StatsOverviewWidget extends BaseWidget
 {
 
     protected int | string | array $columnSpan = 'full';
-    
+
     protected function getStats(): array
     {
         $user = Auth::user();
@@ -47,7 +47,7 @@ class StatsOverviewWidget extends BaseWidget
         // Get data
         $totalRooms = $roomQuery->count();
         $occupiedRooms = (clone $roomQuery)->whereHas('activeRoomResidents')->count();
-        
+
         // Hitung total kapasitas dari semua kamar
         $totalCapacity = (clone $roomQuery)->sum('capacity');
 
@@ -91,7 +91,7 @@ class StatsOverviewWidget extends BaseWidget
 
         // Hitung residents without room untuk status penempatan
         $totalResidentsQuery = ResidentProfile::query()->where('status', '!=', 'inactive');
-        
+
         if ($user->hasRole(['super_admin', 'main_admin'])) {
             // Lihat semua
         } elseif ($user->hasRole('branch_admin')) {
@@ -118,7 +118,7 @@ class StatsOverviewWidget extends BaseWidget
         $totalResidents = $totalResidentsQuery->count();
         $residentsWithoutRoom = max(0, $totalResidents - $residentsWithRoom);
         $placementPercentage = $totalResidents > 0 ? round(($residentsWithRoom / $totalResidents) * 100, 1) : 0;
-        
+
         // Hitung okupansi kapasitas
         $occupancyPercentage = $totalCapacity > 0 ? round(($residentsWithRoom / $totalCapacity) * 100, 1) : 0;
         $availableCapacity = max(0, $totalCapacity - $residentsWithRoom);
@@ -131,6 +131,18 @@ class StatsOverviewWidget extends BaseWidget
                 ->color('success')
                 ->url(ResidentResource::getUrl('index')),
 
+            Stat::make('Kapasitas', $totalCapacity)
+                ->description("Terisi: {$residentsWithRoom} | Tersedia: {$availableCapacity}")
+                ->descriptionIcon('heroicon-m-building-office-2')
+                ->color('primary')
+                ->url(RoomResource::getUrl('index')),
+
+            Stat::make('Okupansi Kapasitas', "{$occupancyPercentage}%")
+                ->description("Penghuni: {$residentsWithRoom} dari {$totalCapacity} kapasitas")
+                ->descriptionIcon('heroicon-m-chart-bar')
+                ->color($occupancyPercentage >= 80 ? 'danger' : ($occupancyPercentage >= 60 ? 'warning' : 'success')),
+
+            // Baris kedua
             Stat::make('Kamar', $totalRooms)
                 ->description("dan {$occupiedRooms} kamar terisi")
                 ->descriptionIcon('heroicon-m-home')
@@ -142,18 +154,6 @@ class StatsOverviewWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-clock')
                 ->color($pendingRegistrations > 0 ? 'warning' : 'success')
                 ->url(RegistrationResource::getUrl('index')),
-
-            // Baris kedua
-            Stat::make('Kapasitas', $totalCapacity)
-                ->description("Terisi: {$residentsWithRoom} | Tersedia: {$availableCapacity}")
-                ->descriptionIcon('heroicon-m-building-office-2')
-                ->color('primary')
-                ->url(RoomResource::getUrl('index')),
-
-            Stat::make('Okupansi Kapasitas', "{$occupancyPercentage}%")
-                ->description("Penghuni: {$residentsWithRoom} dari {$totalCapacity} kapasitas")
-                ->descriptionIcon('heroicon-m-chart-bar')
-                ->color($occupancyPercentage >= 80 ? 'danger' : ($occupancyPercentage >= 60 ? 'warning' : 'success')),
 
             Stat::make('Status Penempatan', "{$placementPercentage}%")
                 ->description("Sudah ada kamar: {$residentsWithRoom} | Belum: {$residentsWithoutRoom}")
