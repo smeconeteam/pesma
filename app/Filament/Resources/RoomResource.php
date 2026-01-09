@@ -177,8 +177,7 @@ class RoomResource extends Resource
                             ->required()
                             ->live()
                             ->afterStateUpdated(function (Set $set, Get $get, $state) {
-                                // Generate room code
-                                static::generateRoomCode($set, $get);
+                                // HAPUS pemanggilan generateRoomCode dari sini
                                 
                                 // Auto-fill capacity dan monthly_rate dari room type
                                 if ($state) {
@@ -993,31 +992,26 @@ class RoomResource extends Resource
 
     protected static function generateRoomCode(Set $set, Get $get): void
     {
-        $dormId     = $get('dorm_id');
-        $blockId    = $get('block_id');
-        $roomTypeId = $get('room_type_id');
-        $number     = $get('number');
+        $dormId  = $get('dorm_id');
+        $blockId = $get('block_id');
+        $number  = $get('number');
 
-        if (!$dormId || !$blockId || !$roomTypeId || !$number) {
+        if (!$dormId || !$blockId || !$number) {
             $set('code', null);
             return;
         }
 
-        $dorm     = Dorm::find($dormId);
-        $block    = Block::find($blockId);
-        $roomType = RoomType::find($roomTypeId);
+        $dorm  = Dorm::find($dormId);
+        $block = Block::find($blockId);
 
-        if (!$dorm || !$block || !$roomType) {
+        if (!$dorm || !$block) {
             $set('code', null);
             return;
         }
 
-        $code = Room::generateCode(
-            $dorm->name,
-            $block->name,
-            $roomType->name,
-            (string) $number
-        );
+        // Format: cabang-komplek-nomor
+        // Contoh: coba-komplek-01
+        $code = Str::slug($dorm->name) . '-' . Str::slug($block->name) . '-' . $number;
 
         $set('code', strtolower($code));
     }
