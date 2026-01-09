@@ -30,52 +30,54 @@ class RegistrationResource extends Resource
     public static function shouldRegisterNavigation(): bool
     {
         $u = auth()->user();
-        // Semua admin bisa lihat menu
         return $u?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']) ?? false;
     }
 
     public static function canAccess(): bool
     {
         $u = auth()->user();
-        // Semua admin bisa akses resource ini
         return $u?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']) ?? false;
     }
 
     public static function canViewAny(): bool
     {
         $u = auth()->user();
-        // Hanya super_admin dan main_admin yang bisa lihat list/tabel
         return $u?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
     }
 
     public static function canCreate(): bool
     {
         $u = auth()->user();
-        // Semua admin bisa create (termasuk branch_admin dan block_admin)
         return $u?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']) ?? false;
     }
 
     public static function canEdit(Model $record): bool
     {
         $u = auth()->user();
-        // Hanya super_admin dan main_admin bisa edit, dan hanya jika status masih pending
         return $record->status === 'pending'
             && ($u?->hasAnyRole(['super_admin', 'main_admin']) ?? false);
     }
 
     public static function canDelete(Model $record): bool
     {
+        return false;
+    }
+
+    public static function canForceDelete(Model $record): bool
+    {
         $u = auth()->user();
-        // Hanya super_admin dan main_admin bisa hapus
-        // Hanya bisa hapus jika status pending atau rejected
-        return in_array($record->status, ['pending', 'rejected'])
-            && ($u?->hasAnyRole(['super_admin', 'main_admin']) ?? false);
+        return $u?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
+    }
+
+    public static function canForceDeleteAny(): bool
+    {
+        $u = auth()->user();
+        return $u?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
     }
 
     public static function canView(Model $record): bool
     {
         $u = auth()->user();
-        // Hanya super_admin dan main_admin bisa view detail
         return $u?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
     }
 
@@ -95,18 +97,23 @@ class RegistrationResource extends Resource
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('name')
-                            ->label('Nama (Username)')
-                            ->helperText('Boleh sama dengan nama lengkap')
+                            ->label('Nama Panggilan')
                             ->required()
                             ->maxLength(255),
 
                         Forms\Components\TextInput::make('password')
                             ->label('Password')
                             ->password()
-                            ->helperText('Kosongkan untuk generate otomatis (123456789)')
-                            ->dehydrateStateUsing(fn($state) => filled($state) ? bcrypt($state) : bcrypt('123456789'))
+                            ->required(fn(string $operation) => $operation === 'create')
+                            ->dehydrated(fn($state) => filled($state))
+                            ->revealable()
+                            ->default('123456789')
+                            ->minLength(8)
                             ->maxLength(255)
-                            ->columnSpanFull(),
+                            ->columnSpanFull()
+                            ->helperText(fn(string $operation) => $operation === 'edit'
+                                ? 'Kosongkan jika tidak ingin mengubah password.'
+                                : 'Minimal 8 karakter.'),
                     ]),
 
                 Forms\Components\Section::make('Profil Calon Penghuni')
@@ -117,7 +124,21 @@ class RegistrationResource extends Resource
                             ->options(fn() => ResidentCategory::query()->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
-                            ->required(),
+                            ->required()
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('name')
+                                    ->label('Nama Kategori')
+                                    ->required()
+                                    ->unique(ignoreRecord: true)
+                                    ->maxLength(255),
+                                Forms\Components\Textarea::make('description')
+                                    ->label('Deskripsi')
+                                    ->rows(3)
+                                    ->maxLength(500),
+                            ])
+                            ->createOptionUsing(function (array $data) {
+                                return ResidentCategory::create($data)->id;
+                            }),
 
                         Forms\Components\TextInput::make('full_name')
                             ->label('Nama Lengkap')
@@ -150,7 +171,7 @@ class RegistrationResource extends Resource
                             ->native(false)
                             ->displayFormat('d/m/Y')
                             ->format('Y-m-d')
-                            ->default(now()->subYears(6))
+                            ->default(now()->subYears(18))
                             ->maxDate(now()->subYears(6))
                             ->helperText('Minimal usia 6 tahun')
                             ->required(),
@@ -177,10 +198,13 @@ class RegistrationResource extends Resource
                             ->native(false)
                             ->default('WNI')
                             ->reactive()
-                            ->afterStateUpdated(function ($state, Forms\Set $set) {
-                                if ($state === 'WNI') {
+                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                                // Set default Indonesia hanya jika country_id masih kosong
+                                if ($state === 'WNI' && blank($get('country_id'))) {
                                     $indoId = Country::query()->where('iso2', 'ID')->value('id');
-                                    if ($indoId) $set('country_id', $indoId);
+                                    if ($indoId) {
+                                        $set('country_id', $indoId);
+                                    }
                                 }
                             })
                             ->required(),
@@ -190,8 +214,22 @@ class RegistrationResource extends Resource
                             ->options(fn() => Country::query()->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
-                            ->disabled(fn(Forms\Get $get) => $get('citizenship_status') === 'WNI')
                             ->default(fn() => Country::query()->where('iso2', 'ID')->value('id'))
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('name')
+                                    ->label('Nama Negara')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->columnSpan(1),
+                                Forms\Components\TextInput::make('calling_code')
+                                    ->label('Kode Telepon')
+                                    ->required()
+                                    ->columnSpan(1),
+                            ])
+                            ->createOptionUsing(fn(array $data) => Country::firstOrCreate(
+                                ['name' => $data['name']],
+                                ['calling_code' => $data['calling_code'] ?? null]
+                            )->id)
                             ->required(),
 
                         Forms\Components\TextInput::make('phone_number')
@@ -213,33 +251,43 @@ class RegistrationResource extends Resource
                             ->nullable(),
                     ]),
 
-                Forms\Components\Section::make('Preferensi Kamar')
-                    ->description('Rencana kamar yang diinginkan')
+                Forms\Components\Section::make('Informasi Pendaftaran')
+                    ->description('Tanggal pendaftaran dan preferensi kamar')
                     ->columns(2)
                     ->schema([
+                        Forms\Components\DatePicker::make('created_at')
+                            ->label('Tanggal Pendaftaran')
+                            ->native(false)
+                            ->displayFormat('d/m/Y')
+                            ->format('Y-m-d')
+                            ->default(now())
+                            ->helperText('Tanggal saat pendaftaran dilakukan (bisa tanggal lama untuk data historis)')
+                            ->required()
+                            ->columnSpanFull(),
+
                         Forms\Components\Select::make('preferred_dorm_id')
                             ->label('Cabang Yang Diinginkan')
                             ->options(fn() => Dorm::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
-                            ->required(),
+                            ->nullable(),
 
                         Forms\Components\Select::make('preferred_room_type_id')
                             ->label('Tipe Kamar Yang Diinginkan')
                             ->options(fn() => RoomType::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
-                            ->required(),
+                            ->nullable(),
 
                         Forms\Components\DatePicker::make('planned_check_in_date')
                             ->label('Rencana Tanggal Masuk')
                             ->native(false)
                             ->displayFormat('d/m/Y')
                             ->format('Y-m-d')
-                            ->minDate(now())
                             ->default(now()->addDays(7))
-                            ->helperText('Minimal hari ini')
-                            ->required(),
+                            ->helperText('Bisa tanggal masa lalu untuk data lama')
+                            ->nullable()
+                            ->columnSpanFull(),
                     ]),
             ]);
     }
@@ -291,7 +339,7 @@ class RegistrationResource extends Resource
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Tanggal Daftar')
-                    ->date('d M Y')
+                    ->dateTime('d M Y H:i')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('approved_at')
@@ -321,32 +369,20 @@ class RegistrationResource extends Resource
 
                 Tables\Actions\EditAction::make()
                     ->label('Edit')
-                    ->visible(
-                        fn(Registration $record) =>
-                        $record->status === 'pending' &&
-                            $canApproveReject
-                    ),
+                    ->visible(fn(Registration $record) => $record->status === 'pending' && $canApproveReject),
 
                 Tables\Actions\Action::make('approve')
                     ->label('Setujui')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(
-                        fn(Registration $record) =>
-                        $record->status === 'pending' &&
-                            $canApproveReject
-                    )
+                    ->visible(fn(Registration $record) => $record->status === 'pending' && $canApproveReject)
                     ->url(fn(Registration $record) => static::getUrl('approve', ['record' => $record])),
 
                 Tables\Actions\Action::make('reject')
                     ->label('Tolak')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
-                    ->visible(
-                        fn(Registration $record) =>
-                        $record->status === 'pending' &&
-                            $canApproveReject
-                    )
+                    ->visible(fn(Registration $record) => $record->status === 'pending' && $canApproveReject)
                     ->form([
                         Forms\Components\Textarea::make('rejection_reason')
                             ->label('Alasan Penolakan')
@@ -366,13 +402,28 @@ class RegistrationResource extends Resource
                             ->send();
                     }),
 
-                Tables\Actions\DeleteAction::make()
+                Tables\Actions\Action::make('force_delete')
                     ->label('Hapus')
-                    ->visible(
-                        fn(Registration $record) =>
-                        in_array($record->status, ['pending', 'rejected']) &&
-                            $canApproveReject
-                    ),
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->visible(fn(Registration $record) => static::canForceDelete($record))
+                    ->requiresConfirmation()
+                    ->modalHeading('Hapus Permanen Pendaftaran')
+                    ->modalDescription(function (Registration $record): string {
+                        $desc = 'Apakah Anda yakin ingin menghapus permanen data pendaftaran ini? Data yang terhapus permanen tidak dapat dipulihkan.';
+
+                        if ($record->status === 'approved') {
+                            $desc .= "\n\nCatatan: status pendaftaran ini sudah disetujui.";
+                        }
+
+                        if (!blank($record->user_id)) {
+                            $desc .= "\n\nCatatan: pendaftaran ini terhubung ke akun user_id: {$record->user_id}. Aksi ini hanya menghapus data pendaftaran, bukan akun user.";
+                        }
+
+                        return $desc;
+                    })
+                    ->modalSubmitActionLabel('Ya, Hapus Permanen')
+                    ->action(fn(Registration $record) => $record->forceDelete()),
             ])
             ->defaultSort('created_at', 'desc');
     }

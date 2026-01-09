@@ -22,21 +22,31 @@ class ListDiscounts extends ListRecords
 
     public function getTabs(): array
     {
-        return [
-            'aktif' => Tab::make('Aktif')
-                ->icon('heroicon-m-check-circle')
-                ->badge(Discount::query()->whereNull('deleted_at')->count())
-                ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('deleted_at')),
+        // Hanya super admin yang bisa melihat tabs
+        if (! auth()->user()?->hasRole('super_admin')) {
+            return [];
+        }
 
-            'sampah' => Tab::make('Sampah')
-                ->icon('heroicon-m-trash')
-                ->badge(Discount::onlyTrashed()->count())
-                ->modifyQueryUsing(fn (Builder $query) => $query->onlyTrashed()),
+        return [
+            'aktif' => Tab::make('Data Aktif')
+                ->modifyQueryUsing(fn (Builder $query) => $query->withoutTrashed())
+                ->badge(fn () => Discount::query()->withoutTrashed()->count()),
+
+            'terhapus' => Tab::make('Data Terhapus')
+                ->modifyQueryUsing(fn (Builder $query) => $query->onlyTrashed())
+                ->badge(fn () => Discount::query()->onlyTrashed()->count())
+                ->badgeColor('danger'),
         ];
     }
 
     public function getDefaultActiveTab(): string|int|null
     {
         return 'aktif';
+    }
+
+    public function updatedActiveTab(): void
+    {
+        // reset selected records saat pindah tab
+        $this->deselectAllTableRecords();
     }
 }

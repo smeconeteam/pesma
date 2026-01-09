@@ -18,13 +18,14 @@ class EditRegistration extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        // Auto set Indonesia untuk WNI
-        if (($data['citizenship_status'] ?? 'WNI') === 'WNI') {
+        // Default Indonesia untuk WNI hanya jika country_id belum diisi
+        if (($data['citizenship_status'] ?? 'WNI') === 'WNI' && empty($data['country_id'])) {
             $indoId = Country::query()->where('iso2', 'ID')->value('id');
             if ($indoId) {
                 $data['country_id'] = $indoId;
             }
         }
+
 
         // Jangan ubah password jika kosong
         if (empty($data['password'])) {

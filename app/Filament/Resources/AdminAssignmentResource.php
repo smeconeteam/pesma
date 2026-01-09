@@ -21,8 +21,8 @@ class AdminAssignmentResource extends Resource
 {
     protected static ?string $model = AdminScope::class;
 
-    protected static ?string $navigationGroup = 'Pengaturan';
-    protected static ?string $navigationLabel = 'Admin';
+    protected static ?string $navigationGroup = 'Penghuni';
+    protected static ?string $navigationLabel = 'Pengangkatan Admin';
     protected static ?string $pluralLabel = 'Admin';
     protected static ?string $modelLabel = 'Admin';
     protected static ?int $navigationSort = 50;

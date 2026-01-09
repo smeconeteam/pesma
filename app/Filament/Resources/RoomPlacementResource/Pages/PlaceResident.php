@@ -27,6 +27,9 @@ class PlaceResident extends Page implements HasActions
     protected static string $resource = RoomPlacementResource::class;
     protected static string $view = 'filament.resources.room-placement-resource.pages.place-resident';
 
+    protected static ?string $title = 'Tempatkan Penghuni';
+
+
     public ?array $data = [];
     public User $record;
 
@@ -92,7 +95,7 @@ class PlaceResident extends Page implements HasActions
                     ->columns(2)
                     ->schema([
                         Forms\Components\Select::make('dorm_id')
-                            ->label('Cabang (Dorm)')
+                            ->label('Cabang')
                             ->options(fn () => Dorm::query()
                                 ->where('is_active', true) // ✅ hanya dorm aktif
                                 ->orderBy('name')

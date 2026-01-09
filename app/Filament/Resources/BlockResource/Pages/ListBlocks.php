@@ -3,11 +3,11 @@
 namespace App\Filament\Resources\BlockResource\Pages;
 
 use App\Filament\Resources\BlockResource;
+use App\Models\Block;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Resources\Components\Tab;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ListBlocks extends ListRecords
 {
@@ -20,21 +20,41 @@ class ListBlocks extends ListRecords
         ];
     }
 
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            BlockResource\Widgets\BlockStatsOverview::class,
+        ];
+    }
+
     public function getTabs(): array
     {
-        $tabs = [
-            'aktif' => Tab::make('Data Aktif')
-                ->modifyQueryUsing(fn(Builder $query) => $query),
-        ];
-
-        if (auth()->user()?->hasRole('super_admin')) {
-            $tabs['terhapus'] = Tab::make('Data Terhapus')
-                ->modifyQueryUsing(
-                    fn(Builder $query) =>
-                    $query->withoutGlobalScopes([SoftDeletingScope::class])->onlyTrashed()
-                );
+        if (! auth()->user()?->hasRole('super_admin')) {
+            return [];
         }
 
-        return $tabs;
+        return [
+            'aktif' => Tab::make('Data Aktif')
+                ->modifyQueryUsing(fn (Builder $query) => $query->withoutTrashed())
+                ->badge(fn () => Block::query()
+                    ->whereHas('dorm')
+                    ->withoutTrashed()
+                    ->count()
+                ),
+
+            'terhapus' => Tab::make('Data Terhapus')
+                ->modifyQueryUsing(fn (Builder $query) => $query->onlyTrashed())
+                ->badge(fn () => Block::query()
+                    ->whereHas('dorm')
+                    ->onlyTrashed()
+                    ->count()
+                )
+                ->badgeColor('danger'),
+        ];
+    }
+
+    public function updatedActiveTab(): void
+    {
+        $this->deselectAllTableRecords();
     }
 }

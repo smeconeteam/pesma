@@ -26,13 +26,11 @@ class BillingTypeSeeder extends Seeder
                 [
                     'base' => 'Biaya Pengembangan',
                     'description' => 'Biaya pengembangan fasilitas.',
-                    'amount' => 150000,
                     'is_active' => true,
                 ],
                 [
                     'base' => 'Biaya Administrasi',
                     'description' => 'Biaya administrasi pendaftaran/pengelolaan.',
-                    'amount' => 50000,
                     'is_active' => true,
                 ],
             ];
@@ -41,7 +39,6 @@ class BillingTypeSeeder extends Seeder
                 $this->upsertGlobal(
                     baseName: $item['base'],
                     description: $item['description'],
-                    amount: (int) $item['amount'],
                     isActive: (bool) $item['is_active'],
                 );
             }
@@ -55,13 +52,11 @@ class BillingTypeSeeder extends Seeder
                 [
                     'base' => 'Biaya Kebersihan',
                     'description_prefix' => 'Biaya kebersihan khusus cabang: ',
-                    'amount' => 30000,
                     'is_active' => true,
                 ],
                 [
                     'base' => 'Biaya Internet',
                     'description_prefix' => 'Biaya internet khusus cabang: ',
-                    'amount' => 25000,
                     'is_active' => true,
                 ],
             ];
@@ -73,7 +68,6 @@ class BillingTypeSeeder extends Seeder
                         dormName: (string) $dorm->name,
                         baseName: (string) $item['base'],
                         description: (string) ($item['description_prefix'] . $dorm->name),
-                        amount: (int) $item['amount'],
                         isActive: (bool) $item['is_active'],
                     );
                 }
@@ -81,7 +75,7 @@ class BillingTypeSeeder extends Seeder
         });
     }
 
-    private function upsertGlobal(string $baseName, string $description, int $amount, bool $isActive): void
+    private function upsertGlobal(string $baseName, string $description, bool $isActive): void
     {
         $newName = $baseName . ' - Semua Cabang';
 
@@ -105,7 +99,6 @@ class BillingTypeSeeder extends Seeder
         // pastikan nama sesuai format baru
         $record->name = $newName;
         $record->description = $description;
-        $record->amount = $amount;
         $record->applies_to_all = true;
         $record->is_active = $isActive;
         $record->deleted_at = null; // restore kalau pernah dihapus
@@ -120,7 +113,6 @@ class BillingTypeSeeder extends Seeder
         string $dormName,
         string $baseName,
         string $description,
-        int $amount,
         bool $isActive
     ): void {
         $newName = $baseName . ' - ' . $dormName;
@@ -135,7 +127,6 @@ class BillingTypeSeeder extends Seeder
 
         $record->name = $newName;
         $record->description = $description;
-        $record->amount = $amount;
         $record->applies_to_all = false;
         $record->is_active = $isActive;
         $record->deleted_at = null; // restore kalau pernah dihapus

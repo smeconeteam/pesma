@@ -74,7 +74,7 @@ class ViewRegistration extends ViewRecord
                 ->columns(2)
                 ->schema([
                     TextEntry::make('email')->label('Email'),
-                    TextEntry::make('name')->label('Username'),
+                    TextEntry::make('name')->label('Nama Panggilan'),
                 ]),
 
             InfoSection::make('Profil')

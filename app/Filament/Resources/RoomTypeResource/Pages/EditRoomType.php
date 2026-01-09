@@ -10,23 +10,12 @@ class EditRoomType extends EditRecord
 {
     protected static string $resource = RoomTypeResource::class;
 
-    protected function mutateFormDataBeforeFill(array $data): array
-    {
-        // "VIP 4 orang" => base_name = "VIP"
-        $name = (string) ($data['name'] ?? '');
-        $data['base_name'] = preg_replace('/\s+\d+\s+orang\s*$/i', '', $name) ?: $name;
-
-        return $data;
-    }
-
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        $data['name'] = RoomTypeResource::buildAutoName(
-            $data['base_name'] ?? null,
-            $data['default_capacity'] ?? null
+        // Generate kode dari nama
+        $data['code'] = RoomTypeResource::buildCode(
+            $data['name'] ?? null
         );
-
-        unset($data['base_name']);
 
         return $data;
     }
@@ -36,10 +25,11 @@ class EditRoomType extends EditRecord
         return [
             Actions\DeleteAction::make()
                 ->label('Hapus')
-                ->visible(fn (): bool =>
+                ->visible(
+                    fn(): bool =>
                     auth()->user()?->hasRole(['super_admin', 'main_admin'])
-                    && ! $this->record->trashed()
-                    && ! $this->record->rooms()->exists()
+                        && ! $this->record->trashed()
+                        && ! $this->record->rooms()->exists()
                 ),
         ];
     }

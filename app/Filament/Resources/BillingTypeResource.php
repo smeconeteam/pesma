@@ -35,20 +35,51 @@ class BillingTypeResource extends Resource
         return $user && ($user->hasRole('super_admin') || $user->hasRole('main_admin'));
     }
 
-    public static function shouldRegisterNavigation(): bool { return static::isAllowed(); }
-    public static function canViewAny(): bool { return static::isAllowed(); }
-    public static function canCreate(): bool { return static::isAllowed(); }
-    public static function canEdit($record): bool { return static::isAllowed(); }
-    public static function canDelete($record): bool { return static::isAllowed(); }
-    public static function canDeleteAny(): bool { return static::isAllowed(); }
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::isAllowed();
+    }
+    public static function canViewAny(): bool
+    {
+        return static::isAllowed();
+    }
+    public static function canCreate(): bool
+    {
+        return static::isAllowed();
+    }
+    public static function canEdit($record): bool
+    {
+        return static::isAllowed();
+    }
+    public static function canDelete($record): bool
+    {
+        return static::isAllowed();
+    }
+    public static function canDeleteAny(): bool
+    {
+        return static::isAllowed();
+    }
 
     /** =========================
      *  SOFT DELETE + EAGER LOAD
      *  ========================= */
     public static function getEloquentQuery(): Builder
     {
+        $user = auth()->user();
+
+        if (! $user) {
+            return parent::getEloquentQuery()->whereRaw('1 = 0');
+        }
+
+        // ✅ Hanya super_admin yang bisa lihat data terhapus
+        if ($user->hasRole('super_admin')) {
+            return parent::getEloquentQuery()
+                ->withoutGlobalScopes([SoftDeletingScope::class])
+                ->with(['dorms:id,name']);
+        }
+
+        // ✅ main_admin hanya lihat data aktif (SoftDeletingScope default)
         return parent::getEloquentQuery()
-            ->withoutGlobalScopes([SoftDeletingScope::class])
             ->with(['dorms:id,name']);
     }
 
@@ -65,13 +96,6 @@ class BillingTypeResource extends Resource
                         ->required()
                         ->maxLength(255)
                         ->helperText('Nama akan otomatis menjadi "Nama - Cabang" saat disimpan.'),
-
-                    Forms\Components\TextInput::make('amount')
-                        ->label('Nominal')
-                        ->numeric()
-                        ->minValue(0)
-                        ->required()
-                        ->prefix('Rp'),
 
                     Forms\Components\Textarea::make('description')
                         ->label('Deskripsi')
@@ -97,47 +121,52 @@ class BillingTypeResource extends Resource
                 ->columns(2),
 
             Forms\Components\Section::make('Cakupan Cabang')
-                // ✅ CARA KE-2: jangan tampil saat view
                 ->visible(fn (string $operation): bool => $operation !== 'view')
                 ->schema([
                     // CREATE: boleh pilih banyak cabang
                     Forms\Components\Select::make('dorm_ids')
                         ->label('Cabang yang berlaku')
                         ->multiple()
-                        ->options(fn () => Dorm::query()
-                            ->where('is_active', true)
-                            ->orderBy('name')
-                            ->pluck('name', 'id')
-                            ->toArray()
+                        ->options(
+                            fn () => Dorm::query()
+                                ->where('is_active', true)
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->toArray()
                         )
                         ->searchable()
                         ->preload()
                         ->native(false)
-                        ->visible(fn (Get $get, string $operation) =>
-                            $operation === 'create' && ! (bool) $get('applies_to_all')
+                        ->visible(
+                            fn (Get $get, string $operation) =>
+                                $operation === 'create' && ! (bool) $get('applies_to_all')
                         )
-                        ->required(fn (Get $get, string $operation) =>
-                            $operation === 'create' && ! (bool) $get('applies_to_all')
+                        ->required(
+                            fn (Get $get, string $operation) =>
+                                $operation === 'create' && ! (bool) $get('applies_to_all')
                         )
-                        ->helperText('Jika memilih beberapa cabang, sistem akan membuat data baru 1 per cabang (nominal sama).'),
+                        ->helperText('Jika memilih beberapa cabang, sistem akan membuat data baru 1 per cabang.'),
 
                     // EDIT: wajib 1 cabang saja
                     Forms\Components\Select::make('dorm_id')
                         ->label('Cabang yang berlaku')
-                        ->options(fn () => Dorm::query()
-                            ->where('is_active', true)
-                            ->orderBy('name')
-                            ->pluck('name', 'id')
-                            ->toArray()
+                        ->options(
+                            fn () => Dorm::query()
+                                ->where('is_active', true)
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->toArray()
                         )
                         ->searchable()
                         ->preload()
                         ->native(false)
-                        ->visible(fn (Get $get, string $operation) =>
-                            $operation === 'edit' && ! (bool) $get('applies_to_all')
+                        ->visible(
+                            fn (Get $get, string $operation) =>
+                                $operation === 'edit' && ! (bool) $get('applies_to_all')
                         )
-                        ->required(fn (Get $get, string $operation) =>
-                            $operation === 'edit' && ! (bool) $get('applies_to_all')
+                        ->required(
+                            fn (Get $get, string $operation) =>
+                                $operation === 'edit' && ! (bool) $get('applies_to_all')
                         )
                         ->helperText('Saat edit, hanya boleh memilih 1 cabang.'),
                 ]),
@@ -154,11 +183,6 @@ class BillingTypeResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nama')
                     ->searchable()
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('amount')
-                    ->label('Nominal')
-                    ->formatStateUsing(fn ($state) => 'Rp ' . number_format((float) $state, 0, ',', '.'))
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('cabang')
@@ -199,14 +223,14 @@ class BillingTypeResource extends Resource
                 Tables\Filters\TernaryFilter::make('is_active')->label('Aktif'),
                 Tables\Filters\TernaryFilter::make('applies_to_all')->label('Semua Cabang'),
 
-                // Filter berdasarkan cabang: tampilkan yg "Semua Cabang" atau yang punya dorm itu
                 SelectFilter::make('dorm_filter')
                     ->label('Cabang')
-                    ->options(fn () => Dorm::query()
-                        ->where('is_active', true)
-                        ->orderBy('name')
-                        ->pluck('name', 'id')
-                        ->toArray()
+                    ->options(
+                        fn () => Dorm::query()
+                            ->where('is_active', true)
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->toArray()
                     )
                     ->searchable()
                     ->query(function (Builder $query, array $data) {
@@ -228,15 +252,59 @@ class BillingTypeResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->visible(fn ($record) => $record->deleted_at === null),
 
+                // ✅ Hapus (soft delete) hanya untuk data aktif
                 Tables\Actions\DeleteAction::make()
+                    ->label('Hapus')
                     ->visible(fn ($record) => $record->deleted_at === null),
 
+                // ✅ Pulihkan hanya untuk data terhapus
                 Tables\Actions\RestoreAction::make()
+                    ->label('Pulihkan')
                     ->visible(fn ($record) => $record->deleted_at !== null),
+
+                // ✅ Force delete hanya untuk data terhapus (tab data terhapus)
+                Tables\Actions\ForceDeleteAction::make()
+                    ->label('Hapus Permanen')
+                    ->visible(function ($record) {
+                        $user = auth()->user();
+                        if (! $user?->hasRole('super_admin')) {
+                            return false;
+                        }
+
+                        return $record->deleted_at !== null;
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Hapus Permanen Jenis Tagihan')
+                    ->modalDescription('Apakah Anda yakin ingin menghapus permanen data ini? Data yang terhapus permanen tidak dapat dipulihkan.')
+                    ->modalSubmitActionLabel('Ya, Hapus Permanen'),
             ])
+            // ✅ Bulk action: delete hanya aktif, restore hanya terhapus (tanpa grup)
             ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
-                Tables\Actions\RestoreBulkAction::make(),
+                Tables\Actions\DeleteBulkAction::make()
+                    ->label('Hapus')
+                    ->visible(function ($livewire) {
+                        $user = auth()->user();
+
+                        if (! $user?->hasAnyRole(['super_admin', 'main_admin'])) {
+                            return false;
+                        }
+
+                        return ($livewire->activeTab ?? null) !== 'terhapus';
+                    })
+                    ->deselectRecordsAfterCompletion(),
+
+                Tables\Actions\RestoreBulkAction::make()
+                    ->label('Pulihkan')
+                    ->visible(function ($livewire) {
+                        $user = auth()->user();
+
+                        if (! $user?->hasRole('super_admin')) {
+                            return false;
+                        }
+
+                        return ($livewire->activeTab ?? null) === 'terhapus';
+                    })
+                    ->deselectRecordsAfterCompletion(),
             ])
             ->defaultSort('name');
     }

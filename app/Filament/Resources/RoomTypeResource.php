@@ -19,12 +19,13 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class RoomTypeResource extends Resource
 {
     protected static ?string $model = RoomType::class;
 
-    protected static ?string $navigationGroup = 'Pengaturan';
+    protected static ?string $navigationGroup = 'Asrama';
     protected static ?int $navigationSort = 10;
 
     protected static ?string $navigationLabel = 'Tipe Kamar';
@@ -32,13 +33,11 @@ class RoomTypeResource extends Resource
     protected static ?string $pluralLabel = 'Tipe Kamar';
     protected static ?string $modelLabel = 'Tipe Kamar';
 
-    // ✅ Hanya super_admin & main_admin yang melihat menu
     public static function shouldRegisterNavigation(): bool
     {
         return auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false;
     }
 
-    // ✅ Hanya super_admin & main_admin yang bisa akses
     public static function canViewAny(): bool
     {
         return auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false;
@@ -75,31 +74,44 @@ class RoomTypeResource extends Resource
             Forms\Components\Section::make('Informasi Tipe Kamar')
                 ->columns(2)
                 ->schema([
-                    // 1) Nama (VIP) - FULL
-                    Forms\Components\TextInput::make('base_name')
-                        ->label('Nama (mis. VIP)')
+                    // 1) Nama Tipe Kamar - FULL
+                    Forms\Components\TextInput::make('name')
+                        ->label('Nama Tipe Kamar (mis. VVIP 1)')
                         ->required()
                         ->maxLength(255)
                         ->columnSpanFull()
                         ->live(onBlur: true)
-                        ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
-                            $set('name', static::buildAutoName($state, $get('default_capacity')));
+                        ->afterStateUpdated(function (Set $set, ?string $state) {
+                            $set('code', static::buildCode($state));
                         }),
 
-                    // 2) Kapasitas Default - KIRI
+                    // 2) Kode Tipe Kamar (Otomatis) - FULL
+                    Forms\Components\TextInput::make('code')
+                        ->label('Kode Tipe Kamar (Otomatis)')
+                        ->disabled()
+                        ->required()
+                        ->maxLength(255)
+                        ->columnSpanFull()
+                        ->helperText('Kode otomatis dibuat dari nama (huruf kecil, spasi jadi "-")')
+                        ->afterStateHydrated(function (Set $set, Get $get, $state) {
+                            $computed = static::buildCode($get('name'));
+                            $set('code', $state ?: $computed);
+                        })
+                        ->dehydrated(true)
+                        ->dehydrateStateUsing(function ($state, Get $get) {
+                            return static::buildCode($get('name'));
+                        }),
+
+                    // 3) Kapasitas Default - KIRI
                     Forms\Components\TextInput::make('default_capacity')
                         ->label('Kapasitas Default')
                         ->numeric()
                         ->minValue(1)
                         ->required()
                         ->helperText('Jumlah penghuni default dalam satu kamar.')
-                        ->columnSpan(1)
-                        ->live(onBlur: true)
-                        ->afterStateUpdated(function (Set $set, Get $get, $state) {
-                            $set('name', static::buildAutoName($get('base_name'), $state));
-                        }),
+                        ->columnSpan(1),
 
-                    // 3) Tarif Bulanan Default - KANAN
+                    // 4) Tarif Bulanan Default - KANAN
                     Forms\Components\TextInput::make('default_monthly_rate')
                         ->label('Tarif Bulanan Default')
                         ->numeric()
@@ -107,24 +119,6 @@ class RoomTypeResource extends Resource
                         ->required()
                         ->prefix('Rp')
                         ->columnSpan(1),
-
-                    // 4) Nama Tipe (Otomatis) - FULL
-                    Forms\Components\TextInput::make('name')
-                        ->label('Nama Tipe (Otomatis)')
-                        ->disabled()
-                        ->required()
-                        ->maxLength(255)
-                        ->columnSpanFull()
-                        // ✅ Saat buka edit, pastikan terisi (kalau DB kosong)
-                        ->afterStateHydrated(function (Set $set, Get $get, $state) {
-                            $computed = static::buildAutoName($get('base_name'), $get('default_capacity'));
-                            $set('name', $state ?: $computed);
-                        })
-                        // ✅ PENTING: Saat submit, hitung ulang walaupun user belum blur
-                        ->dehydrated(true)
-                        ->dehydrateStateUsing(function ($state, Get $get) {
-                            return static::buildAutoName($get('base_name'), $get('default_capacity'));
-                        }),
 
                     // 5) Deskripsi - FULL
                     Forms\Components\Textarea::make('description')
@@ -152,6 +146,13 @@ class RoomTypeResource extends Resource
                     ->searchable()
                     // ✅ fallback kalau data lama masih kosong
                     ->formatStateUsing(fn ($state, RoomType $record) => $state ?: static::buildAutoName($record->base_name, $record->default_capacity)),
+
+                Tables\Columns\TextColumn::make('code')
+                    ->label('Kode')
+                    ->sortable()
+                    ->searchable()
+                    ->badge()
+                    ->color('info'),
 
                 Tables\Columns\TextColumn::make('default_capacity')
                     ->label('Kapasitas')
@@ -212,54 +213,65 @@ class RoomTypeResource extends Resource
                         auth()->user()?->hasRole(['super_admin'])
                         && $record->trashed()
                     ),
+
+                Tables\Actions\ForceDeleteAction::make()
+                    ->label('Hapus Permanen')
+                    ->visible(
+                        fn(RoomType $record): bool =>
+                        auth()->user()?->hasRole('super_admin')
+                            && $record->trashed()
+                    ),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn () => auth()->user()?->hasRole(['super_admin', 'main_admin']))
-                        ->action(function (Collection $records) {
-                            $allowed = $records->filter(fn (RoomType $r) => ! $r->rooms()->exists());
-                            $blocked = $records->diff($allowed);
+                Tables\Actions\DeleteBulkAction::make()
+                    ->visible(
+                        fn($livewire = null): bool =>
+                        auth()->user()?->hasRole(['super_admin', 'main_admin'])
+                            && (($livewire?->activeTab ?? 'aktif') === 'aktif')
+                    )
+                    ->action(function (Collection $records) {
+                        $allowed = $records->filter(fn(RoomType $r) => ! $r->rooms()->exists());
+                        $blocked = $records->diff($allowed);
 
-                            if ($allowed->isEmpty()) {
-                                Notification::make()
-                                    ->title('Aksi Dibatalkan')
-                                    ->body('Tidak ada tipe kamar yang bisa dihapus. Tipe kamar yang sudah dipakai oleh kamar tidak dapat dihapus.')
-                                    ->danger()
-                                    ->send();
-                                return;
-                            }
+                        if ($allowed->isEmpty()) {
+                            Notification::make()
+                                ->title('Aksi Dibatalkan')
+                                ->body('Tidak ada tipe kamar yang bisa dihapus. Tipe kamar yang sudah dipakai oleh kamar tidak dapat dihapus.')
+                                ->warning()
+                                ->send();
+                            return;
+                        }
 
-                            foreach ($allowed as $r) {
-                                $r->delete();
-                            }
+                        foreach ($allowed as $r) {
+                            $r->delete();
+                        }
 
-                            $deleted = $allowed->count();
+                        $deleted = $allowed->count();
 
-                            if ($blocked->isNotEmpty()) {
-                                Notification::make()
-                                    ->title('Berhasil Sebagian')
-                                    ->body("Berhasil menghapus {$deleted} tipe kamar. Yang tidak bisa dihapus: " . $blocked->pluck('name')->join(', '))
-                                    ->warning()
-                                    ->send();
-                            } else {
-                                Notification::make()
-                                    ->title('Berhasil')
-                                    ->body("Berhasil menghapus {$deleted} tipe kamar.")
-                                    ->success()
-                                    ->send();
-                            }
-                        }),
+                        if ($blocked->isNotEmpty()) {
+                            Notification::make()
+                                ->title('Berhasil Sebagian')
+                                ->body("Berhasil menghapus {$deleted} tipe kamar. Tipe kamar yang tidak bisa dihapus: " . $blocked->pluck('name')->join(', '))
+                                ->warning()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('Berhasil')
+                                ->body("Berhasil menghapus {$deleted} tipe kamar.")
+                                ->success()
+                                ->send();
+                        }
+                    }),
 
-                    Tables\Actions\RestoreBulkAction::make()
-                        ->visible(fn () => auth()->user()?->hasRole('super_admin')),
-                ]),
+                Tables\Actions\RestoreBulkAction::make()
+                    ->visible(
+                        fn($livewire = null): bool =>
+                        auth()->user()?->hasRole('super_admin')
+                            && (($livewire?->activeTab ?? 'aktif') === 'terhapus')
+                    ),
             ]);
     }
 
-    /**
-     * ✅ Supaya saat ViewAction "Lihat", field tampil jelas
-     */
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist->schema([
@@ -267,8 +279,13 @@ class RoomTypeResource extends Resource
                 ->columns(2)
                 ->schema([
                     TextEntry::make('name')
-                        ->label('Nama Tipe')
-                        ->state(fn (RoomType $record) => $record->name ?: static::buildAutoName($record->base_name, $record->default_capacity))
+                        ->label('Nama Tipe Kamar')
+                        ->placeholder('-'),
+
+                    TextEntry::make('code')
+                        ->label('Kode Tipe Kamar')
+                        ->badge()
+                        ->color('info')
                         ->placeholder('-'),
 
                     TextEntry::make('default_capacity')
@@ -312,15 +329,14 @@ class RoomTypeResource extends Resource
         ];
     }
 
-    public static function buildAutoName(?string $baseName, $capacity): string
+    public static function buildCode(?string $name): string
     {
-        $baseName = trim((string) $baseName);
-        $capacity = (int) ($capacity ?? 0);
+        $name = trim((string) $name);
 
-        if ($baseName === '' || $capacity <= 0) {
+        if ($name === '') {
             return '';
         }
 
-        return "{$baseName} {$capacity} orang";
+        return Str::slug($name, '-');
     }
 }

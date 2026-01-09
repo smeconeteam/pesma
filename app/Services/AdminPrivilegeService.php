@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use App\Models\AdminProfile;
 use App\Models\AdminScope;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AdminPrivilegeService
@@ -94,6 +96,152 @@ class AdminPrivilegeService
             // hapus scope lama (kalau assignAdmin sudah hapus semua scope, ini aman)
             $scope->refresh();
             return $newScope;
+        });
+    }
+
+    /**
+     * Buat Main Admin baru dengan profil lengkap
+     */
+    public function createMainAdmin(array $data): User
+    {
+        return DB::transaction(function () use ($data) {
+            // Validasi NIK unik
+            if (AdminProfile::where('national_id', $data['national_id'])->exists()) {
+                throw ValidationException::withMessages([
+                    'national_id' => 'NIK sudah terdaftar.',
+                ]);
+            }
+
+            // Buat user
+            $user = User::create([
+                'name' => $data['full_name'],
+                'email' => $data['email'],
+                'password' => Hash::make($data['password']),
+                'is_active' => true,
+            ]);
+
+            // Assign role main_admin
+            $role = Role::firstOrCreate(['name' => 'main_admin']);
+            $user->roles()->attach($role->id);
+
+            // Buat admin profile
+            $profileData = [
+                'user_id' => $user->id,
+                'national_id' => $data['national_id'],
+                'full_name' => $data['full_name'],
+                'gender' => $data['gender'],
+                'phone_number' => $data['phone_number'],
+            ];
+
+            if (isset($data['photo_path'])) {
+                $profileData['photo_path'] = $data['photo_path'];
+            }
+
+            AdminProfile::create($profileData);
+
+            return $user;
+        });
+    }
+
+    /**
+     * Update Main Admin
+     */
+    public function updateMainAdmin(User $user, array $data): User
+    {
+        return DB::transaction(function () use ($user, $data) {
+            // Validasi NIK unik kecuali milik user ini
+            $existingProfile = AdminProfile::where('national_id', $data['national_id'])
+                ->where('user_id', '!=', $user->id)
+                ->exists();
+
+            if ($existingProfile) {
+                throw ValidationException::withMessages([
+                    'national_id' => 'NIK sudah terdaftar.',
+                ]);
+            }
+
+            // Update user
+            $userData = [
+                'name' => $data['full_name'],
+                'email' => $data['email'],
+            ];
+
+            if (!empty($data['password'])) {
+                $userData['password'] = Hash::make($data['password']);
+            }
+
+            $user->update($userData);
+
+            // Update admin profile
+            $profileData = [
+                'national_id' => $data['national_id'],
+                'full_name' => $data['full_name'],
+                'gender' => $data['gender'],
+                'phone_number' => $data['phone_number'],
+            ];
+
+            if (isset($data['photo_path'])) {
+                $profileData['photo_path'] = $data['photo_path'];
+            }
+
+            $user->adminProfile()->update($profileData);
+
+            return $user->fresh();
+        });
+    }
+
+    /**
+     * Soft delete Main Admin
+     */
+    public function deleteMainAdmin(User $user): void
+    {
+        DB::transaction(function () use ($user) {
+            // Soft delete admin profile
+            $user->adminProfile()->delete();
+            
+            // JANGAN detach role agar masih bisa diquery
+            // Role akan tetap ada untuk identifikasi
+            $user->update(['is_active' => false]);
+            // Soft delete user
+            $user->delete();
+        });
+    }
+
+    /**
+     * Restore Main Admin
+     */
+    public function restoreMainAdmin(User $user): void
+    {
+        DB::transaction(function () use ($user) {
+            // Restore user
+            $user->restore();
+            
+            $user->update(['is_active' => true]);
+
+            // Restore admin profile
+            $user->adminProfile()->restore();
+            
+            // Role sudah ada, tidak perlu re-attach
+        });
+    }
+
+    /**
+     * Force delete Main Admin
+     */
+    public function forceDeleteMainAdmin(User $user): void
+    {
+        DB::transaction(function () use ($user) {
+            // Force delete admin profile
+            $user->adminProfile()->forceDelete();
+            
+            // Detach role
+            $role = Role::where('name', 'main_admin')->first();
+            if ($role) {
+                $user->roles()->detach($role->id);
+            }
+            
+            // Force delete user
+            $user->forceDelete();
         });
     }
 }

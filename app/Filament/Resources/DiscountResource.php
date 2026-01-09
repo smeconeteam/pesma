@@ -21,6 +21,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 class DiscountResource extends Resource
 {
@@ -40,20 +41,84 @@ class DiscountResource extends Resource
         return $user && ($user->hasRole('super_admin') || $user->hasRole('main_admin'));
     }
 
-    public static function shouldRegisterNavigation(): bool { return static::isAllowed(); }
-    public static function canViewAny(): bool { return static::isAllowed(); }
-    public static function canCreate(): bool { return static::isAllowed(); }
-    public static function canEdit($record): bool { return static::isAllowed(); }
-    public static function canDelete($record): bool { return static::isAllowed(); }
-    public static function canDeleteAny(): bool { return static::isAllowed(); }
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::isAllowed();
+    }
+
+    public static function canViewAny(): bool
+    {
+        return static::isAllowed();
+    }
+
+    public static function canCreate(): bool
+    {
+        return static::isAllowed();
+    }
+
+    public static function canEdit($record): bool
+    {
+        if (! static::isAllowed()) {
+            return false;
+        }
+
+        return ! (method_exists($record, 'trashed') && $record->trashed());
+    }
+
+    public static function canDelete($record): bool
+    {
+        if (! static::isAllowed()) {
+            return false;
+        }
+
+        return ! (method_exists($record, 'trashed') && $record->trashed());
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return static::isAllowed();
+    }
+
+    public static function canRestore($record): bool
+    {
+        return auth()->user()?->hasRole('super_admin') ?? false;
+    }
+
+    public static function canRestoreAny(): bool
+    {
+        return auth()->user()?->hasRole('super_admin') ?? false;
+    }
+
+    public static function canForceDelete($record): bool
+    {
+        return auth()->user()?->hasRole('super_admin') ?? false;
+    }
+
+    public static function canForceDeleteAny(): bool
+    {
+        return auth()->user()?->hasRole('super_admin') ?? false;
+    }
 
     /** =========================
      *  SOFT DELETE + EAGER LOAD
      *  ========================= */
     public static function getEloquentQuery(): Builder
     {
+        $user = auth()->user();
+
+        if (! $user) {
+            return parent::getEloquentQuery()->whereRaw('1 = 0');
+        }
+
+        // ✅ Hanya super_admin yang bisa lihat data terhapus
+        if ($user->hasRole('super_admin')) {
+            return parent::getEloquentQuery()
+                ->withoutGlobalScopes([SoftDeletingScope::class])
+                ->with(['dorms:id,name']);
+        }
+
+        // ✅ main_admin hanya lihat data aktif (pakai SoftDeletingScope default)
         return parent::getEloquentQuery()
-            ->withoutGlobalScopes([SoftDeletingScope::class])
             ->with(['dorms:id,name']);
     }
 
@@ -143,7 +208,7 @@ class DiscountResource extends Resource
                         ->native(false)
                         ->closeOnDateSelection()
                         ->displayFormat('d M Y')
-                        ->minDate(Carbon::today()) // ✅ tidak boleh kurang dari hari ini
+                        ->minDate(Carbon::today())
                         ->live()
                         ->helperText('Tidak boleh kurang dari hari ini. Kosongkan jika tidak dibatasi.'),
 
@@ -257,7 +322,7 @@ class DiscountResource extends Resource
     }
 
     /** =========================
-     *  VIEW PAGE (INFOLIST) - TANPA toggleable()
+     *  VIEW PAGE (INFOLIST)
      *  ========================= */
     public static function infolist(Infolist $infolist): Infolist
     {
@@ -383,11 +448,12 @@ class DiscountResource extends Resource
 
                 SelectFilter::make('dorm_filter')
                     ->label('Cabang')
-                    ->options(fn () => Dorm::query()
-                        ->where('is_active', true)
-                        ->orderBy('name')
-                        ->pluck('name', 'id')
-                        ->toArray()
+                    ->options(
+                        fn () => Dorm::query()
+                            ->where('is_active', true)
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->toArray()
                     )
                     ->searchable()
                     ->query(function (Builder $query, array $data) {
@@ -396,7 +462,7 @@ class DiscountResource extends Resource
 
                         return $query->where(function (Builder $q) use ($dormId) {
                             $q->where('applies_to_all', true)
-                              ->orWhereHas('dorms', fn (Builder $dq) => $dq->where('dorms.id', $dormId));
+                                ->orWhereHas('dorms', fn (Builder $dq) => $dq->where('dorms.id', $dormId));
                         });
                     }),
             ])
@@ -412,11 +478,44 @@ class DiscountResource extends Resource
                     ->visible(fn ($record) => $record->deleted_at === null),
 
                 Tables\Actions\RestoreAction::make()
-                    ->visible(fn ($record) => $record->deleted_at !== null),
+                    ->visible(fn ($record) => (auth()->user()?->hasRole('super_admin') ?? false) && $record->deleted_at !== null),
+
+                Tables\Actions\ForceDeleteAction::make()
+                    ->label('Hapus Permanen')
+                    ->requiresConfirmation()
+                    ->modalHeading('Hapus Permanen Diskon')
+                    ->modalDescription('Apakah Anda yakin ingin menghapus permanen diskon ini? Data yang terhapus permanen tidak dapat dipulihkan.')
+                    ->modalSubmitActionLabel('Ya, Hapus Permanen')
+                    ->visible(fn ($record) => (auth()->user()?->hasRole('super_admin') ?? false) && $record->deleted_at !== null),
             ])
             ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
-                Tables\Actions\RestoreBulkAction::make(),
+                Tables\Actions\DeleteBulkAction::make()
+                    ->label('Hapus')
+                    ->visible(function ($livewire) {
+                        $user = auth()->user();
+
+                        if (! $user?->hasAnyRole(['super_admin', 'main_admin'])) {
+                            return false;
+                        }
+
+                        // hanya tampil di tab data aktif
+                        return ($livewire->activeTab ?? null) !== 'terhapus';
+                    })
+                    ->deselectRecordsAfterCompletion(),
+
+                Tables\Actions\RestoreBulkAction::make()
+                    ->label('Pulihkan')
+                    ->visible(function ($livewire) {
+                        $user = auth()->user();
+
+                        if (! $user?->hasRole('super_admin')) {
+                            return false;
+                        }
+
+                        // hanya tampil di tab data terhapus
+                        return ($livewire->activeTab ?? null) === 'terhapus';
+                    })
+                    ->deselectRecordsAfterCompletion(),
             ])
             ->defaultSort('name');
     }

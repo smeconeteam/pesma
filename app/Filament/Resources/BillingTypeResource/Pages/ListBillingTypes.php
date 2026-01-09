@@ -22,21 +22,33 @@ class ListBillingTypes extends ListRecords
 
     public function getTabs(): array
     {
-        return [
-            'aktif' => Tab::make('Aktif')
-                ->icon('heroicon-m-check-circle')
-                ->badge(BillingType::query()->whereNull('deleted_at')->count())
-                ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('deleted_at')),
+        // ✅ Hanya super_admin yang punya tab aktif/terhapus
+        if (! auth()->user()?->hasRole('super_admin')) {
+            return [];
+        }
 
-            'sampah' => Tab::make('Sampah')
-                ->icon('heroicon-m-trash')
-                ->badge(BillingType::onlyTrashed()->count())
-                ->modifyQueryUsing(fn (Builder $query) => $query->onlyTrashed()),
+        return [
+            'aktif' => Tab::make('Data Aktif')
+                ->modifyQueryUsing(fn (Builder $query) => $query->withoutTrashed())
+                ->badge(fn () => BillingType::query()->withoutTrashed()->count()),
+
+            'terhapus' => Tab::make('Data Terhapus')
+                ->modifyQueryUsing(fn (Builder $query) => $query->onlyTrashed())
+                ->badge(fn () => BillingType::query()->onlyTrashed()->count())
+                ->badgeColor('danger'),
         ];
     }
 
     public function getDefaultActiveTab(): string|int|null
     {
         return 'aktif';
+    }
+
+    /**
+     * ✅ Reset selection saat pindah tab
+     */
+    public function updatedActiveTab(): void
+    {
+        $this->deselectAllTableRecords();
     }
 }

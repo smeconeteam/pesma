@@ -91,11 +91,17 @@ class User extends Authenticatable implements FilamentUser
         ]);
     }
 
-    public function residentProfile(): HasOne
+    public function residentProfile()
     {
-        return $this->hasOne(ResidentProfile::class, 'user_id');
+        return $this->hasOne(\App\Models\ResidentProfile::class)->withTrashed();
     }
 
+    // Relasi untuk Admin Profile
+    public function adminProfile(): HasOne
+    {
+        return $this->hasOne(AdminProfile::class);
+    }
+    
     public function roomResidents(): HasMany
     {
         return $this->hasMany(RoomResident::class);
