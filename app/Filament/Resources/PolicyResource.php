@@ -28,9 +28,7 @@ class PolicyResource extends Resource
     {
         $user = auth()->user();
 
-        return $user?->hasAnyRole(['super_admin', 'admin_utama']) ?? false;
-        // atau:
-        // return $user?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
+        return $user?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
     }
 
     public static function canCreate(): bool
