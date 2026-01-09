@@ -9,6 +9,10 @@ use App\Models\RoomResident;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Auth;
+use App\Filament\Resources\ResidentResource;
+use App\Filament\Resources\RoomResource;
+use App\Filament\Resources\RegistrationResource;
+use App\Filament\Resources\RoomPlacementResource;
 
 class StatsOverviewWidget extends BaseWidget
 {
@@ -124,23 +128,27 @@ class StatsOverviewWidget extends BaseWidget
             Stat::make('Penghuni Aktif', $totalActiveResidents)
                 ->description("Penghuni memiliki kamar: {$residentsWithRoom}")
                 ->descriptionIcon('heroicon-m-user-group')
-                ->color('success'),
+                ->color('success')
+                ->url(ResidentResource::getUrl('index')),
 
             Stat::make('Kamar', $totalRooms)
                 ->description("dan {$occupiedRooms} kamar terisi")
                 ->descriptionIcon('heroicon-m-home')
-                ->color('info'),
+                ->color('info')
+                ->url(RoomResource::getUrl('index')),
 
             Stat::make('Pendaftaran Pending', $pendingRegistrations)
                 ->description('Menunggu persetujuan')
                 ->descriptionIcon('heroicon-m-clock')
-                ->color($pendingRegistrations > 0 ? 'warning' : 'success'),
+                ->color($pendingRegistrations > 0 ? 'warning' : 'success')
+                ->url(RegistrationResource::getUrl('index')),
 
             // Baris kedua
             Stat::make('Kapasitas', $totalCapacity)
                 ->description("Terisi: {$residentsWithRoom} | Tersedia: {$availableCapacity}")
                 ->descriptionIcon('heroicon-m-building-office-2')
-                ->color('primary'),
+                ->color('primary')
+                ->url(RoomResource::getUrl('index')),
 
             Stat::make('Okupansi Kapasitas', "{$occupancyPercentage}%")
                 ->description("Penghuni: {$residentsWithRoom} dari {$totalCapacity} kapasitas")
@@ -150,7 +158,8 @@ class StatsOverviewWidget extends BaseWidget
             Stat::make('Status Penempatan', "{$placementPercentage}%")
                 ->description("Sudah ada kamar: {$residentsWithRoom} | Belum: {$residentsWithoutRoom}")
                 ->descriptionIcon('heroicon-m-check-circle')
-                ->color($placementPercentage >= 80 ? 'success' : ($placementPercentage >= 50 ? 'warning' : 'danger')),
+                ->color($placementPercentage >= 80 ? 'success' : ($placementPercentage >= 50 ? 'warning' : 'danger'))
+                ->url(RoomPlacementResource::getUrl('index')),
         ];
     }
 
