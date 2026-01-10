@@ -12,23 +12,25 @@ class ListRoomPlacements extends ListRecords
 {
     protected static string $resource = RoomPlacementResource::class;
 
-    /**
-     * Query dasar yang harus konsisten dengan RoomPlacementResource::getEloquentQuery():
-     * - user role resident
-     * - residentProfile status registered/active
-     */
     protected function baseCountQuery(): Builder
     {
         return User::query()
-            ->whereHas('roles', fn (Builder $q) => $q->where('name', 'resident'))
-            ->whereHas('residentProfile', fn (Builder $q) => $q->whereIn('status', ['registered', 'active']));
+            ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
+            ->whereHas('residentProfile', fn(Builder $q) => $q->whereIn('status', ['registered', 'active']));
+    }
+
+    protected function exitedResidentsQuery(): Builder
+    {
+        return User::query()
+            ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
+            ->whereHas('residentProfile'); // Ada resident profile, tanpa batasan status
     }
 
     public function getTabs(): array
     {
         return [
             'semua' => Tab::make('Semua Penghuni')
-                ->badge(fn () => $this->baseCountQuery()->count()),
+                ->badge(fn() => $this->baseCountQuery()->count()),
 
             'belum_kamar' => Tab::make('Belum Ada Kamar')
                 ->modifyQueryUsing(function (Builder $query) {
@@ -36,9 +38,10 @@ class ListRoomPlacements extends ListRecords
                         $q->whereNull('check_out_date');
                     });
                 })
-                ->badge(fn () => $this->baseCountQuery()
-                    ->whereDoesntHave('roomResidents', fn (Builder $q) => $q->whereNull('check_out_date'))
-                    ->count()
+                ->badge(
+                    fn() => $this->baseCountQuery()
+                        ->whereDoesntHave('roomResidents', fn(Builder $q) => $q->whereNull('check_out_date'))
+                        ->count()
                 )
                 ->badgeColor('warning'),
 
@@ -48,11 +51,45 @@ class ListRoomPlacements extends ListRecords
                         $q->whereNull('check_out_date');
                     });
                 })
-                ->badge(fn () => $this->baseCountQuery()
-                    ->whereHas('roomResidents', fn (Builder $q) => $q->whereNull('check_out_date'))
-                    ->count()
+                ->badge(
+                    fn() => $this->baseCountQuery()
+                        ->whereHas('roomResidents', fn(Builder $q) => $q->whereNull('check_out_date'))
+                        ->count()
                 )
                 ->badgeColor('success'),
+
+            'keluar' => Tab::make('Keluar')
+                ->modifyQueryUsing(function (Builder $query) {
+                    return $query
+                        // Hapus filter status dari getEloquentQuery
+                        ->withoutGlobalScopes()
+                        ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
+                        ->whereHas('residentProfile')
+                        ->whereHas('roomResidents', function (Builder $q) {
+                            // Pernah punya kamar
+                            $q->whereNotNull('check_out_date');
+                        })
+                        ->whereDoesntHave('roomResidents', function (Builder $q) {
+                            // Tidak punya kamar aktif saat ini
+                            $q->whereNull('check_out_date');
+                        })
+                        ->with([
+                            'residentProfile.residentCategory',
+                            'residentProfile.country',
+                            'roomResidents' => fn($q) => $q->latest('check_out_date')->limit(1)
+                        ]);
+                })
+                ->badge(
+                    fn() => $this->exitedResidentsQuery()
+                        ->whereHas('roomResidents', function (Builder $q) {
+                            $q->whereNotNull('check_out_date');
+                        })
+                        ->whereDoesntHave('roomResidents', function (Builder $q) {
+                            $q->whereNull('check_out_date');
+                        })
+                        ->count()
+                )
+                ->badgeColor('danger'),
         ];
     }
 
