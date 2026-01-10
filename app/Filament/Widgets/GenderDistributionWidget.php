@@ -12,7 +12,9 @@ class GenderDistributionWidget extends ChartWidget
 {
     protected static ?string $heading = 'Gender';
 
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 4;
+
+    protected int | string | array $columnSpan = 1;
 
     protected function getData(): array
     {
@@ -87,6 +89,6 @@ class GenderDistributionWidget extends ChartWidget
     }
     public function getDescription(): ?string
     {
-        return 'Distribusi penghuni berdasarkan kategori';
+        return 'Distribusi gender penghuni';
     }
 }

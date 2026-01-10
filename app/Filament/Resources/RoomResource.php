@@ -13,10 +13,6 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Forms\Components\Select;
-use Filament\Infolists\Infolist;
-use Filament\Infolists\Components\IconEntry;
-use Filament\Infolists\Components\Section as InfoSection;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -104,7 +100,7 @@ class RoomResource extends Resource
                         Select::make('block_id')
                             ->label('Komplek')
                             ->live()
-                            ->afterStateUpdated(fn (Set $set, Get $get) => static::generateRoomCode($set, $get))
+                            ->afterStateUpdated(fn(Set $set, Get $get) => static::generateRoomCode($set, $get))
                             ->options(function (Get $get, ?Room $record) {
                                 $dormId = $get('dorm_id');
                                 if (!$dormId) {
@@ -177,9 +173,8 @@ class RoomResource extends Resource
                             ->required()
                             ->live()
                             ->afterStateUpdated(function (Set $set, Get $get, $state) {
-                                // Generate room code
-                                static::generateRoomCode($set, $get);
-                                
+                                // HAPUS pemanggilan generateRoomCode dari sini
+
                                 // Auto-fill capacity dan monthly_rate dari room type
                                 if ($state) {
                                     $roomType = RoomType::find($state);
@@ -195,7 +190,7 @@ class RoomResource extends Resource
                             ->required()
                             ->maxLength(20)
                             ->live()
-                            ->afterStateUpdated(fn (Set $set, Get $get) => static::generateRoomCode($set, $get))
+                            ->afterStateUpdated(fn(Set $set, Get $get) => static::generateRoomCode($set, $get))
                             ->helperText('Contoh: 01, 02, 101, dst.'),
 
                         Forms\Components\TextInput::make('code')
@@ -205,7 +200,7 @@ class RoomResource extends Resource
                             ->maxLength(100)
                             ->unique(
                                 ignoreRecord: true,
-                                modifyRuleUsing: fn ($rule) => $rule->whereNull('deleted_at')
+                                modifyRuleUsing: fn($rule) => $rule->whereNull('deleted_at')
                             )
                             ->dehydrated(true)
                             ->readonly(),
@@ -249,10 +244,10 @@ class RoomResource extends Resource
                             ->createOptionUsing(function (array $data) {
                                 return \App\Models\ResidentCategory::create($data)->id;
                             }),
-                            
-                            Forms\Components\Toggle::make('is_active')
-                                ->label('Aktif')
-                                ->default(true),
+
+                        Forms\Components\Toggle::make('is_active')
+                            ->label('Aktif')
+                            ->default(true),
                     ])
                     ->columns(2),
             ]);
@@ -272,6 +267,10 @@ class RoomResource extends Resource
                     ->sortable()
                     ->searchable(),
 
+                Tables\Columns\TextColumn::make('number')
+                    ->label('Nomor')
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('roomType.name')
                     ->label('Tipe Kamar')
                     ->sortable()
@@ -281,10 +280,6 @@ class RoomResource extends Resource
                     ->label('Kode')
                     ->sortable()
                     ->searchable(),
-
-                Tables\Columns\TextColumn::make('number')
-                    ->label('Nomor')
-                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('capacity')
                     ->label('Kapasitas')
@@ -328,9 +323,9 @@ class RoomResource extends Resource
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['value'] ?? null,
-                            fn (Builder $q, $dormId) => $q->whereHas(
+                            fn(Builder $q, $dormId) => $q->whereHas(
                                 'block',
-                                fn (Builder $qb) => $qb->where('dorm_id', $dormId)
+                                fn(Builder $qb) => $qb->where('dorm_id', $dormId)
                             )
                         );
                     })
@@ -344,6 +339,7 @@ class RoomResource extends Resource
                                 $user = auth()->user();
                                 if (!$user) return [];
 
+                                // ✅ tampilkan juga cabang nonaktif (yang penting tidak terhapus)
                                 $query = Dorm::query()
                                     ->whereNull('deleted_at')
                                     ->orderBy('name');
@@ -396,7 +392,7 @@ class RoomResource extends Resource
                                     $component->state(Block::whereKey($blockId)->value('dorm_id'));
                                 }
                             })
-                            ->disabled(fn () => auth()->user()?->hasRole(['branch_admin', 'block_admin']) ?? false)
+                            ->disabled(fn() => auth()->user()?->hasRole(['branch_admin', 'block_admin']) ?? false)
                             ->afterStateUpdated(function (Set $set, $state) {
                                 $set('../block_id.value', null);
 
@@ -436,7 +432,7 @@ class RoomResource extends Resource
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['value'] ?? null,
-                            fn (Builder $q, $blockId) => $q->where('block_id', $blockId)
+                            fn(Builder $q, $blockId) => $q->where('block_id', $blockId)
                         );
                     })
                     ->form([
@@ -554,13 +550,13 @@ class RoomResource extends Resource
 
                 SelectFilter::make('room_type_id')
                     ->label('Tipe Kamar')
-                    ->options(fn () => RoomType::query()->orderBy('name')->pluck('name', 'id')->toArray())
+                    ->options(fn() => RoomType::query()->orderBy('name')->pluck('name', 'id')->toArray())
                     ->searchable()
                     ->native(false)
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['value'] ?? null,
-                            fn (Builder $q, $typeId) => $q->where('room_type_id', $typeId)
+                            fn(Builder $q, $typeId) => $q->where('room_type_id', $typeId)
                         );
                     })
                     ->indicateUsing(function ($state) {
@@ -581,9 +577,9 @@ class RoomResource extends Resource
                     ->falseLabel('Kamar Terisi')
                     ->native(false)
                     ->queries(
-                        true: fn (Builder $query) => $query->whereDoesntHave('roomResidents', fn (Builder $q) => $q->whereNull('check_out_date')),
-                        false: fn (Builder $query) => $query->whereHas('roomResidents', fn (Builder $q) => $q->whereNull('check_out_date')),
-                        blank: fn (Builder $query) => $query,
+                        true: fn(Builder $query) => $query->whereDoesntHave('roomResidents', fn(Builder $q) => $q->whereNull('check_out_date')),
+                        false: fn(Builder $query) => $query->whereHas('roomResidents', fn(Builder $q) => $q->whereNull('check_out_date')),
+                        blank: fn(Builder $query) => $query,
                     )
                     ->indicateUsing(function ($state) {
                         $value = is_array($state) ? ($state['value'] ?? null) : $state;
@@ -604,9 +600,9 @@ class RoomResource extends Resource
 
                 // ✅ Data terhapus tidak bisa di-edit
                 Tables\Actions\EditAction::make()
-                    ->visible(fn (Room $record): bool =>
-                        (auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false)
-                        && ! $record->trashed()
+                    ->visible(
+                        fn(Room $record): bool => (auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false)
+                            && ! $record->trashed()
                     ),
 
                 // ✅ Delete: sebelum soft delete, ubah code supaya bisa dipakai ulang
@@ -640,7 +636,7 @@ class RoomResource extends Resource
 
                 // ✅ Restore: ditolak jika ada kamar aktif memakai code asli
                 Tables\Actions\RestoreAction::make()
-                    ->visible(fn (Room $record): bool => (auth()->user()?->hasRole('super_admin') ?? false) && $record->trashed())
+                    ->visible(fn(Room $record): bool => (auth()->user()?->hasRole('super_admin') ?? false) && $record->trashed())
                     ->action(function (Room $record) {
                         DB::transaction(function () use ($record) {
                             $originalCode = static::extractOriginalCode($record->code);
@@ -656,7 +652,6 @@ class RoomResource extends Resource
                                     ->body("Tidak bisa memulihkan karena sudah ada kamar aktif dengan kode: {$originalCode}.")
                                     ->danger()
                                     ->send();
-
                                 return;
                             }
 
@@ -673,8 +668,8 @@ class RoomResource extends Resource
                 // ✅ FORCE DELETE (hanya tab terhapus / record trashed)
                 Tables\Actions\ForceDeleteAction::make()
                     ->label('Hapus Permanen')
-                    ->visible(fn (Room $record): bool =>
-                        (auth()->user()?->hasRole('super_admin') ?? false) && $record->trashed()
+                    ->visible(
+                        fn(Room $record): bool => (auth()->user()?->hasRole('super_admin') ?? false) && $record->trashed()
                     )
                     ->requiresConfirmation()
                     ->modalHeading('Hapus Permanen Kamar')
@@ -844,61 +839,6 @@ class RoomResource extends Resource
             ]);
     }
 
-    public static function infolist(Infolist $infolist): Infolist
-    {
-        return $infolist
-            ->schema([
-                InfoSection::make('Lokasi')
-                    ->schema([
-                        TextEntry::make('block.dorm.name')->label('Cabang')->placeholder('-'),
-                        TextEntry::make('block.name')->label('Komplek')->placeholder('-'),
-                        TextEntry::make('roomType.name')->label('Tipe Kamar')->placeholder('-'),
-                    ])
-                    ->columns(3),
-
-                InfoSection::make('Detail Kamar')
-                    ->schema([
-                        TextEntry::make('code')
-                            ->label('Kode Kamar')
-                            ->copyable()
-                            ->copyMessage('Kode disalin'),
-
-                        TextEntry::make('number')->label('Nomor Kamar')->placeholder('-'),
-
-                        TextEntry::make('capacity')
-                            ->label('Kapasitas')
-                            ->formatStateUsing(fn ($state) => $state ? "{$state} orang" : '-'),
-
-                        TextEntry::make('monthly_rate')
-                            ->label('Tarif Bulanan')
-                            ->money('IDR', true),
-
-                        IconEntry::make('is_active')
-                            ->label('Aktif')
-                            ->boolean(),
-
-                        TextEntry::make('penghuni_aktif')
-                            ->label('Penghuni Aktif')
-                            ->state(
-                                fn (Room $record) => RoomResident::query()
-                                    ->where('room_id', $record->id)
-                                    ->whereNull('check_out_date')
-                                    ->count()
-                            )
-                            ->suffix(' orang'),
-                    ])
-                    ->columns(3),
-
-                InfoSection::make('Waktu')
-                    ->schema([
-                        TextEntry::make('created_at')->label('Dibuat')->dateTime('d M Y H:i'),
-                        TextEntry::make('updated_at')->label('Diubah')->dateTime('d M Y H:i'),
-                    ])
-                    ->columns(2)
-                    ->collapsed(),
-            ]);
-    }
-
     public static function getRelations(): array
     {
         return [];
@@ -909,7 +849,14 @@ class RoomResource extends Resource
         $user = auth()->user();
 
         $query = parent::getEloquentQuery()
-            ->whereHas('block.dorm');
+            ->whereHas('block.dorm')
+            ->with([
+                'block.dorm',
+                'roomType',
+                'residentCategory',
+                'activeRoomResidents.user.residentProfile',
+                'roomResidents.user.residentProfile'
+            ]);
 
         // Hanya super_admin yang bisa lihat data terhapus
         if ($user?->hasRole('super_admin')) {
@@ -927,7 +874,7 @@ class RoomResource extends Resource
         if ($user->hasRole('branch_admin')) {
             return $query->whereHas(
                 'block',
-                fn (Builder $q) => $q->whereIn('dorm_id', $user->branchDormIds())
+                fn(Builder $q) => $q->whereIn('dorm_id', $user->branchDormIds())
             );
         }
 
@@ -958,6 +905,7 @@ class RoomResource extends Resource
         return auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false;
     }
 
+    // ✅ Data terhapus tidak bisa di-edit
     public static function canEdit($record): bool
     {
         $user = auth()->user();
@@ -988,36 +936,32 @@ class RoomResource extends Resource
             'index'  => Pages\ListRooms::route('/'),
             'create' => Pages\CreateRoom::route('/create'),
             'edit'   => Pages\EditRoom::route('/{record}/edit'),
+            'view'   => Pages\ViewRoom::route('/{record}'),
         ];
     }
 
     protected static function generateRoomCode(Set $set, Get $get): void
     {
-        $dormId     = $get('dorm_id');
-        $blockId    = $get('block_id');
-        $roomTypeId = $get('room_type_id');
-        $number     = $get('number');
+        $dormId  = $get('dorm_id');
+        $blockId = $get('block_id');
+        $number  = $get('number');
 
-        if (!$dormId || !$blockId || !$roomTypeId || !$number) {
+        if (!$dormId || !$blockId || !$number) {
             $set('code', null);
             return;
         }
 
-        $dorm     = Dorm::find($dormId);
-        $block    = Block::find($blockId);
-        $roomType = RoomType::find($roomTypeId);
+        $dorm  = Dorm::find($dormId);
+        $block = Block::find($blockId);
 
-        if (!$dorm || !$block || !$roomType) {
+        if (!$dorm || !$block) {
             $set('code', null);
             return;
         }
 
-        $code = Room::generateCode(
-            $dorm->name,
-            $block->name,
-            $roomType->name,
-            (string) $number
-        );
+        // Format: cabang-komplek-nomor
+        // Contoh: coba-komplek-01
+        $code = Str::slug($dorm->name) . '-' . Str::slug($block->name) . '-' . $number;
 
         $set('code', strtolower($code));
     }

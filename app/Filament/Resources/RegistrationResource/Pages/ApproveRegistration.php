@@ -11,6 +11,7 @@ use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomHistory;
 use App\Models\RoomResident;
+use App\Models\RoomType;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -239,6 +240,7 @@ class ApproveRegistration extends Page
                                 foreach ($rooms as $room) {
                                     $activeGender = $room->getActiveGenderAttribute();
 
+                                    // Skip jika gender tidak cocok
                                     if ($activeGender && $activeGender !== $gender) continue;
 
                                     $activeCount = $room->activeResidents()->count();

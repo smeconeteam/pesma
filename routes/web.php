@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
-use App\Http\Middleware\EnsureUserIsResident;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PublicRegistrationController;
+use App\Http\Controllers\Resident\DashboardController;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Resident\MyRoomController;
+
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -11,13 +13,21 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified', 'resident.only'])->group(function () {
 
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
+    // ✅ Dashboard resident pakai controller
+    Route::get('/dashboard', DashboardController::class)
+        ->name('dashboard');
 
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    // ✅ Halaman Kamar Saya (read-only)
+    Route::get('/kamar-saya', MyRoomController::class)->name('resident.my-room');
+
+    Route::get('/profile', [ProfileController::class, 'edit'])
+        ->name('profile.edit');
+
+    Route::patch('/profile', [ProfileController::class, 'update'])
+        ->name('profile.update');
+
+    Route::delete('/profile', [ProfileController::class, 'destroy'])
+        ->name('profile.destroy');
 });
 
 Route::get('/no-access', function () {
@@ -26,8 +36,9 @@ Route::get('/no-access', function () {
 
 require __DIR__ . '/auth.php';
 
-
-
+// =====================
+// Public Registration
+// =====================
 Route::get('/pendaftaran', [PublicRegistrationController::class, 'create'])
     ->name('public.registration.create');
 
@@ -36,4 +47,3 @@ Route::post('/pendaftaran', [PublicRegistrationController::class, 'store'])
 
 Route::get('/pendaftaran/berhasil', [PublicRegistrationController::class, 'success'])
     ->name('public.registration.success');
-

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\PaymentMethodResource\Pages;
 
 use App\Filament\Resources\PaymentMethodResource;
 use App\Models\PaymentMethod;
+use App\Models\PaymentMethodBankAccount;
 use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -14,6 +15,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ManagePaymentMethods extends Page implements HasForms
 {
@@ -68,11 +70,12 @@ class ManagePaymentMethods extends Page implements HasForms
                 'instructions' => $m->instructions,
                 'bank_accounts' => $m->bankAccounts()
                     ->orderBy('id')
-                    ->get(['bank_name', 'account_number', 'account_name', 'is_active'])
+                    ->get(['bank_name', 'account_number', 'account_name', 'account_holder', 'is_active'])
                     ->map(fn ($row) => [
                         'bank_name' => $row->bank_name,
                         'account_number' => $row->account_number,
                         'account_name' => $row->account_name,
+                        'account_holder' => $row->account_holder,
                         'is_active' => (bool) $row->is_active,
                     ])
                     ->toArray(),
@@ -134,8 +137,13 @@ class ManagePaymentMethods extends Page implements HasForms
                             ->minItems(fn (Get $get) => (bool) $get('transfer.is_active') ? 1 : 0)
                             ->addActionLabel('Tambah Rekening')
                             ->schema([
+                                Forms\Components\TextInput::make('account_holder')
+                                    ->label('Nama Rekening')
+                                    ->helperText('Contoh: Rekening Pondok')
+                                    ->maxLength(150),
+
                                 Forms\Components\TextInput::make('bank_name')
-                                    ->label('Bank')
+                                    ->label('Nama Bank')
                                     ->required()
                                     ->maxLength(100),
 
@@ -219,14 +227,29 @@ class ManagePaymentMethods extends Page implements HasForms
                 ->color('primary')
                 ->visible(fn () => $this->isEditing)
                 ->action(function () {
-                    $this->saveData();
+                    try {
+                        $this->saveData();
 
-                    $this->isEditing = false;
+                        $this->isEditing = false;
 
-                    Notification::make()
-                        ->title('Data tersimpan. Mode view aktif.')
-                        ->success()
-                        ->send();
+                        Notification::make()
+                            ->title('Data tersimpan. Mode view aktif.')
+                            ->success()
+                            ->send();
+                    } catch (ValidationException $e) {
+                        // Tampilkan pesan error validasi
+                        Notification::make()
+                            ->title('Gagal menyimpan data')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    } catch (\Exception $e) {
+                        Notification::make()
+                            ->title('Gagal menyimpan data')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
                 }),
 
             // ✅ Tombol Batal (muncul saat edit)
@@ -251,6 +274,9 @@ class ManagePaymentMethods extends Page implements HasForms
     private function saveData(): void
     {
         $state = $this->form->getState();
+
+        // ✅ Validasi duplikasi sebelum save
+        $this->validateDuplicateBankAccounts($state);
 
         DB::transaction(function () use ($state) {
             /**
@@ -285,6 +311,7 @@ class ManagePaymentMethods extends Page implements HasForms
                     'bank_name' => $row['bank_name'] ?? null,
                     'account_number' => $row['account_number'] ?? null,
                     'account_name' => $row['account_name'] ?? null,
+                    'account_holder' => $row['account_holder'] ?? null,
                     'is_active' => (bool) ($row['is_active'] ?? true),
                 ])
                 ->filter(fn ($row) => $row['bank_name'] && $row['account_number'] && $row['account_name'])
@@ -307,5 +334,61 @@ class ManagePaymentMethods extends Page implements HasForms
             $cashModel->deleted_at = null;
             $cashModel->save();
         });
+    }
+
+    /**
+     * ✅ Validasi duplikasi rekening bank dan account_holder (hanya saat save)
+     */
+    private function validateDuplicateBankAccounts(array $state): void
+    {
+        $accounts = Arr::get($state, 'transfer.bank_accounts', []);
+        $transferIsActive = Arr::get($state, 'transfer.is_active', false);
+        
+        // ✅ Validasi jika transfer bank aktif, minimal harus ada 1 rekening aktif
+        if ($transferIsActive) {
+            $hasActiveAccount = collect($accounts)->contains(fn ($acc) => 
+                !empty($acc['is_active']) && $acc['is_active'] === true
+            );
+            
+            if (!$hasActiveAccount) {
+                throw ValidationException::withMessages([
+                    'transfer.bank_accounts' => "Transfer Bank sudah diaktifkan. Minimal harus ada 1 rekening yang aktif."
+                ]);
+            }
+        }
+        
+        // ✅ Validasi kombinasi bank_name + account_number + account_name (dalam form yang sedang diisi)
+        $combinations = collect($accounts)
+            ->filter(fn ($acc) => 
+                !empty($acc['bank_name']) && 
+                !empty($acc['account_number']) && 
+                !empty($acc['account_name'])
+            )
+            ->map(fn ($acc) => 
+                $acc['bank_name'] . '|' . $acc['account_number'] . '|' . $acc['account_name']
+            );
+
+        $duplicateCombinations = $combinations->duplicates();
+
+        if ($duplicateCombinations->isNotEmpty()) {
+            $firstDuplicate = explode('|', $duplicateCombinations->first());
+            
+            throw ValidationException::withMessages([
+                'transfer.bank_accounts' => "Rekening duplikat ditemukan: Bank '{$firstDuplicate[0]}', No. '{$firstDuplicate[1]}', Atas Nama '{$firstDuplicate[2]}'. Kombinasi ketiga field ini harus unik."
+            ]);
+        }
+
+        // ✅ Validasi account_holder (tidak boleh ada yang sama dalam form yang sedang diisi)
+        $accountHolders = collect($accounts)
+            ->filter(fn ($acc) => !empty($acc['account_holder']))
+            ->pluck('account_holder');
+
+        $duplicateHolders = $accountHolders->duplicates();
+
+        if ($duplicateHolders->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'transfer.bank_accounts' => "Nama Rekening duplikat ditemukan: '{$duplicateHolders->first()}'. Setiap rekening harus memiliki Nama Rekening yang berbeda."
+            ]);
+        }
     }
 }

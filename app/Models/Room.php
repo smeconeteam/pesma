@@ -109,20 +109,12 @@ class Room extends Model
         return $this->getAvailableCapacityAttribute() <= 0;
     }
 
-    public static function generateCode(
-        string $dormName,
-        string $blockName,
-        string $roomTypeName,
-        string $number
-    ): string {
-        $dormSlug = Str::slug($dormName);
-        $blockSlug = Str::slug($blockName);
-        $roomTypeSlug = Str::slug($roomTypeName);
-
-        // Pastikan nomor kamar terformat dengan baik (misal: 01, 02, dst)
-        $number = str_pad($number, 2, '0', STR_PAD_LEFT);
-
-        // Format: {dorm}-{block}-{room_type}-{number}
-        return "{$dormSlug}-{$blockSlug}-{$roomTypeSlug}-{$number}";
+    public static function generateCode(string $dormName, string $blockName, string $number): string
+    {
+        // Format: cabang-komplek-nomor
+        // Contoh: coba-komplek-01
+        $code = Str::slug($dormName) . '-' . Str::slug($blockName) . '-' . $number;
+        
+        return strtolower($code);
     }
 }

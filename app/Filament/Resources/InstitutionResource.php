@@ -26,29 +26,32 @@ class InstitutionResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Section::make('Informasi Lembaga')
+                    ->columns(2)
                     ->schema([
                         Forms\Components\TextInput::make('legal_number')
                             ->label('Nomor Legalitas')
                             ->maxLength(255)
-                            ->required(),
+                            ->required()
+                            ->columnSpan(1),
 
                         Forms\Components\TextInput::make('institution_name')
                             ->label('Nama Lembaga')
                             ->required()
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->columnSpan(1),
 
                         Forms\Components\TextInput::make('dormitory_name')
                             ->label('Nama Asrama')
                             ->required()
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->columnSpan(1) ,
 
                         Forms\Components\Textarea::make('address')
                             ->label('Alamat')
                             ->rows(3)
                             ->required()
-                            ->columnSpan(2),
-                    ])
-                    ->columns(2),
+                            ->columnSpanFull(),
+                    ]),
 
                 Forms\Components\Section::make('Kontak')
                     ->schema([
