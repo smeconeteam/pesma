@@ -339,6 +339,7 @@ class RoomResource extends Resource
                                 $user = auth()->user();
                                 if (!$user) return [];
 
+                                // ✅ tampilkan juga cabang nonaktif (yang penting tidak terhapus)
                                 $query = Dorm::query()
                                     ->whereNull('deleted_at')
                                     ->orderBy('name');
@@ -651,7 +652,6 @@ class RoomResource extends Resource
                                     ->body("Tidak bisa memulihkan karena sudah ada kamar aktif dengan kode: {$originalCode}.")
                                     ->danger()
                                     ->send();
-
                                 return;
                             }
 
@@ -905,6 +905,7 @@ class RoomResource extends Resource
         return auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false;
     }
 
+    // ✅ Data terhapus tidak bisa di-edit
     public static function canEdit($record): bool
     {
         $user = auth()->user();

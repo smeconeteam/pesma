@@ -188,7 +188,7 @@ class ResidentResource extends Resource
                             ->latest('check_in_date')
                             ->first();
 
-                        if (! $active?->room) return '-';
+                        if (!$active?->room) return '-';
                         $room = $active->room;
                         return ($room->code ?? '-') . ($room->number ? " ({$room->number})" : '');
                     })
@@ -205,6 +205,12 @@ class ResidentResource extends Resource
                         });
                     }),
 
+                /**
+                 * ✅ FILTER CABANG
+                 * - branch_admin: auto isi & dikunci + chip tidak bisa dihapus
+                 * - block_admin : auto isi & dikunci + chip tidak bisa dihapus
+                 * - kalau cabang berubah => reset blok (super/main)
+                 */
                 SelectFilter::make('dorm_id')
                     ->label('Cabang')
                     ->searchable()

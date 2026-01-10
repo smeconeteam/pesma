@@ -129,6 +129,7 @@ class ViewResident extends ViewRecord
                                     TextEntry::make('room.number')->label('Nomor Kamar')->placeholder('-'),
                                     TextEntry::make('room.code')->label('Kode Kamar')->placeholder('-'),
 
+                                    // ✅ HANYA BAGIAN INI YANG DIUBAH
                                     TextEntry::make('movement_type')
                                         ->label('Tipe Perpindahan')
                                         ->badge()
