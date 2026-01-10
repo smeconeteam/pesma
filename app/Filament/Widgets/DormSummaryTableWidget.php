@@ -40,7 +40,7 @@ class DormSummaryTableWidget extends BaseWidget
 
         return $table
             ->query($query)
-            ->heading('Ringkasan per Asrama')
+            ->heading(false)
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nama Asrama')

@@ -21,11 +21,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-use Filament\Infolists\Infolist;
-use Filament\Infolists\Components\Section;
-use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Components\IconEntry;
-
 use Filament\Notifications\Notification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -52,9 +47,8 @@ class ResidentResource extends Resource
 
         $query->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
             ->with([
-                // penting: load residentProfile meskipun profile-nya ikut soft delete
                 'residentProfile' => function ($q) {
-                    $q->withTrashed()->with(['residentCategory', 'country']);
+                    $q->withTrashed()->with(['residentCategory']);
                 },
                 'roomResidents.room.block.dorm',
             ]);
@@ -73,8 +67,7 @@ class ResidentResource extends Resource
             $dormIds = $user->branchDormIds()->toArray();
 
             return $query->whereHas('roomResidents', function (Builder $q) use ($dormIds) {
-                $q->whereNull('check_out_date')
-                    ->whereHas('room.block', fn(Builder $b) => $b->whereIn('dorm_id', $dormIds));
+                $q->whereHas('room.block', fn(Builder $b) => $b->whereIn('dorm_id', $dormIds));
             });
         }
 
@@ -83,8 +76,7 @@ class ResidentResource extends Resource
             $blockIds = $user->blockIds()->toArray();
 
             return $query->whereHas('roomResidents', function (Builder $q) use ($blockIds) {
-                $q->whereNull('check_out_date')
-                    ->whereHas('room', fn(Builder $room) => $room->whereIn('block_id', $blockIds));
+                $q->whereHas('room', fn(Builder $room) => $room->whereIn('block_id', $blockIds));
             });
         }
 
@@ -166,18 +158,25 @@ class ResidentResource extends Resource
                     ->label('Kategori')
                     ->sortable(),
 
-                Tables\Columns\IconColumn::make('residentProfile.is_international')
-                    ->label('LN')
-                    ->boolean()
-                    ->visible(false),
-
                 Tables\Columns\TextColumn::make('residentProfile.phone_number')
                     ->label('No. HP')
                     ->toggleable(),
 
-                Tables\Columns\IconColumn::make('is_active')
-                    ->label('Aktif')
-                    ->boolean()
+                Tables\Columns\TextColumn::make('residentProfile.status')
+                    ->label('Status')
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'registered' => 'gray',
+                        'active' => 'success',
+                        'inactive' => 'danger',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                        'registered' => 'Terdaftar',
+                        'active' => 'Aktif',
+                        'inactive' => 'Nonaktif',
+                        default => $state,
+                    })
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('current_room')
@@ -196,13 +195,6 @@ class ResidentResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                TernaryFilter::make('is_active')
-                    ->label('Status Aktif')
-                    ->placeholder('Semua')
-                    ->trueLabel('Aktif')
-                    ->falseLabel('Nonaktif')
-                    ->native(false),
-
                 SelectFilter::make('gender')
                     ->label('Gender')
                     ->options(['M' => 'Laki-laki', 'F' => 'Perempuan'])
@@ -226,8 +218,7 @@ class ResidentResource extends Resource
                     ->query(function (Builder $query, array $data) {
                         return $query->when($data['value'] ?? null, function (Builder $q, $dormId) {
                             $q->whereHas('roomResidents', function (Builder $rr) use ($dormId) {
-                                $rr->whereNull('check_out_date')
-                                    ->whereHas('room.block', fn(Builder $b) => $b->where('dorm_id', $dormId));
+                                $rr->whereHas('room.block', fn(Builder $b) => $b->where('dorm_id', $dormId));
                             });
                         });
                     })
@@ -325,8 +316,7 @@ class ResidentResource extends Resource
                     ->query(function (Builder $query, array $data) {
                         return $query->when($data['value'] ?? null, function (Builder $q, $blockId) {
                             $q->whereHas('roomResidents', function (Builder $rr) use ($blockId) {
-                                $rr->whereNull('check_out_date')
-                                    ->whereHas('room', fn(Builder $room) => $room->where('block_id', $blockId));
+                                $rr->whereHas('room', fn(Builder $room) => $room->where('block_id', $blockId));
                             });
                         });
                     })
@@ -520,8 +510,7 @@ class ResidentResource extends Resource
                             return true;
                         })
                         ->before(function (Tables\Actions\DeleteAction $action, User $record) {
-                            // VALIDASI 1: Penghuni harus sudah tidak aktif
-                            if ($record->is_active) {
+                            if ($record->residentProfile?->status === 'active') {
                                 Notification::make()
                                     ->danger()
                                     ->title('Tidak dapat menghapus')
@@ -531,8 +520,6 @@ class ResidentResource extends Resource
                                 $action->cancel();
                                 return;
                             }
-
-                            // VALIDASI 2: Penghuni HARUS sudah checkout dari semua kamar
                             $hasActiveRoom = $record->roomResidents()
                                 ->whereNull('check_out_date')
                                 ->exists();
@@ -640,7 +627,7 @@ class ResidentResource extends Resource
                         foreach ($records as $record) {
                             $reasons = [];
 
-                            if ($record->is_active) {
+                            if ($record->residentProfile?->status === 'active') {
                                 $reasons[] = 'status masih aktif';
                             }
 
@@ -741,57 +728,7 @@ class ResidentResource extends Resource
             ])
             ->persistFiltersInSession()
             ->deselectAllRecordsWhenFiltered(true)
-            ->defaultSort('is_active', 'desc');
-    }
-
-    public static function infolist(Infolist $infolist): Infolist
-    {
-        return $infolist->schema([
-            Section::make('Profil Penghuni')
-                ->columns(2)
-                ->schema([
-                    TextEntry::make('residentProfile.full_name')->label('Nama Lengkap')->placeholder('-'),
-                    TextEntry::make('email')->label('Email')->placeholder('-'),
-                    IconEntry::make('is_active')->label('Aktif')->boolean(),
-
-                    TextEntry::make('residentProfile.national_id')->label('NIK')->placeholder('-'),
-                    TextEntry::make('residentProfile.student_id')->label('NIM')->placeholder('-'),
-
-                    TextEntry::make('residentProfile.gender')->label('Gender')->placeholder('-'),
-                    TextEntry::make('residentProfile.phone_number')->label('No. HP')->placeholder('-'),
-
-                    TextEntry::make('residentProfile.residentCategory.name')->label('Kategori')->placeholder('-'),
-                    IconEntry::make('residentProfile.is_international')->label('Luar Negeri')->boolean(),
-                ]),
-
-            Section::make('Kamar Aktif')
-                ->columns(2)
-                ->schema([
-                    TextEntry::make('kamar_aktif')
-                        ->label('Kamar')
-                        ->state(function (User $record) {
-                            $active = $record->roomResidents()
-                                ->whereNull('room_residents.check_out_date')
-                                ->latest('check_in_date')
-                                ->first();
-
-                            if (!$active?->room) return '-';
-
-                            $room = $active->room;
-                            return ($room->code ?? '-') . ($room->number ? " ({$room->number})" : '');
-                        }),
-
-                    IconEntry::make('pic_aktif')
-                        ->label('PIC?')
-                        ->boolean()
-                        ->state(function (User $record) {
-                            return $record->roomResidents()
-                                ->whereNull('room_residents.check_out_date')
-                                ->where('room_residents.is_pic', true)
-                                ->exists();
-                        }),
-                ]),
-        ]);
+            ->defaultSort('residentProfile.status', 'desc');
     }
 
     public static function shouldRegisterNavigation(): bool
