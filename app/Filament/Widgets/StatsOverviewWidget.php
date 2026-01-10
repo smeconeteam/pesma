@@ -9,6 +9,7 @@ use App\Models\RoomResident;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use App\Filament\Resources\ResidentResource;
 use App\Filament\Resources\RoomResource;
 use App\Filament\Resources\RegistrationResource;
@@ -24,9 +25,12 @@ class StatsOverviewWidget extends BaseWidget
         $user = Auth::user();
 
         // Base queries dengan scope
-        $roomQuery = Room::query();
+        $roomQuery = Room::query()->where('is_active', true);
         $residentQuery = RoomResident::query()->whereNull('room_residents.check_out_date');
         $registrationQuery = Registration::where('status', 'pending');
+
+        // Untuk filtering capacity calculation
+        $blockIds = null;
 
         // Apply role-based filters
         if ($user->hasRole(['super_admin', 'main_admin'])) {
@@ -36,6 +40,12 @@ class StatsOverviewWidget extends BaseWidget
             $roomQuery->whereHas('block', fn($q) => $q->whereIn('dorm_id', $dormIds));
             $residentQuery->whereHas('room.block', fn($q) => $q->whereIn('dorm_id', $dormIds));
             $registrationQuery->whereIn('preferred_dorm_id', $dormIds);
+
+            // Get block IDs untuk capacity calculation
+            $blockIds = DB::table('blocks')
+                ->whereIn('dorm_id', $dormIds)
+                ->whereNull('deleted_at')
+                ->pluck('id');
         } elseif ($user->hasRole('block_admin')) {
             $blockIds = $user->blockIds();
             $roomQuery->whereIn('block_id', $blockIds);
@@ -48,8 +58,10 @@ class StatsOverviewWidget extends BaseWidget
         $totalRooms = $roomQuery->count();
         $occupiedRooms = (clone $roomQuery)->whereHas('activeRoomResidents')->count();
 
-        // Hitung total kapasitas dari semua kamar
-        $totalCapacity = (clone $roomQuery)->sum('capacity');
+        // Hitung total kapasitas dengan logika yang benar (seperti di BlockStatsOverview)
+        $capacityData = $this->calculateCapacityStats($blockIds);
+        $totalCapacity = $capacityData['total_capacity'];
+        $occupiedCapacity = $capacityData['occupied'];
 
         // Total active residents (semua yang status active, tidak harus punya kamar)
         $activeResidentsQuery = ResidentProfile::query()->where('status', 'active');
@@ -120,8 +132,8 @@ class StatsOverviewWidget extends BaseWidget
         $placementPercentage = $totalResidents > 0 ? round(($residentsWithRoom / $totalResidents) * 100, 1) : 0;
 
         // Hitung okupansi kapasitas
-        $occupancyPercentage = $totalCapacity > 0 ? round(($residentsWithRoom / $totalCapacity) * 100, 1) : 0;
-        $availableCapacity = max(0, $totalCapacity - $residentsWithRoom);
+        $occupancyPercentage = $totalCapacity > 0 ? round(($occupiedCapacity / $totalCapacity) * 100, 1) : 0;
+        $availableCapacity = max(0, $totalCapacity - $occupiedCapacity);
 
         return [
             // Baris pertama
@@ -132,13 +144,13 @@ class StatsOverviewWidget extends BaseWidget
                 ->url(ResidentResource::getUrl('index')),
 
             Stat::make('Kapasitas', $totalCapacity)
-                ->description("Terisi: {$residentsWithRoom} | Tersedia: {$availableCapacity}")
+                ->description("Terisi: {$occupiedCapacity} | Tersedia: {$availableCapacity}")
                 ->descriptionIcon('heroicon-m-building-office-2')
                 ->color('primary')
                 ->url(RoomResource::getUrl('index')),
 
             Stat::make('Okupansi Kapasitas', "{$occupancyPercentage}%")
-                ->description("Penghuni: {$residentsWithRoom} dari {$totalCapacity} kapasitas")
+                ->description("{$occupiedCapacity} dari {$totalCapacity} kapasitas")
                 ->descriptionIcon('heroicon-m-chart-bar')
                 ->color($occupancyPercentage >= 80 ? 'danger' : ($occupancyPercentage >= 60 ? 'warning' : 'success')),
 
@@ -160,6 +172,54 @@ class StatsOverviewWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-check-circle')
                 ->color($placementPercentage >= 80 ? 'success' : ($placementPercentage >= 50 ? 'warning' : 'danger'))
                 ->url(RoomPlacementResource::getUrl('index')),
+        ];
+    }
+
+    protected function calculateCapacityStats($blockIds = null): array
+    {
+        $user = Auth::user();
+
+        // Jika blockIds tidak diberikan, ambil semua blocks sesuai role
+        if ($blockIds === null) {
+            if ($user->hasRole(['super_admin', 'main_admin'])) {
+                $blockIds = DB::table('blocks')
+                    ->whereNull('deleted_at')
+                    ->pluck('id');
+            } elseif ($user->hasRole('branch_admin')) {
+                $dormIds = $user->branchDormIds();
+                $blockIds = DB::table('blocks')
+                    ->whereIn('dorm_id', $dormIds)
+                    ->whereNull('deleted_at')
+                    ->pluck('id');
+            } elseif ($user->hasRole('block_admin')) {
+                $blockIds = $user->blockIds();
+            }
+        }
+
+        if (!$blockIds || (is_countable($blockIds) && count($blockIds) === 0)) {
+            return [
+                'total_capacity' => 0,
+                'occupied' => 0,
+            ];
+        }
+
+        $totalCapacity = DB::table('rooms')
+            ->whereIn('block_id', $blockIds)
+            ->whereNull('deleted_at')
+            ->where('is_active', true)
+            ->sum(DB::raw('COALESCE(capacity, (SELECT default_capacity FROM room_types WHERE room_types.id = rooms.room_type_id))'));
+
+        // Hitung jumlah penghuni aktif di kamar-kamar tersebut
+        $occupied = DB::table('room_residents')
+            ->join('rooms', 'room_residents.room_id', '=', 'rooms.id')
+            ->whereIn('rooms.block_id', $blockIds)
+            ->whereNull('rooms.deleted_at')
+            ->whereNull('room_residents.check_out_date')
+            ->count();
+
+        return [
+            'total_capacity' => (int) $totalCapacity,
+            'occupied' => (int) $occupied,
         ];
     }
 
