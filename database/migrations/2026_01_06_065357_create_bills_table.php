@@ -42,7 +42,7 @@ return new class extends Migration
             $table->date('due_date');
 
             // Status
-            $table->enum('status', ['draft', 'issued', 'partial', 'paid', 'overdue'])
+            $table->enum('status', ['issued', 'partial', 'paid', 'overdue'])
                 ->default('draft');
 
             // Metadata

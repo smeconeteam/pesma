@@ -51,14 +51,14 @@ class BillPayment extends Model
         });
 
         static::deleting(function ($payment) {
-            // Hapus bukti pembayaran dari storage
+            // Hapus bukti pembayaran dari storage saat delete
             if ($payment->proof_path && Storage::disk('public')->exists($payment->proof_path)) {
                 Storage::disk('public')->delete($payment->proof_path);
             }
         });
     }
 
-    // Relations
+    // Relasi
     public function bill(): BelongsTo
     {
         return $this->belongsTo(Bill::class);
@@ -80,6 +80,7 @@ class BillPayment extends Model
     }
 
     // Scopes
+
     public function scopePending($query)
     {
         return $query->where('status', 'pending');
@@ -96,34 +97,35 @@ class BillPayment extends Model
     }
 
     // Helper Methods
+
     public static function generatePaymentNumber(): string
     {
-        $date = now()->format('Ymd');
-        $lastPayment = self::where('payment_number', 'LIKE', "PAY-{$date}-%")
+        $date = now()->format('Ymd'); // 20260107
+
+        $lastPayment = self::whereDate('created_at', now())
             ->orderBy('payment_number', 'desc')
             ->first();
 
-        if ($lastPayment) {
+        if ($lastPayment && str_starts_with($lastPayment->payment_number, $date)) {
             $lastNumber = (int) substr($lastPayment->payment_number, -4);
             $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
         } else {
             $newNumber = '0001';
         }
 
-        return "PAY-{$date}-{$newNumber}";
+        return $date . $newNumber; // 202601070001
     }
 
+    // Verifikasi pembayaran oleh admin
     public function verify(User $admin): void
     {
         $this->status = 'verified';
         $this->verified_by = $admin->id;
         $this->verified_at = now();
         $this->save();
-
-        // Update bill status
-        $this->bill->updatePaymentStatus();
     }
 
+    // Tolak pembayaran dengan alasan
     public function reject(User $admin, string $reason): void
     {
         $this->status = 'rejected';
@@ -133,6 +135,7 @@ class BillPayment extends Model
         $this->save();
     }
 
+    // Get URL bukti pembayaran
     public function getProofUrlAttribute(): ?string
     {
         if ($this->proof_path) {
@@ -140,6 +143,8 @@ class BillPayment extends Model
         }
         return null;
     }
+
+    // Format
 
     public function getFormattedAmountAttribute(): string
     {
