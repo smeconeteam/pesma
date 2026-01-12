@@ -30,9 +30,9 @@ class RoomResource extends Resource
 {
     protected static ?string $model = Room::class;
 
+    protected static ?string $slug = 'kamar';
     protected static ?string $navigationGroup = 'Asrama';
     protected static ?int $navigationSort = 3;
-
     protected static ?string $navigationLabel = 'Kamar';
     protected static ?string $navigationIcon = null;
     protected static ?string $pluralLabel = 'Kamar';
@@ -934,7 +934,7 @@ class RoomResource extends Resource
     {
         return [
             'index'  => Pages\ListRooms::route('/'),
-            'create' => Pages\CreateRoom::route('/create'),
+            'create' => Pages\CreateRoom::route('/buat'),
             'edit'   => Pages\EditRoom::route('/{record}/edit'),
             'view'   => Pages\ViewRoom::route('/{record}'),
         ];

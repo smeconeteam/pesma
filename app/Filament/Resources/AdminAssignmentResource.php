@@ -21,6 +21,7 @@ class AdminAssignmentResource extends Resource
 {
     protected static ?string $model = AdminScope::class;
 
+    protected static ?string $slug = 'pengangkatan-admin';
     protected static ?string $navigationGroup = 'Penghuni';
     protected static ?string $navigationLabel = 'Pengangkatan Admin';
     protected static ?string $pluralLabel = 'Admin';
@@ -217,7 +218,7 @@ class AdminAssignmentResource extends Resource
     {
         return [
             'index'  => Pages\ListAdminAssignments::route('/'),
-            'create' => Pages\CreateAdminAssignment::route('/create'),
+            'create' => Pages\CreateAdminAssignment::route('/buat'),
             'edit'   => Pages\EditAdminAssignment::route('/{record}/edit'),
         ];
     }

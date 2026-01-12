@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Builder;
 class BillResource extends Resource
 {
     protected static ?string $model = Bill::class;
-    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static ?string $slug = 'tagihan';
     protected static ?string $navigationLabel = 'Tagihan';
     protected static ?string $modelLabel = 'Tagihan';
     protected static ?string $pluralModelLabel = 'Tagihan';
@@ -228,11 +228,11 @@ class BillResource extends Resource
     {
         return [
             'index' => Pages\ListBills::route('/'),
-            'create' => Pages\CreateBill::route('/create'),
+            'create' => Pages\CreateBill::route('/buat'),
             'view' => Pages\ViewBill::route('/{record}'),
             'edit' => Pages\EditBill::route('/{record}/edit'),
-            'generate-room' => Pages\GenerateRoomBills::route('/generate-room'),
-            'generate-resident' => Pages\GenerateResidentBills::route('/generate-resident'),
+            'generate-room' => Pages\GenerateRoomBills::route('/buat-kamar'),
+            'generate-resident' => Pages\GenerateResidentBills::route('/buat-penghuni'),
         ];
     }
 

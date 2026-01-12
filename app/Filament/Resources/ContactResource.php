@@ -29,7 +29,7 @@ use Illuminate\Validation\ValidationException;
 class ContactResource extends Resource
 {
     protected static ?string $model = Contact::class;
-
+    protected static ?string $slug = 'kontak';
     protected static ?string $navigationGroup = 'Pengaturan';
     protected static ?string $navigationLabel = 'Kontak';
     protected static ?string $pluralLabel = 'Kontak';
@@ -538,7 +538,7 @@ class ContactResource extends Resource
     {
         return [
             'index'  => Pages\ListContacts::route('/'),
-            'create' => Pages\CreateContact::route('/create'),
+            'create' => Pages\CreateContact::route('/buat'),
             'edit'   => Pages\EditContact::route('/{record}/edit'),
         ];
     }

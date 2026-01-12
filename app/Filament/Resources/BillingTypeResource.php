@@ -19,6 +19,8 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class BillingTypeResource extends Resource
 {
     protected static ?string $model = BillingType::class;
+    
+    protected static ?string $slug = 'jenis-tagihan';
 
     protected static ?string $navigationGroup = 'Keuangan';
     protected static ?string $navigationLabel = 'Jenis Tagihan';
@@ -313,7 +315,7 @@ class BillingTypeResource extends Resource
     {
         return [
             'index'  => Pages\ListBillingTypes::route('/'),
-            'create' => Pages\CreateBillingType::route('/create'),
+            'create' => Pages\CreateBillingType::route('/buat'),
             'edit'   => Pages\EditBillingType::route('/{record}/edit'),
         ];
     }

@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope; // TAMBAHKAN INI
 class MainAdminResource extends Resource
 {
     protected static ?string $model = User::class;
-
+    protected static ?string $slug = 'admin-utama';
     protected static ?string $navigationGroup = 'Pengaturan';
     protected static ?string $navigationLabel = 'Admin Utama';
     protected static ?string $pluralLabel = 'Admin Utama';
@@ -244,7 +244,7 @@ class MainAdminResource extends Resource
     {
         return [
             'index' => Pages\ListMainAdmins::route('/'),
-            'create' => Pages\CreateMainAdmin::route('/create'),
+            'create' => Pages\CreateMainAdmin::route('/buat'),
             'edit' => Pages\EditMainAdmin::route('/{record}/edit'),
         ];
     }

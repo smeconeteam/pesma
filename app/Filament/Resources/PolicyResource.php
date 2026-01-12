@@ -17,6 +17,7 @@ class PolicyResource extends Resource
 {
     protected static ?string $model = Policy::class;
 
+    protected static ?string $slug = 'kebijakan-dan-ketentuan';
     protected static ?string $navigationGroup = 'Pengaturan';
     protected static ?string $navigationLabel = 'Kebijakan & Ketentuan';
     protected static ?string $pluralLabel = 'Kebijakan & Ketentuan';
@@ -93,7 +94,7 @@ class PolicyResource extends Resource
     {
         return [
             'index'  => Pages\ListPolicies::route('/'),
-            'active' => Pages\ViewActivePolicy::route('/active'),
+            'active' => Pages\ViewActivePolicy::route('/aktif'),
             'edit'   => Pages\EditPolicy::route('/{record}/edit'),
         ];
     }
