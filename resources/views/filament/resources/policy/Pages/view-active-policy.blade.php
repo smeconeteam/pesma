@@ -11,6 +11,13 @@
             {{-- Meta info: Tanggal & Status --}}
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Tanggal Berlaku</p>
+                    <p class="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {{ data_get($this->data, 'published_at_label', '-') }}
+                    </p>
+                </div>
+
+                <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Status</p>
                     <p class="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
                         {{ data_get($this->data, 'is_active') ? 'Aktif' : 'Tidak Aktif' }}
