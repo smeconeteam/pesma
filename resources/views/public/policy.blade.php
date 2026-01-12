@@ -1,81 +1,109 @@
 <x-guest-layout>
-    <!-- Header - Sticky untuk mobile -->
-    <div class="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
-        <div class="max-w-4xl mx-auto px-4 py-4">
-            <div class="flex items-center justify-between gap-4">
-                <h1 class="text-lg sm:text-xl font-bold text-gray-900 line-clamp-2 flex-1">
-                    {{ $policy->title }}
-                </h1>
-                <button 
-                    onclick="window.close()" 
-                    class="flex-shrink-0 text-sm text-green-600 hover:text-green-700 font-medium px-3 py-1.5 border border-green-600 rounded-lg hover:bg-green-50 transition-colors"
+    <div class="min-h-screen bg-gradient-to-b from-green-50/40 via-white to-white">
+        <main class="mx-auto max-w-3xl px-4 py-8 sm:py-12">
+            {{-- Header --}}
+            <header class="mb-6 sm:mb-8">
+                <button
+                    type="button"
+                    id="btnBackToRegister"
+                    class="inline-flex items-center gap-2 rounded-xl border border-green-200 bg-white px-3 py-2 text-sm font-semibold text-green-700 shadow-sm hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
                 >
-                    Tutup
+                    <span aria-hidden="true">←</span>
+                    Kembali
                 </button>
-            </div>
-        </div>
-    </div>
 
-    <!-- Content -->
-    <div class="max-w-4xl mx-auto px-4 py-6 sm:py-8">
-        <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-            <div class="p-4 sm:p-6 md:p-8">
-                <div class="prose prose-sm sm:prose max-w-none prose-headings:text-green-600 prose-headings:font-semibold prose-a:text-green-600 hover:prose-a:text-green-700 prose-strong:text-gray-900 prose-p:text-gray-700 prose-p:text-justify">
-                    {!! $policy->content !!}
+                <div class="mt-5">
+                    <h1 class="mt-3 text-2xl font-extrabold tracking-tight text-gray-900 sm:text-3xl">
+                        {{ $policy->title }}
+                    </h1>
+
+                    @if(!empty($policy->updated_at))
+                        <p class="mt-2 text-sm text-gray-600">
+                            Terakhir diperbarui:
+                            <span class="font-semibold text-gray-700">
+                                {{ $policy->updated_at instanceof \Carbon\Carbon
+                                    ? $policy->updated_at->translatedFormat('d F Y')
+                                    : $policy->updated_at }}
+                            </span>
+                        </p>
+                    @endif
                 </div>
-            </div>
-        </div>
+            </header>
 
-        <!-- Footer Button - Fixed di bottom untuk mobile -->
-        <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-4 sm:relative sm:mt-6 sm:bg-transparent sm:border-0 sm:shadow-none sm:p-0">
-            <div class="max-w-4xl mx-auto">
-                <button 
-                    onclick="window.close()" 
-                    class="w-full sm:w-auto sm:mx-auto sm:block bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium text-sm sm:text-base shadow-lg sm:shadow-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                >
-                    Kembali ke Formulir
-                </button>
-            </div>
-        </div>
+            {{-- Content Card --}}
+            <section class="rounded-2xl border border-gray-200 bg-white shadow-sm">
+                <div class="p-5 sm:p-8">
+                    <article
+                        class="policy-content prose prose-sm sm:prose lg:prose-lg max-w-none
+                               prose-headings:scroll-mt-24
+                               prose-headings:text-gray-900 prose-headings:font-semibold
+                               prose-p:text-gray-700
+                               prose-a:text-green-700 hover:prose-a:text-green-800
+                               prose-strong:text-gray-900
+                               prose-li:marker:text-green-600
+                               prose-blockquote:border-green-500 prose-blockquote:text-gray-700
+                               prose-code:text-green-800 prose-code:bg-green-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded
+                               prose-pre:bg-gray-900 prose-pre:text-gray-100"
+                    >
+                        {!! $policy->content !!}
+                    </article>
+                </div>
+            </section>
 
-        <!-- Spacer untuk fixed button di mobile -->
-        <div class="h-20 sm:hidden"></div>
+            <footer class="mt-8 text-center text-xs text-gray-500">
+                <span class="inline-flex items-center gap-2">
+                    <span class="inline-block h-1.5 w-1.5 rounded-full bg-green-500"></span>
+                    Dokumen ini dapat berubah sewaktu-waktu.
+                </span>
+            </footer>
+        </main>
     </div>
 
     <style>
-        /* Custom prose styles untuk mobile optimization */
-        @media (max-width: 640px) {
-            .prose h1 { 
-                font-size: 1.25rem;
-                margin-top: 1.25em;
-            }
-            .prose h2 { 
-                font-size: 1.125rem;
-                margin-top: 1.25em;
-            }
-            .prose h3, .prose h4 { 
-                font-size: 1rem;
-                margin-top: 1em;
-            }
-            .prose {
-                font-size: 0.9375rem;
-            }
-            .prose ul, .prose ol {
-                padding-left: 1.25em;
-            }
-        }
-
-        /* Line clamp utility */
-        .line-clamp-2 {
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
+        /* Hardening untuk output rich editor (table/img) */
+        .policy-content table {
+            width: 100%;
+            border-collapse: collapse;
             overflow: hidden;
+            border-radius: 0.75rem;
+            border: 1px solid #e5e7eb;
         }
-
-        /* Ensure smooth scrolling */
-        html {
-            scroll-behavior: smooth;
+        .policy-content th,
+        .policy-content td {
+            border-bottom: 1px solid #e5e7eb;
+            padding: .75rem .875rem;
+            vertical-align: top;
+        }
+        .policy-content th {
+            background: #f9fafb;
+            font-weight: 700;
+            color: #111827;
+            text-align: left;
+        }
+        .policy-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: .75rem;
         }
     </style>
+
+    <script>
+        (function () {
+            const btn = document.getElementById('btnBackToRegister');
+            if (!btn) return;
+
+            const registerUrl = @json(route('public.registration.create'));
+
+            btn.addEventListener('click', function () {
+                // Coba tutup tab (hanya berhasil jika tab dibuka via window.open)
+                window.close();
+
+                // Fallback: tetap arahkan ke halaman pendaftaran
+                // (kalau window.close diblok, user tetap masuk register)
+                setTimeout(() => {
+                    window.location.href = registerUrl;
+                }, 50);
+            });
+        })();
+    </script>
 </x-guest-layout>
