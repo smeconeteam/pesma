@@ -41,8 +41,8 @@ return new class extends Migration
             $table->date('period_end')->nullable();
             $table->date('due_date');
 
-            // Status
-            $table->enum('status', ['issued', 'partial', 'paid', 'overdue'])
+            // Status - PERBAIKAN: default value harus ada dalam enum list
+            $table->enum('status', ['draft', 'issued', 'partial', 'paid', 'overdue'])
                 ->default('draft');
 
             // Metadata
