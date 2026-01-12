@@ -56,7 +56,8 @@ class PolicyResource extends Resource
             TextInput::make('title')
                 ->label('Judul')
                 ->required()
-                ->maxLength(255),
+                ->maxLength(255)
+                ->columnSpanFull(),
 
             RichEditor::make('content')
                 ->label('Isi Kebijakan & Ketentuan')
