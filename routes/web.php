@@ -47,3 +47,6 @@ Route::post('/pendaftaran', [PublicRegistrationController::class, 'store'])
 
 Route::get('/pendaftaran/berhasil', [PublicRegistrationController::class, 'success'])
     ->name('public.registration.success');
+
+Route::get('/kebijakan', [PublicRegistrationController::class, 'policy'])
+    ->name('public.policy');

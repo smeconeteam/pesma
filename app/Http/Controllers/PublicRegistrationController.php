@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreRegistrationRequest;
 use App\Models\Country;
 use App\Models\Dorm;
+use App\Models\Policy;
 use App\Models\Registration;
 use App\Models\ResidentCategory;
 use App\Models\RoomType;
@@ -16,12 +17,16 @@ class PublicRegistrationController extends Controller
     {
         $indoId = Country::query()->where('iso2', 'ID')->value('id');
 
+        // Ambil kebijakan aktif
+        $policy = Policy::where('is_active', true)->first();
+
         return view('public.registration.create', [
             'residentCategories' => ResidentCategory::query()->orderBy('name')->get(['id', 'name']),
             'dorms'              => Dorm::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'roomTypes'          => RoomType::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'countries'          => Country::query()->orderBy('name')->get(['id', 'name', 'iso2']),
             'indoCountryId'      => $indoId,
+            'policy'             => $policy,
         ]);
     }
 
@@ -48,6 +53,9 @@ class PublicRegistrationController extends Controller
 
         $data['status'] = 'pending';
 
+        // Hapus agreed_to_policy dari data sebelum disimpan (tidak ada kolom ini di database)
+        unset($data['agreed_to_policy']);
+
         Registration::create($data);
 
         return redirect()->route('public.registration.success');
@@ -56,5 +64,18 @@ class PublicRegistrationController extends Controller
     public function success()
     {
         return view('public.registration.success');
+    }
+
+    public function policy()
+    {
+        $policy = Policy::where('is_active', true)->first();
+
+        if (!$policy) {
+            abort(404, 'Kebijakan tidak ditemukan');
+        }
+
+        return view('public.policy', [
+            'policy' => $policy,
+        ]);
     }
 }

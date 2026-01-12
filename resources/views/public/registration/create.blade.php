@@ -25,12 +25,12 @@
 
                 <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                        <label class="block text-sm font-medium">Email</label>
+                        <label class="block text-sm font-medium">Email <span class="text-red-500">*</span></label>
                         <input name="email" type="email" value="{{ old('email') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Nama Panggilan</label>
+                        <label class="block text-sm font-medium">Nama Panggilan <span class="text-red-500">*</span></label>
                         <input name="name" type="text" value="{{ old('name') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
                     </div>
 
@@ -181,11 +181,58 @@
                 </div>
             </section>
 
-            <div class="flex items-center gap-3">
-                <button type="submit" class="inline-flex items-center justify-center rounded-lg bg-green-600 px-5 py-2.5 font-medium text-white hover:bg-green-700">
+            {{-- CHECKBOX KEBIJAKAN (Di luar section) --}}
+            @if($policy)
+                <div class="flex items-start space-x-3 bg-green-50 border border-green-200 rounded-lg p-4">
+                    <input 
+                        type="checkbox" 
+                        name="agreed_to_policy" 
+                        id="agreed_to_policy" 
+                        value="1"
+                        class="mt-1 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded flex-shrink-0"
+                        {{ old('agreed_to_policy') ? 'checked' : '' }}
+                        required
+                    >
+                    <label for="agreed_to_policy" class="text-sm text-gray-700">
+                        Saya telah membaca dan menyetujui 
+                        <a 
+                            href="{{ route('public.policy') }}" 
+                            target="_blank"
+                            class="text-green-600 hover:text-green-700 font-semibold underline"
+                        >
+                            Kebijakan & Ketentuan
+                        </a>
+                        yang berlaku
+                        <span class="text-red-600">*</span>
+                    </label>
+                </div>
+                
+                @error('agreed_to_policy')
+                    <p class="text-sm text-red-600 -mt-4">{{ $message }}</p>
+                @enderror
+            @else
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p class="text-sm text-yellow-800">
+                        ⚠️ Kebijakan belum tersedia. Silakan hubungi administrator.
+                    </p>
+                </div>
+            @endif
+
+            {{-- TOMBOL SUBMIT --}}
+            <div class="flex items-center justify-end gap-3">
+                <a 
+                    href="{{ url('/') }}" 
+                    class="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition font-medium"
+                >
+                    Batal
+                </a>
+                <button 
+                    type="submit" 
+                    class="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    @if(!$policy) disabled title="Kebijakan belum tersedia" @endif
+                >
                     Kirim Pendaftaran
                 </button>
-                <a href="{{ url('/') }}" class="text-sm text-gray-600 hover:underline">Kembali</a>
             </div>
         </form>
     </div>
@@ -206,7 +253,6 @@
                         country.value = String(indoId);
                     }
                 }
-
             }
 
             citizenship.addEventListener('change', syncCountry);
