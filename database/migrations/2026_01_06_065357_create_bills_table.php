@@ -43,7 +43,7 @@ return new class extends Migration
 
             // Status
             $table->enum('status', ['issued', 'partial', 'paid', 'overdue'])
-                ->default('draft');
+                ->default('issued');
 
             // Metadata
             $table->text('notes')->nullable();

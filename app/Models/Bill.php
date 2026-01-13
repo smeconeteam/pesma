@@ -147,7 +147,7 @@ class Bill extends Model
             $newNumber = '0001';
         }
 
-        return "BILL-{$date}-{$newNumber}";
+        return "{$date}-{$newNumber}";
     }
 
     public function updatePaymentStatus(): void
