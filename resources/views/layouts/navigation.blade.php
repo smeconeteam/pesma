@@ -36,6 +36,13 @@
                         {{ __('Kamar Saya') }}
                     </x-nav-link>
                     @endif
+
+                    {{-- Menu Riwayat Kamar --}}
+                    @if (\Illuminate\Support\Facades\Route::has('resident.room-history'))
+                    <x-nav-link :href="route('resident.room-history')" :active="request()->routeIs('resident.room-history')">
+                        {{ __('Riwayat Kamar') }}
+                    </x-nav-link>
+                    @endif
                     @endauth
 
                     @guest
@@ -134,6 +141,13 @@
             @if (\Illuminate\Support\Facades\Route::has('resident.my-room'))
             <x-responsive-nav-link :href="route('resident.my-room')" :active="request()->routeIs('resident.my-room')">
                 {{ __('Kamar Saya') }}
+            </x-responsive-nav-link>
+            @endif
+
+            {{-- Menu Riwayat Kamar (mobile) --}}
+            @if (\Illuminate\Support\Facades\Route::has('resident.room-history'))
+            <x-responsive-nav-link :href="route('resident.room-history')" :active="request()->routeIs('resident.room-history')">
+                {{ __('Riwayat Kamar') }}
             </x-responsive-nav-link>
             @endif
 

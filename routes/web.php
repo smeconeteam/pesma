@@ -3,23 +3,32 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicRegistrationController;
 use App\Http\Controllers\Resident\DashboardController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Resident\MyRoomController;
-
+use App\Http\Controllers\Resident\RoomHistoryController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return redirect()->route('login');
 });
 
+// =====================
+// Resident Routes
+// =====================
 Route::middleware(['auth', 'verified', 'resident.only'])->group(function () {
 
-    // ✅ Dashboard resident pakai controller
+    // Dashboard resident
     Route::get('/dashboard', DashboardController::class)
         ->name('dashboard');
 
-    // ✅ Halaman Kamar Saya (read-only)
-    Route::get('/kamar-saya', MyRoomController::class)->name('resident.my-room');
+    // Halaman Kamar Saya (read-only)
+    Route::get('/kamar-saya', MyRoomController::class)
+        ->name('resident.my-room');
 
+    // ✅ Riwayat Kamar
+    Route::get('/riwayat-kamar', [RoomHistoryController::class, 'index'])
+        ->name('resident.room-history');
+
+    // Profile routes
     Route::get('/profile', [ProfileController::class, 'edit'])
         ->name('profile.edit');
 
@@ -30,11 +39,12 @@ Route::middleware(['auth', 'verified', 'resident.only'])->group(function () {
         ->name('profile.destroy');
 });
 
+// =====================
+// Public Routes
+// =====================
 Route::get('/no-access', function () {
     return view('no-access');
 })->name('no-access');
-
-require __DIR__ . '/auth.php';
 
 // =====================
 // Public Registration
@@ -50,3 +60,8 @@ Route::get('/pendaftaran/berhasil', [PublicRegistrationController::class, 'succe
 
 Route::get('/kebijakan', [PublicRegistrationController::class, 'policy'])
     ->name('public.policy');
+
+// =====================
+// Auth Routes
+// =====================
+require __DIR__ . '/auth.php';

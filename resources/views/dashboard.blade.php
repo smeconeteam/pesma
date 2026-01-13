@@ -69,9 +69,9 @@
                     </div>
 
                     {{-- Tombol Aksi --}}
-                    <div class="mt-6 grid grid-cols-2 gap-3">
+                    <div class="mt-6 grid grid-cols-3 gap-3">
                         <a href="{{ url('/kontak') }}"
-                           class="inline-flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl font-bold text-xs text-white uppercase tracking-wide hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all shadow-md hover:shadow-lg active:scale-95">
+                           class="inline-flex items-center justify-center gap-2 px-3 py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl font-bold text-xs text-white uppercase tracking-wide hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all shadow-md hover:shadow-lg active:scale-95">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                             </svg>
@@ -79,12 +79,22 @@
                             <span class="sm:hidden">Chat</span>
                         </a>
 
-                        <a href="{{ url('/riwayat-kamar') }}"
-                           class="inline-flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-green-200 rounded-xl font-bold text-xs text-green-700 uppercase tracking-wide hover:bg-green-50 hover:border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all shadow-md hover:shadow-lg active:scale-95">
+                        <a href="{{ route('resident.my-room') }}"
+                           class="inline-flex items-center justify-center gap-2 px-3 py-3 bg-white border-2 border-green-200 rounded-xl font-bold text-xs text-green-700 uppercase tracking-wide hover:bg-green-50 hover:border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all shadow-md hover:shadow-lg active:scale-95">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                            </svg>
+                            <span class="hidden sm:inline">Kamar</span>
+                            <span class="sm:hidden">Kamar</span>
+                        </a>
+
+                        <a href="{{ route('resident.room-history') }}"
+                           class="inline-flex items-center justify-center gap-2 px-3 py-3 bg-white border-2 border-green-200 rounded-xl font-bold text-xs text-green-700 uppercase tracking-wide hover:bg-green-50 hover:border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all shadow-md hover:shadow-lg active:scale-95">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
-                            Riwayat
+                            <span class="hidden sm:inline">Riwayat</span>
+                            <span class="sm:hidden">Riwayat</span>
                         </a>
                     </div>
 
