@@ -168,41 +168,51 @@
                                                 </div>
                                             </div>
 
-                                            @if($history->check_in_date && $history->check_out_date)
+                                           @if($history->check_in_date && $history->check_out_date)
                                                 @php
                                                     $checkIn = \Carbon\Carbon::parse($history->check_in_date);
                                                     $checkOut = \Carbon\Carbon::parse($history->check_out_date);
-                                                    $days = (int) abs($checkIn->diffInDays($checkOut, false));
-                                                    $isNegative = $checkIn->gt($checkOut);
+                                                    $now = now();
+                                                    
+                                                    // Pertama cek: apakah tanggal check-in sudah melampaui tanggal saat ini?
+                                                    if ($checkIn->gt($now)) {
+                                                        // Jika check-in masih di masa depan (belum lewat dari hari ini)
+                                                        $days = 0;
+                                                        $displayText = '0 hari (belum melewati tanggal masuk)';
+                                                    } else {
+                                                        // Jika check-in sudah lewat dari hari ini, hitung durasi normal
+                                                        $days = (int) $checkIn->diffInDays($checkOut);
+                                                        $displayText = $days . ' hari';
+                                                    }
                                                 @endphp
                                                 <div class="mt-2">
                                                     <span class="text-xs text-gray-600">Durasi menghuni:</span>
                                                     <p class="text-xs sm:text-sm font-medium text-gray-900">
-                                                        @if($isNegative)
-                                                            Kurang {{ $days }} hari
-                                                        @else
-                                                            {{ $days }} hari
-                                                        @endif
+                                                        {{ $displayText }}
                                                     </p>
                                                 </div>
                                             @elseif($history->check_in_date && !$history->check_out_date)
                                                 @php
                                                     $checkIn = \Carbon\Carbon::parse($history->check_in_date);
                                                     $now = now();
-                                                    $days = (int) abs($checkIn->diffInDays($now, false));
-                                                    $isNegative = $checkIn->gt($now);
+                                                    
+                                                    // Jika tanggal check-in belum tercapai
+                                                    if ($now->lt($checkIn)) {
+                                                        $days = (int) $now->diffInDays($checkIn);
+                                                        $displayText = 'Masuk ' . $days . ' hari lagi';
+                                                    } else {
+                                                        $days = (int) $checkIn->diffInDays($now);
+                                                        $displayText = $days . ' hari';
+                                                    }
                                                 @endphp
                                                 <div class="mt-2">
                                                     <span class="text-xs text-gray-600">Durasi menghuni:</span>
                                                     <p class="text-xs sm:text-sm font-medium text-green-700">
-                                                        @if($isNegative)
-                                                            Kurang {{ $days }} hari
-                                                        @else
-                                                            {{ $days }} hari
-                                                        @endif
+                                                        {{ $displayText }}
                                                     </p>
                                                 </div>
                                             @endif
+
 
                                             @if($history->notes)
                                                 <div class="mt-2 sm:mt-3 rounded bg-gray-50 p-2">
