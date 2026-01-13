@@ -94,9 +94,9 @@ class RoomPlacementResource extends Resource
                         $block = $room->block;
                         $dorm = $block->dorm;
 
-                        return "{$dorm->name} - {$block->name} - {$room->code}";
+                        return "{$dorm->name} - {$block->name} - {$room->number}";
                     }),
-
+                    
                 Tables\Columns\IconColumn::make('has_room')
                     ->label('Ada Kamar?')
                     ->boolean()
