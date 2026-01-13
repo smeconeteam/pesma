@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Resident;
 
 use App\Http\Controllers\Controller;
+use App\Models\Contact;
 use App\Models\RoomResident;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -78,6 +79,7 @@ class DashboardController extends Controller
         // Profil PIC kamar aktif
         $picName = '-';
         $picPhotoUrl = null;
+        $picPhoneNumber = null;
         $isYouPic = false;
 
         if ($room?->id) {
@@ -96,6 +98,9 @@ class DashboardController extends Controller
                 $picName = $picUser?->name ?? '-';
                 if ($picUser && method_exists($picUser, 'residentProfile')) {
                     $picName = $picUser->residentProfile?->full_name ?: $picUser->name;
+                    
+                    // Ambil nomor telepon PIC
+                    $picPhoneNumber = $picUser->residentProfile?->phone_number;
                 }
 
                 $isYouPic = (bool) ($picUser?->id && $picUser->id === $user->id);
@@ -110,6 +115,28 @@ class DashboardController extends Controller
             }
         }
 
+        // Ambil daftar kontak
+        $contacts = collect([]);
+        
+        if ($room?->block?->dorm_id) {
+            // Jika sudah punya kamar, ambil kontak untuk cabang tersebut + kontak umum
+            $dormId = $room->block->dorm_id;
+            
+            $contacts = Contact::where('is_active', true)
+                ->where(function($query) use ($dormId) {
+                    $query->whereNull('dorm_id')
+                          ->orWhere('dorm_id', $dormId);
+                })
+                ->orderBy('display_name')
+                ->get();
+        } else {
+            // Jika belum punya kamar, ambil kontak umum saja
+            $contacts = Contact::where('is_active', true)
+                ->whereNull('dorm_id')
+                ->orderBy('display_name')
+                ->get();
+        }
+
         return view('dashboard', [
             'statusLabel'       => $statusLabel,
 
@@ -122,7 +149,10 @@ class DashboardController extends Controller
 
             'picName'           => $picName,
             'picPhotoUrl'       => $picPhotoUrl,
+            'picPhoneNumber'    => $picPhoneNumber,
             'isYouPic'          => $isYouPic,
+
+            'contacts'          => $contacts,
         ]);
     }
 }
