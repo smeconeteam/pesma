@@ -27,7 +27,7 @@ class ViewBill extends ViewRecord
     {
         return $infolist
             ->schema([
-                Infolists\Components\Section::make('📋 Informasi Tagihan')
+                Infolists\Components\Section::make('Informasi Tagihan')
                     ->columns(3)
                     ->schema([
                         Infolists\Components\TextEntry::make('bill_number')
@@ -79,7 +79,7 @@ class ViewBill extends ViewRecord
                             ->weight(fn($record) => $record->isOverdue() ? 'bold' : null),
                     ]),
 
-                Infolists\Components\Section::make('💰 Rincian Nominal')
+                Infolists\Components\Section::make('Rincian Nominal')
                     ->columns(4)
                     ->schema([
                         Infolists\Components\TextEntry::make('base_amount')
@@ -121,7 +121,7 @@ class ViewBill extends ViewRecord
                             ->icon(fn($state) => $state > 0 ? 'heroicon-o-exclamation-triangle' : 'heroicon-o-check-badge'),
                     ]),
 
-                Infolists\Components\Section::make('📅 Periode')
+                Infolists\Components\Section::make('Periode')
                     ->columns(2)
                     ->visible(fn($record) => $record->period_start || $record->period_end)
                     ->schema([
@@ -136,7 +136,7 @@ class ViewBill extends ViewRecord
                             ->default('-'),
                     ]),
 
-                Infolists\Components\Section::make('📝 Detail Item')
+                Infolists\Components\Section::make('Detail Item')
                     ->visible(fn($record) => $record->details()->exists())
                     ->schema([
                         Infolists\Components\RepeatableEntry::make('details')
@@ -162,7 +162,7 @@ class ViewBill extends ViewRecord
                             ->columns(4),
                     ]),
 
-                Infolists\Components\Section::make('💳 Riwayat Pembayaran')
+                Infolists\Components\Section::make('Riwayat Pembayaran')
                     ->visible(fn($record) => $record->payments()->exists())
                     ->schema([
                         Infolists\Components\RepeatableEntry::make('payments')
@@ -205,7 +205,7 @@ class ViewBill extends ViewRecord
                             ->columns(6),
                     ]),
 
-                Infolists\Components\Section::make('📝 Catatan')
+                Infolists\Components\Section::make('Catatan')
                     ->schema([
                         Infolists\Components\TextEntry::make('notes')
                             ->label('')
@@ -214,7 +214,7 @@ class ViewBill extends ViewRecord
                     ])
                     ->visible(fn($record) => $record->notes),
 
-                Infolists\Components\Section::make('ℹ️ Informasi Tambahan')
+                Infolists\Components\Section::make('Informasi Tambahan')
                     ->columns(2)
                     ->schema([
                         Infolists\Components\TextEntry::make('issuedBy.name')

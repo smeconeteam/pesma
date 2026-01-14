@@ -4,8 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\BillResource\Pages;
 use App\Models\Bill;
-use App\Models\BillingType;
-use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -15,7 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 class BillResource extends Resource
 {
     protected static ?string $model = Bill::class;
-    protected static ?string $navigationLabel = 'Tagihan';
+    protected static ?string $navigationLabel = 'BuatTagihan';
     protected static ?string $modelLabel = 'Tagihan';
     protected static ?string $pluralModelLabel = 'Tagihan';
     protected static ?string $navigationGroup = 'Keuangan';
@@ -23,7 +21,6 @@ class BillResource extends Resource
 
     public static function form(Form $form): Form
     {
-        // Form ini tidak terpakai karena kita custom di CreateBill
         return $form->schema([]);
     }
 
@@ -48,6 +45,11 @@ class BillResource extends Resource
                     ->sortable()
                     ->badge()
                     ->color('info'),
+
+                Tables\Columns\TextColumn::make('room.code')
+                    ->label('Kamar')
+                    ->sortable()
+                    ->default('-'),
 
                 Tables\Columns\TextColumn::make('total_amount')
                     ->label('Total')
@@ -110,6 +112,7 @@ class BillResource extends Resource
         return [
             'index' => Pages\ListBills::route('/'),
             'create' => Pages\CreateBill::route('/create'),
+            'create-room' => Pages\CreateRoomBill::route('/create-room'), // ✅ BARU
             'view' => Pages\ViewBill::route('/{record}'),
         ];
     }

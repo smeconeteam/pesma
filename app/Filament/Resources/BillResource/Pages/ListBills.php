@@ -13,9 +13,13 @@ class ListBills extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('create_room')
+                ->label('Generate Tagihan Kamar')
+                ->color('success')
+                ->url(BillResource::getUrl('create-room')),
+
             Actions\CreateAction::make()
-                ->label('Buat Tagihan')
-                ->tooltip('Pilih kamar, centang penghuni, buat tagihan!'),
+                ->label('Buat Tagihan'),
         ];
     }
 }

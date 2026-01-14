@@ -21,7 +21,6 @@ class CreateBill extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // Ini tidak terpakai karena kita override handleRecordCreation
         return $data;
     }
 
@@ -31,10 +30,10 @@ class CreateBill extends CreateRecord
         $fillData = [
             'discount_percent' => 0,
             'due_date' => now()->addDays(7)->toDateString(),
+            'default_amount' => 100000,
             'residents' => [],
         ];
 
-        // Auto-fill berdasarkan role
         if ($user->hasRole('branch_admin')) {
             $dormIds = $user->branchDormIds();
             if ($dormIds->isNotEmpty()) {
@@ -83,7 +82,8 @@ class CreateBill extends CreateRecord
                             ->afterStateUpdated(function (Forms\Set $set) {
                                 $set('block_id', null);
                                 $set('room_id', null);
-                                $set('residents', []); // ✅ Reset residents
+                                $set('billing_type_id', null);
+                                $set('residents', []);
                             }),
 
                         Forms\Components\Select::make('block_id')
@@ -99,7 +99,7 @@ class CreateBill extends CreateRecord
                             ->disabled(fn(Forms\Get $get) => blank($get('dorm_id')) || $isBlockAdmin)
                             ->afterStateUpdated(function (Forms\Set $set) {
                                 $set('room_id', null);
-                                $set('residents', []); // ✅ Reset residents
+                                $set('residents', []);
                             }),
 
                         Forms\Components\Select::make('room_id')
@@ -150,13 +150,52 @@ class CreateBill extends CreateRecord
                     ]),
 
                 Forms\Components\Section::make('Informasi Tagihan')
+                    ->columns(2)
                     ->schema([
                         Forms\Components\Select::make('billing_type_id')
                             ->label('Jenis Tagihan')
-                            ->options(BillingType::where('is_active', true)->pluck('name', 'id'))
+                            ->options(function (Forms\Get $get) {
+                                $dormId = $get('dorm_id');
+
+                                if (!$dormId) {
+                                    return BillingType::where('is_active', true)
+                                        ->where('applies_to_all', true)
+                                        ->pluck('name', 'id');
+                                }
+
+                                return BillingType::where('is_active', true)
+                                    ->where(function ($q) use ($dormId) {
+                                        $q->where('applies_to_all', true)
+                                            ->orWhereHas('dorms', function ($q2) use ($dormId) {
+                                                $q2->where('dorm_id', $dormId);
+                                            });
+                                    })
+                                    ->pluck('name', 'id');
+                            })
                             ->required()
                             ->searchable()
-                            ->native(false),
+                            ->native(false)
+                            ->disabled(fn(Forms\Get $get) => blank($get('dorm_id')))
+                            ->helperText('Hanya tampil jenis tagihan yang berlaku di cabang ini'),
+
+                        Forms\Components\TextInput::make('default_amount')
+                            ->label('Nominal Default')
+                            ->required()
+                            ->numeric()
+                            ->prefix('Rp')
+                            ->helperText('Nominal ini akan jadi default untuk semua penghuni')
+                            ->default(100000)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                                $residents = $get('residents') ?? [];
+
+                                if (!empty($residents)) {
+                                    foreach ($residents as $index => $resident) {
+                                        $residents[$index]['amount'] = $state;
+                                    }
+                                    $set('residents', $residents);
+                                }
+                            }),
                     ]),
 
                 Forms\Components\Section::make('Periode & Jatuh Tempo')
@@ -189,6 +228,7 @@ class CreateBill extends CreateRecord
                                 Forms\Components\Grid::make(5)
                                     ->schema([
                                         Forms\Components\Checkbox::make('selected')
+                                            ->label('Pilih')
                                             ->default(true)
                                             ->live()
                                             ->inline(),
@@ -223,7 +263,7 @@ class CreateBill extends CreateRecord
                                                 $amount = $get('amount') ?? 0;
                                                 $discount = $get('discount_percent') ?? 0;
                                                 $total = $amount - (($amount * $discount) / 100);
-                                                return 'Rp ' . number_format($total, 0, ',', '.');
+                                                return '**Rp ' . number_format($total, 0, ',', '.') . '**';
                                             }),
                                     ]),
 
