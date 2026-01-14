@@ -53,7 +53,7 @@
                                         Kamar {{ $currentRoom->room->number }} ({{ $currentRoom->room->roomType->name }})
                                     </p>
                                     <p class="mt-1 text-xs sm:text-sm text-green-700">
-                                        Check-in: {{ \Carbon\Carbon::parse($currentRoom->check_in_date)->format('d M Y') }}
+                                        Masuk: {{ \Carbon\Carbon::parse($currentRoom->check_in_date)->format('d M Y') }}
                                         @if($currentRoom->is_pic)
                                             <span class="ml-2 inline-flex items-center rounded-full bg-green-600 px-2 py-0.5 text-xs font-medium text-white">
                                                 PIC Kamar
@@ -69,6 +69,53 @@
                     @else
                         <div class="mb-4 sm:mb-6 rounded-lg border border-gray-300 bg-gray-50 p-3 sm:p-4">
                             <p class="text-center text-xs sm:text-sm text-gray-600">Belum ada penempatan kamar saat ini</p>
+                        </div>
+                    @endif
+
+                    {{-- Summary Statistics --}}
+                    @if(!$histories->isEmpty())
+                        <div class="mb-6 sm:mb-8 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3">
+                            <div class="rounded-lg border border-gray-200 bg-white p-3 sm:p-4 shadow-sm">
+                                <div class="flex items-center gap-3">
+                                    <div class="rounded-full bg-blue-100 p-2 sm:p-3 shrink-0">
+                                        <svg class="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-xs sm:text-sm text-gray-600">Total Kamar Dihuni</p>
+                                        <p class="text-xl sm:text-2xl font-semibold text-gray-900">{{ $histories->count() }}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="rounded-lg border border-gray-200 bg-white p-3 sm:p-4 shadow-sm">
+                                <div class="flex items-center gap-3">
+                                    <div class="rounded-full bg-yellow-100 p-2 sm:p-3 shrink-0">
+                                        <svg class="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-xs sm:text-sm text-gray-600">Perpindahan Kamar</p>
+                                        <p class="text-xl sm:text-2xl font-semibold text-gray-900">{{ $histories->where('movement_type', 'transfer')->count() }}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="rounded-lg border border-gray-200 bg-white p-3 sm:p-4 shadow-sm">
+                                <div class="flex items-center gap-3">
+                                    <div class="rounded-full bg-purple-100 p-2 sm:p-3 shrink-0">
+                                        <svg class="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-xs sm:text-sm text-gray-600">Sebagai PIC</p>
+                                        <p class="text-xl sm:text-2xl font-semibold text-gray-900">{{ $histories->where('is_pic', true)->count() }}</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     @endif
 
@@ -155,13 +202,13 @@
                                             
                                             <div class="mt-2 grid grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
                                                 <div>
-                                                    <span class="text-gray-600">Check-in:</span>
+                                                    <span class="text-gray-600">Masuk:</span>
                                                     <p class="font-medium text-gray-900">
                                                         {{ \Carbon\Carbon::parse($history->check_in_date)->format('d M Y') }}
                                                     </p>
                                                 </div>
                                                 <div>
-                                                    <span class="text-gray-600">Check-out:</span>
+                                                    <span class="text-gray-600">Keluar:</span>
                                                     <p class="font-medium text-gray-900">
                                                         {{ $history->check_out_date ? \Carbon\Carbon::parse($history->check_out_date)->format('d M Y') : '-' }}
                                                     </p>
@@ -231,54 +278,43 @@
                                 </div>
                             @endforeach
                         </div>
-
-                        {{-- Summary Statistics --}}
-                        <div class="mt-6 sm:mt-8 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3">
-                            <div class="rounded-lg border border-gray-200 bg-white p-3 sm:p-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="rounded-full bg-blue-100 p-2 sm:p-3 shrink-0">
-                                        <svg class="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                                        </svg>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-xs sm:text-sm text-gray-600">Total Kamar Dihuni</p>
-                                        <p class="text-xl sm:text-2xl font-semibold text-gray-900">{{ $histories->count() }}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="rounded-lg border border-gray-200 bg-white p-3 sm:p-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="rounded-full bg-yellow-100 p-2 sm:p-3 shrink-0">
-                                        <svg class="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                                        </svg>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-xs sm:text-sm text-gray-600">Perpindahan Kamar</p>
-                                        <p class="text-xl sm:text-2xl font-semibold text-gray-900">{{ $histories->where('movement_type', 'transfer')->count() }}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="rounded-lg border border-gray-200 bg-white p-3 sm:p-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="rounded-full bg-purple-100 p-2 sm:p-3 shrink-0">
-                                        <svg class="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                                        </svg>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-xs sm:text-sm text-gray-600">Sebagai PIC</p>
-                                        <p class="text-xl sm:text-2xl font-semibold text-gray-900">{{ $histories->where('is_pic', true)->count() }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     @endif
                 </div>
             </div>
         </div>
     </div>
+
+    {{-- Back to Top Button --}}
+    <button id="backToTop" 
+            class="fixed bottom-6 right-6 z-50 hidden rounded-full bg-gradient-to-r from-green-600 to-emerald-600 p-3 shadow-lg transition-all hover:from-green-700 hover:to-emerald-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 active:scale-95">
+        <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+        </svg>
+    </button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Back to Top functionality
+            const backToTopButton = document.getElementById('backToTop');
+            
+            if (backToTopButton) {
+                // Show button when user scrolls down 300px
+                window.addEventListener('scroll', () => {
+                    if (window.pageYOffset > 300) {
+                        backToTopButton.classList.remove('hidden');
+                    } else {
+                        backToTopButton.classList.add('hidden');
+                    }
+                });
+                
+                // Scroll to top when button is clicked
+                backToTopButton.addEventListener('click', () => {
+                    window.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
+                });
+            }
+        });
+    </script>
 </x-app-layout>

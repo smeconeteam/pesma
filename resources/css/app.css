@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+* {
+    font-family: 'Inter', sans-serif !important;
+}
+
 input,
 textarea,
 select {

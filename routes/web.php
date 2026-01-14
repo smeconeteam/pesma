@@ -61,6 +61,10 @@ Route::get('/pendaftaran/berhasil', [PublicRegistrationController::class, 'succe
 Route::get('/kebijakan', [PublicRegistrationController::class, 'policy'])
     ->name('public.policy');
 
+Route::delete('/profile/hapus-foto', [ProfileController::class, 'deletePhoto'])
+    ->name('profile.delete-photo')
+    ->middleware('auth');
+
 // =====================
 // Auth Routes
 // =====================

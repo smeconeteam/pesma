@@ -14,7 +14,17 @@
                             @else
                             <a href="{{ url('/') }}" class="flex items-center gap-3">
                                 @endauth
-                                <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
+                                
+                                @if ($institution?->logo_path)
+                                    <!-- Logo dari Database -->
+                                    <img src="{{ \Illuminate\Support\Facades\Storage::url($institution->logo_path) }}" 
+                                         alt="Logo {{ $institution->dormitory_name }}" 
+                                         class="h-10 w-10 object-contain">
+                                @else
+                                    <!-- Fallback ke SVG default jika tidak ada logo -->
+                                    <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
+                                @endif
+                                
                                 <h1 class="text-xl font-semibold">
                                     {{ $institution?->dormitory_name ?? config('app.name') }}
                                 </h1>
@@ -151,14 +161,14 @@
             </x-responsive-nav-link>
             @endif
 
-            {{-- ✅ Tanpa informasi profil (nama/email). Link Profil tetap ada. --}}
+            {{-- Link Profil tetap ada --}}
             @if (\Illuminate\Support\Facades\Route::has('profile.edit'))
             <x-responsive-nav-link :href="route('profile.edit')" :active="request()->routeIs('profile.edit')">
                 {{ __('Profil') }}
             </x-responsive-nav-link>
             @endif
 
-            {{-- ✅ Logout tetap tersedia di mobile --}}
+            {{-- Logout tetap tersedia di mobile --}}
             @if (\Illuminate\Support\Facades\Route::has('logout'))
             <form method="POST" action="{{ route('logout') }}">
                 @csrf

@@ -7,6 +7,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Support\Facades\Auth;
+use App\Filament\Resources\RegistrationResource;
 
 class LatestRegistrationsWidget extends BaseWidget
 {
@@ -86,7 +87,9 @@ class LatestRegistrationsWidget extends BaseWidget
                 Tables\Actions\Action::make('view')
                     ->label('Lihat')
                     ->icon('heroicon-o-eye')
-                    ->url(fn(Registration $record): string => route('filament.admin.resources.registrations.view', $record))
+                    ->url(fn(Registration $record): string => 
+                        RegistrationResource::getUrl('view', ['record' => $record])
+                    )
                     ->openUrlInNewTab(),
             ]);
     }

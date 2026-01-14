@@ -91,7 +91,7 @@
                                 </span>
 
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 border">
-                                    Check-in: {{ $checkInLabel }}
+                                    Masuk: {{ $checkInLabel }}
                                 </span>
 
                                 @if ($assignment)
@@ -170,7 +170,7 @@
                         </div>
 
                         <div class="{{ $rowClass }}">
-                            <dt class="{{ $labelClass }}">Tanggal Check-in</dt>
+                            <dt class="{{ $labelClass }}">Tanggal Masuk</dt>
                             <dd class="{{ $valueClass }}">{{ $checkInLabel }}</dd>
                         </div>
                     </dl>
