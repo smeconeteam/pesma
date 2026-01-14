@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\RoomResident;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,9 +12,6 @@ use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
-    /**
-     * Display the user's profile form.
-     */
     public function edit(Request $request): View
     {
         $user = $request->user();
@@ -42,10 +39,7 @@ class ProfileController extends Controller
         ]);
     }
 
-    /**
-     * Update the user's profile information.
-     */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(Request $request): RedirectResponse
     {
         $user = $request->user();
         
@@ -90,15 +84,13 @@ class ProfileController extends Controller
             $profile->save();
         }
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        return back()->with('status', 'profile-updated');
     }
 
-    /**
-     * Delete the user's account.
-     */
     public function destroy(Request $request): RedirectResponse
     {
-        $request->validateWithBag('userDeletion', [
+        // ✅ Default Breeze (kalau kamu masih mau fitur hapus akun)
+        $request->validate([
             'password' => ['required', 'current_password'],
         ]);
 
@@ -111,7 +103,7 @@ class ProfileController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return Redirect::to('/');
+        return redirect('/');
     }
 
     public function deletePhoto(Request $request)
