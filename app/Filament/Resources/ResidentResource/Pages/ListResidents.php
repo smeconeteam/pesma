@@ -7,6 +7,7 @@ use App\Filament\Exports\ResidentExport;
 use App\Filament\Imports\ResidentImport;
 use App\Exports\ResidentTemplateExport;
 use App\Services\ResidentPdfExport;
+use App\Jobs\ExportResidentsToExcel; // Job baru yang akan kita buat
 use App\Models\User;
 use App\Models\Dorm;
 use App\Models\Block;
@@ -16,6 +17,7 @@ use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Facades\Excel;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
 
 class ListResidents extends ListRecords
 {
@@ -51,80 +53,57 @@ class ListResidents extends ListRecords
                 ->failureNotificationTitle('Import Gagal')
                 ->chunkSize(100),
 
-            // ACTION: Export Excel - DENGAN QUEUE
-            Actions\ExportAction::make()
+            // ACTION: Export Excel - CUSTOM DENGAN QUEUE
+            Actions\Action::make('exportExcel')
                 ->label('Export Excel')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('warning')
-                ->exporter(ResidentExport::class)
                 ->visible(fn() => auth()->user()?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin']))
+                ->requiresConfirmation()
                 ->modalHeading('Export Data Penghuni ke Excel')
-                ->modalDescription('Export akan diproses di background. Anda akan menerima notifikasi ketika selesai.')
+                ->modalDescription('Export akan diproses di background. Anda akan menerima notifikasi ketika file siap didownload.')
                 ->modalSubmitActionLabel('Export')
-                ->fileName(fn() => 'data-penghuni-' . now()->format('Y-m-d-His'))
-                ->modifyQueryUsing(function (Builder $query) {
-                    // Apply tab filter
-                    $activeTab = $this->activeTab ?? 'aktif';
-                    
-                    if ($activeTab === 'aktif') {
-                        $query->withoutTrashed()
-                            ->whereHas('residentProfile', fn(Builder $q) => $q->where('status', 'active'));
-                    } elseif ($activeTab === 'keluar') {
-                        $query->withoutTrashed()
-                            ->whereHas('roomResidents', function (Builder $q) {
-                                $q->whereNotNull('check_out_date');
-                            })
-                            ->whereDoesntHave('roomResidents', function (Builder $q) {
-                                $q->whereNull('check_out_date');
-                            });
-                    } elseif ($activeTab === 'terhapus') {
-                        $query->onlyTrashed();
-                    }
-
-                    // Apply table filters
-                    $tableFilters = $this->tableFilters;
-                    
-                    if (!empty($tableFilters)) {
-                        // Gender filter
-                        if (isset($tableFilters['gender']['value']) && !empty($tableFilters['gender']['value'])) {
-                            $query->whereHas('residentProfile', function (Builder $q) use ($tableFilters) {
-                                $q->where('gender', $tableFilters['gender']['value']);
-                            });
+                ->action(function () {
+                    try {
+                        $query = $this->getCustomFilteredQuery();
+                        $count = $query->count();
+                        
+                        if ($count === 0) {
+                            Notification::make()
+                                ->warning()
+                                ->title('Tidak Ada Data')
+                                ->body('Tidak ada data penghuni untuk di-export')
+                                ->send();
+                            return;
                         }
 
-                        // Dorm filter
-                        if (isset($tableFilters['dorm_id']['value']) && !empty($tableFilters['dorm_id']['value'])) {
-                            $dormId = $tableFilters['dorm_id']['value'];
-                            $query->whereHas('roomResidents', function (Builder $q) use ($dormId) {
-                                $q->whereHas('room.block', fn(Builder $b) => $b->where('dorm_id', $dormId));
-                            });
-                        }
+                        // Ambil info filter yang aktif
+                        $filters = $this->getActiveFiltersInfo();
+                        
+                        // Dispatch job ke queue
+                        ExportResidentsToExcel::dispatch(
+                            $query->pluck('id')->toArray(),
+                            auth()->user()?->id,
+                            $filters,
+                            $this->activeTab ?? 'aktif'
+                        );
 
-                        // Block filter
-                        if (isset($tableFilters['block_id']['value']) && !empty($tableFilters['block_id']['value'])) {
-                            $blockId = $tableFilters['block_id']['value'];
-                            $query->whereHas('roomResidents', function (Builder $q) use ($blockId) {
-                                $q->whereHas('room', fn(Builder $room) => $room->where('block_id', $blockId));
-                            });
-                        }
-                    }
+                        Notification::make()
+                            ->success()
+                            ->title('Export Dimulai')
+                            ->body("Export {$count} data penghuni sedang diproses. Anda akan menerima notifikasi saat selesai.")
+                            ->send();
 
-                    // Apply search
-                    if ($search = $this->tableSearch) {
-                        $query->where(function (Builder $q) use ($search) {
-                            $q->where('email', 'like', "%{$search}%")
-                                ->orWhereHas('residentProfile', function (Builder $profile) use ($search) {
-                                    $profile->where('full_name', 'like', "%{$search}%")
-                                        ->orWhere('phone_number', 'like', "%{$search}%")
-                                        ->orWhere('national_id', 'like', "%{$search}%")
-                                        ->orWhere('student_id', 'like', "%{$search}%");
-                                });
-                        });
+                    } catch (\Exception $e) {
+                        Log::error('Export Excel Error: ' . $e->getMessage());
+                        
+                        Notification::make()
+                            ->danger()
+                            ->title('Export Gagal')
+                            ->body('Terjadi kesalahan saat memulai export.')
+                            ->send();
                     }
-                    
-                    return $query;
-                })
-                ->chunkSize(500),
+                }),
 
             // ACTION: Export PDF
             Actions\Action::make('exportPdf')
@@ -178,7 +157,7 @@ class ListResidents extends ListRecords
                         return $pdfExporter->export($residents, $filters);
 
                     } catch (\Exception $e) {
-                        \Log::error('PDF Export Error: ' . $e->getMessage(), [
+                        Log::error('PDF Export Error: ' . $e->getMessage(), [
                             'trace' => $e->getTraceAsString()
                         ]);
                         
