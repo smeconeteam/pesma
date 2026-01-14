@@ -20,6 +20,8 @@ use Illuminate\Validation\Rules\Unique;
 class BlockResource extends Resource
 {
     protected static ?string $model = Block::class;
+    
+    protected static ?string $slug = 'komplek';
 
     protected static ?string $navigationGroup = 'Asrama';
     protected static ?int $navigationSort = 2;
@@ -477,7 +479,7 @@ class BlockResource extends Resource
     {
         return [
             'index'  => Pages\ListBlocks::route('/'),
-            'create' => Pages\CreateBlock::route('/create'),
+            'create' => Pages\CreateBlock::route('/buat'),
             'edit'   => Pages\EditBlock::route('/{record}/edit'),
         ];
     }

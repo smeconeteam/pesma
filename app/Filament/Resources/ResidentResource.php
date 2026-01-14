@@ -29,6 +29,7 @@ class ResidentResource extends Resource
 {
     protected static ?string $model = User::class;
 
+    protected static ?string $slug = 'data-penghuni';
     protected static ?string $navigationGroup = 'Penghuni';
     protected static ?string $navigationLabel = 'Data Penghuni';
     protected static ?string $pluralLabel = 'Data Penghuni';

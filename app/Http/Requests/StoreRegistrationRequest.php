@@ -6,69 +6,102 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreRegistrationRequest extends FormRequest
 {
+    /**
+     * Determine if the user is authorized to make this request.
+     */
     public function authorize(): bool
     {
         return true;
     }
 
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
     public function rules(): array
     {
         return [
-            // AKUN
-            'email' => ['required', 'email', 'max:255', 'unique:registrations,email'],
-            'name' => ['required', 'string', 'max:255'],
-            'password' => ['nullable', 'string', 'min:6'],
+            // Akun
+            'email' => 'required|email|unique:registrations,email|unique:users,email',
+            'name' => 'required|string|max:255',
+            'password' => 'nullable|string|min:8',
 
-            // PROFIL
-            'resident_category_id' => ['required', 'exists:resident_categories,id'],
-            'full_name' => ['required', 'string', 'max:255'],
-            'gender' => ['required', 'in:M,F'],
-            'national_id' => ['required', 'regex:/^\d+$/'],
-            'student_id' => ['required', 'string', 'max:255'],
-            'birth_place' => ['required', 'string', 'max:255'],
-            'birth_date' => ['required', 'date', 'before:-6 years'],
-            'university_school' => ['required', 'string', 'max:255'],
-            'photo' => ['nullable', 'image', 'max:2048'],
+            // Profil
+            'resident_category_id' => 'required|exists:resident_categories,id',
+            'full_name' => 'required|string|max:255',
+            'gender' => 'required|in:M,F',
+            'national_id' => 'required|string|max:255',
+            'student_id' => 'required|string|max:255',
+            'birth_place' => 'required|string|max:255',
+            'birth_date' => 'required|date|before_or_equal:' . now()->subYears(6)->format('Y-m-d'),
+            'university_school' => 'required|string|max:255',
+            'photo' => 'nullable|image|max:2048',
 
-            // KEWARGANEGARAAN & KONTAK
-            'citizenship_status' => ['required', 'in:WNI,WNA'],
-            'country_id' => ['required', 'exists:countries,id'],
-            'phone_number' => ['required', 'regex:/^\d+$/'],
-            'guardian_name' => ['nullable', 'string', 'max:255'],
-            'guardian_phone_number' => ['nullable', 'regex:/^\d+$/'],
+            // Kewarganegaraan & Kontak
+            'citizenship_status' => 'required|in:WNI,WNA',
+            'country_id' => 'required|exists:countries,id',
+            'phone_number' => 'required|string|max:255',
+            'guardian_name' => 'nullable|string|max:255',
+            'guardian_phone_number' => 'nullable|string|max:255',
 
-            // PREFERENSI
-            'preferred_dorm_id' => ['required', 'exists:dorms,id'],
-            'preferred_room_type_id' => ['required', 'exists:room_types,id'],
-            'planned_check_in_date' => ['required', 'date', 'after_or_equal:today'],
+            // Preferensi (sekarang optional)
+            'preferred_dorm_id' => 'nullable|exists:dorms,id',
+            'preferred_room_type_id' => 'nullable|exists:room_types,id',
+            'planned_check_in_date' => 'nullable|date|after_or_equal:today',
+
+            // Kebijakan
+            'agreed_to_policy' => 'required|accepted',
         ];
     }
 
+    /**
+     * Get custom attributes for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'email' => 'Email',
+            'name' => 'Nama Panggilan',
+            'password' => 'Password',
+            'resident_category_id' => 'Kategori Penghuni',
+            'full_name' => 'Nama Lengkap',
+            'gender' => 'Jenis Kelamin',
+            'national_id' => 'NIK',
+            'student_id' => 'NIM/NIS',
+            'birth_place' => 'Tempat Lahir',
+            'birth_date' => 'Tanggal Lahir',
+            'university_school' => 'Universitas/Sekolah',
+            'photo' => 'Foto',
+            'citizenship_status' => 'Kewarganegaraan',
+            'country_id' => 'Asal Negara',
+            'phone_number' => 'No. HP',
+            'guardian_name' => 'Nama Wali',
+            'guardian_phone_number' => 'No. HP Wali',
+            'preferred_dorm_id' => 'Cabang',
+            'preferred_room_type_id' => 'Tipe Kamar',
+            'planned_check_in_date' => 'Rencana Tanggal Masuk',
+            'agreed_to_policy' => 'Persetujuan Kebijakan',
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array<string, string>
+     */
     public function messages(): array
     {
         return [
-            'email.required' => 'Email wajib diisi',
-            'email.unique' => 'Email sudah terdaftar',
-            'name.required' => 'Nama wajib diisi',
-            'resident_category_id.required' => 'Kategori penghuni wajib dipilih',
-            'full_name.required' => 'Nama lengkap wajib diisi',
-            'gender.required' => 'Jenis kelamin wajib dipilih',
-            'national_id.required' => 'NIK wajib diisi',
-            'national_id.regex' => 'NIK hanya boleh angka',
-            'student_id.required' => 'NIM wajib diisi',
-            'birth_place.required' => 'Tempat lahir wajib diisi',
-            'birth_date.required' => 'Tanggal lahir wajib diisi',
-            'birth_date.before' => 'Minimal usia 6 tahun',
-            'university_school.required' => 'Universitas/Sekolah wajib diisi',
-            'citizenship_status.required' => 'Kewarganegaraan wajib dipilih',
-            'country_id.required' => 'Asal negara wajib dipilih',
-            'phone_number.required' => 'No. HP wajib diisi',
-            'phone_number.regex' => 'No. HP hanya boleh angka',
-            'guardian_phone_number.regex' => 'No. HP Wali hanya boleh angka',
-            'preferred_dorm_id.required' => 'Cabang yang diinginkan wajib dipilih',
-            'preferred_room_type_id.required' => 'Tipe kamar yang diinginkan wajib dipilih',
-            'planned_check_in_date.required' => 'Rencana tanggal masuk wajib diisi',
-            'planned_check_in_date.after_or_equal' => 'Tanggal masuk minimal hari ini',
+            'email.unique' => 'Email sudah terdaftar.',
+            'birth_date.before_or_equal' => 'Usia minimal 6 tahun.',
+            'photo.image' => 'File harus berupa gambar.',
+            'photo.max' => 'Ukuran foto maksimal 2MB.',
+            'planned_check_in_date.after_or_equal' => 'Tanggal masuk minimal hari ini.',
+            'agreed_to_policy.required' => 'Anda harus menyetujui kebijakan dan ketentuan.',
+            'agreed_to_policy.accepted' => 'Anda harus menyetujui kebijakan dan ketentuan.',
         ];
     }
 }

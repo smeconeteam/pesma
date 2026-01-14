@@ -91,7 +91,7 @@
                                 </span>
 
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 border">
-                                    Check-in: {{ $checkInLabel }}
+                                    Masuk: {{ $checkInLabel }}
                                 </span>
 
                                 @if ($assignment)
@@ -104,13 +104,8 @@
                     </div>
 
                     <div class="flex flex-wrap gap-2">
-                        <a href="{{ url('/kontak') }}"
-                           class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition">
-                            Kontak Admin
-                        </a>
-
                         <a href="{{ url('/riwayat-kamar') }}"
-                           class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition">
+                           class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition">
                             Riwayat Kamar
                         </a>
                     </div>
@@ -175,7 +170,7 @@
                         </div>
 
                         <div class="{{ $rowClass }}">
-                            <dt class="{{ $labelClass }}">Tanggal Check-in</dt>
+                            <dt class="{{ $labelClass }}">Tanggal Masuk</dt>
                             <dd class="{{ $valueClass }}">{{ $checkInLabel }}</dd>
                         </div>
                     </dl>

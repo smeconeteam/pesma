@@ -18,6 +18,8 @@ class DormResource extends Resource
 {
     protected static ?string $model = Dorm::class;
 
+    protected static ?string $slug = 'cabang';
+
     protected static ?string $navigationGroup = 'Asrama';
     protected static ?int $navigationSort = 1;
 
@@ -371,7 +373,7 @@ class DormResource extends Resource
     {
         return [
             'index'  => Pages\ListDorms::route('/'),
-            'create' => Pages\CreateDorm::route('/create'),
+            'create' => Pages\CreateDorm::route('/buat'),
             'edit'   => Pages\EditDorm::route('/{record}/edit'),
         ];
     }

@@ -4,10 +4,8 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\PolicyResource\Pages;
 use App\Models\Policy;
-use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -19,6 +17,7 @@ class PolicyResource extends Resource
 {
     protected static ?string $model = Policy::class;
 
+    protected static ?string $slug = 'kebijakan-dan-ketentuan';
     protected static ?string $navigationGroup = 'Pengaturan';
     protected static ?string $navigationLabel = 'Kebijakan & Ketentuan';
     protected static ?string $pluralLabel = 'Kebijakan & Ketentuan';
@@ -57,22 +56,8 @@ class PolicyResource extends Resource
             TextInput::make('title')
                 ->label('Judul')
                 ->required()
-                ->maxLength(255),
-
-            // Tanggal Bulan Tahun (tersimpan sesuai tanggal yang dipilih)
-            DatePicker::make('published_at')
-                ->label('Berlaku')
-                ->native(false)
-                ->displayFormat('d F Y')
-                ->closeOnDateSelection()
-                ->dehydrateStateUsing(function ($state) {
-                    if (blank($state)) {
-                        return null;
-                    }
-
-                    // Simpan tanggal yang dipilih (set awal hari biar konsisten)
-                    return Carbon::parse($state)->startOfDay();
-                }),
+                ->maxLength(255)
+                ->columnSpanFull(),
 
             RichEditor::make('content')
                 ->label('Isi Kebijakan & Ketentuan')
@@ -110,7 +95,7 @@ class PolicyResource extends Resource
     {
         return [
             'index'  => Pages\ListPolicies::route('/'),
-            'active' => Pages\ViewActivePolicy::route('/active'),
+            'active' => Pages\ViewActivePolicy::route('/aktif'),
             'edit'   => Pages\EditPolicy::route('/{record}/edit'),
         ];
     }

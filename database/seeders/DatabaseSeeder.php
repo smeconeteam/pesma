@@ -21,7 +21,6 @@ class DatabaseSeeder extends Seeder
 
             ResidentCategorySeeder::class,
             BillingTypeSeeder::class,
-            DiscountSeeder::class,
             PaymentMethodSeeder::class,
 
             AdminScopeSeeder::class,

@@ -25,12 +25,12 @@
 
                 <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                        <label class="block text-sm font-medium">Email</label>
+                        <label class="block text-sm font-medium">Email <span class="text-red-500">*</span></label>
                         <input name="email" type="email" value="{{ old('email') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Nama Panggilan</label>
+                        <label class="block text-sm font-medium">Nama Panggilan <span class="text-red-500">*</span></label>
                         <input name="name" type="text" value="{{ old('name') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
                     </div>
 
@@ -49,7 +49,7 @@
                 <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
                         <label class="block text-sm font-medium">Kategori Penghuni <span class="text-red-500">*</span></label>
-                        <select name="resident_category_id" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
+                        <select id="resident_category_id" name="resident_category_id" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
                             <option value="">-- pilih --</option>
                             @foreach ($residentCategories as $cat)
                                 <option value="{{ $cat->id }}" @selected(old('resident_category_id') == $cat->id)>
@@ -150,42 +150,92 @@
 
             {{-- PREFERENSI --}}
             <section class="rounded-xl border bg-white p-6">
-                <h2 class="text-lg font-semibold">Preferensi Kamar</h2>
+                <h2 class="text-lg font-semibold">Preferensi Kamar (Opsional)</h2>
+                <p class="mt-1 text-sm text-gray-600">Anda dapat mengisi preferensi kamar atau membiarkan admin menentukan kamar yang sesuai untuk Anda.</p>
 
                 <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                        <label class="block text-sm font-medium">Cabang <span class="text-red-500">*</span></label>
-                        <select name="preferred_dorm_id" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
-                            <option value="">-- pilih --</option>
+                        <label class="block text-sm font-medium">Cabang</label>
+                        <select id="preferred_dorm_id" name="preferred_dorm_id" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500">
+                            <option value="">-- pilih cabang --</option>
                             @foreach ($dorms as $d)
                                 <option value="{{ $d->id }}" @selected(old('preferred_dorm_id') == $d->id)>{{ $d->name }}</option>
                             @endforeach
                         </select>
+                        <p id="dorm-info" class="mt-1 text-xs text-gray-500 hidden"></p>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Tipe Kamar <span class="text-red-500">*</span></label>
-                        <select name="preferred_room_type_id" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
-                            <option value="">-- pilih --</option>
+                        <label class="block text-sm font-medium">Tipe Kamar</label>
+                        <select id="preferred_room_type_id" name="preferred_room_type_id" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500">
+                            <option value="">-- pilih tipe kamar --</option>
                             @foreach ($roomTypes as $rt)
                                 <option value="{{ $rt->id }}" @selected(old('preferred_room_type_id') == $rt->id)>{{ $rt->name }}</option>
                             @endforeach
                         </select>
+                        <p id="room-type-info" class="mt-1 text-xs text-gray-500 hidden"></p>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Rencana Tanggal Masuk <span class="text-red-500">*</span></label>
-                        <input name="planned_check_in_date" type="date" value="{{ old('planned_check_in_date', now()->addDays(7)->format('Y-m-d')) }}" min="{{ now()->format('Y-m-d') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
+                        <label class="block text-sm font-medium">Rencana Tanggal Masuk</label>
+                        <input name="planned_check_in_date" type="date" value="{{ old('planned_check_in_date', now()->addDays(7)->format('Y-m-d')) }}" min="{{ now()->format('Y-m-d') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500">
                         <p class="mt-1 text-xs text-gray-500">Minimal hari ini</p>
                     </div>
                 </div>
             </section>
 
-            <div class="flex items-center gap-3">
-                <button type="submit" class="inline-flex items-center justify-center rounded-lg bg-green-600 px-5 py-2.5 font-medium text-white hover:bg-green-700">
+            {{-- CHECKBOX KEBIJAKAN --}}
+            @if($policy)
+                <div class="flex items-start space-x-3 bg-green-50 border border-green-200 rounded-lg p-4">
+                    <input 
+                        type="checkbox" 
+                        name="agreed_to_policy" 
+                        id="agreed_to_policy" 
+                        value="1"
+                        class="mt-1 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded flex-shrink-0"
+                        {{ old('agreed_to_policy') ? 'checked' : '' }}
+                        required
+                    >
+                    <label for="agreed_to_policy" class="text-sm text-gray-700">
+                        Saya telah membaca dan menyetujui 
+                        <a 
+                            href="{{ route('public.policy') }}" 
+                            target="_blank"
+                            class="text-green-600 hover:text-green-700 font-semibold underline"
+                        >
+                            Kebijakan & Ketentuan
+                        </a>
+                        yang berlaku
+                        <span class="text-red-600">*</span>
+                    </label>
+                </div>
+                
+                @error('agreed_to_policy')
+                    <p class="text-sm text-red-600 -mt-4">{{ $message }}</p>
+                @enderror
+            @else
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p class="text-sm text-yellow-800">
+                        ⚠️ Kebijakan belum tersedia. Silakan hubungi administrator.
+                    </p>
+                </div>
+            @endif
+
+            {{-- TOMBOL SUBMIT --}}
+            <div class="flex items-center justify-end gap-3">
+                <a 
+                    href="{{ url('/') }}" 
+                    class="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition font-medium"
+                >
+                    Batal
+                </a>
+                <button 
+                    type="submit" 
+                    class="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    @if(!$policy) disabled title="Kebijakan belum tersedia" @endif
+                >
                     Kirim Pendaftaran
                 </button>
-                <a href="{{ url('/') }}" class="text-sm text-gray-600 hover:underline">Kembali</a>
             </div>
         </form>
     </div>
@@ -194,23 +244,147 @@
         (function() {
             const citizenship = document.getElementById('citizenship_status');
             const country = document.getElementById('country_id');
+            const residentCategory = document.getElementById('resident_category_id');
+            const dormSelect = document.getElementById('preferred_dorm_id');
+            const roomTypeSelect = document.getElementById('preferred_room_type_id');
+            const dormInfo = document.getElementById('dorm-info');
+            const roomTypeInfo = document.getElementById('room-type-info');
             const indoId = @json($indoCountryId);
+
+            // Data availability dari backend
+            const roomAvailability = @json($roomAvailability ?? []);
 
             function syncCountry() {
                 const isWni = citizenship.value === 'WNI';
-
-                // WNI: otomatis isi Indonesia kalau belum pernah dipilih user
-                if (isWni && indoId) {
-                    // kalau user belum memilih negara (atau masih kosong), set ke Indonesia
-                    if (!country.value) {
-                        country.value = String(indoId);
-                    }
+                if (isWni && indoId && !country.value) {
+                    country.value = String(indoId);
                 }
-
             }
 
+            function filterDorms() {
+                const categoryId = residentCategory.value;
+                const selectedDormId = dormSelect.value;
+
+                // Reset dan disable jika belum pilih kategori
+                if (!categoryId) {
+                    dormSelect.value = '';
+                    roomTypeSelect.value = '';
+                    Array.from(dormSelect.options).forEach((opt, idx) => {
+                        if (idx > 0) opt.disabled = true;
+                    });
+                    Array.from(roomTypeSelect.options).forEach((opt, idx) => {
+                        if (idx > 0) opt.disabled = true;
+                    });
+                    dormInfo.classList.add('hidden');
+                    roomTypeInfo.classList.add('hidden');
+                    return;
+                }
+
+                // Filter dorms
+                let availableDormsCount = 0;
+                Array.from(dormSelect.options).forEach((option, idx) => {
+                    if (idx === 0) return; // skip placeholder
+                    
+                    const dormId = parseInt(option.value);
+                    const hasAvailability = roomAvailability.some(r => 
+                        r.dorm_id === dormId && 
+                        (r.resident_category_id === parseInt(categoryId) || r.resident_category_id === null) &&
+                        r.available_capacity > 0
+                    );
+
+                    option.disabled = !hasAvailability;
+                    if (hasAvailability) availableDormsCount++;
+                });
+
+                // Show info jika tidak ada cabang tersedia
+                if (availableDormsCount === 0) {
+                    dormInfo.textContent = 'Tidak ada cabang yang tersedia untuk kategori ini. Silakan pilih kategori penghuni lain atau biarkan admin menentukan kamar yang sesuai.';
+                    dormInfo.classList.remove('hidden');
+                    dormInfo.classList.remove('text-gray-500');
+                    dormInfo.classList.add('text-amber-600');
+                } else {
+                    dormInfo.textContent = `${availableDormsCount} cabang tersedia untuk kategori ini`;
+                    dormInfo.classList.remove('hidden');
+                    dormInfo.classList.remove('text-amber-600');
+                    dormInfo.classList.add('text-gray-500');
+                }
+
+                // Reset dorm jika tidak tersedia lagi
+                if (selectedDormId && dormSelect.querySelector(`option[value="${selectedDormId}"]`)?.disabled) {
+                    dormSelect.value = '';
+                }
+
+                filterRoomTypes();
+            }
+
+            function filterRoomTypes() {
+                const categoryId = residentCategory.value;
+                const dormId = dormSelect.value;
+                const selectedRoomTypeId = roomTypeSelect.value;
+
+                // Reset jika belum pilih kategori
+                if (!categoryId) {
+                    roomTypeSelect.value = '';
+                    Array.from(roomTypeSelect.options).forEach((opt, idx) => {
+                        if (idx > 0) opt.disabled = true;
+                    });
+                    roomTypeInfo.classList.add('hidden');
+                    return;
+                }
+
+                // Filter room types
+                let availableRoomTypesCount = 0;
+                Array.from(roomTypeSelect.options).forEach((option, idx) => {
+                    if (idx === 0) return; // skip placeholder
+                    
+                    const roomTypeId = parseInt(option.value);
+                    
+                    // Jika ada dorm dipilih, filter berdasarkan dorm dan kategori
+                    // Jika tidak ada dorm, filter berdasarkan kategori saja (ada di semua dorm)
+                    const hasAvailability = roomAvailability.some(r => {
+                        const matchCategory = r.resident_category_id === parseInt(categoryId) || r.resident_category_id === null;
+                        const matchRoomType = r.room_type_id === roomTypeId;
+                        const matchDorm = dormId ? r.dorm_id === parseInt(dormId) : true;
+                        const hasCapacity = r.available_capacity > 0;
+                        
+                        return matchCategory && matchRoomType && matchDorm && hasCapacity;
+                    });
+
+                    option.disabled = !hasAvailability;
+                    if (hasAvailability) availableRoomTypesCount++;
+                });
+
+                // Show info
+                if (availableRoomTypesCount === 0) {
+                    if (dormId) {
+                        roomTypeInfo.textContent = 'Tidak ada tipe kamar yang tersedia untuk kombinasi cabang dan kategori ini. Coba pilih cabang lain atau biarkan admin menentukan kamar yang sesuai.';
+                    } else {
+                        roomTypeInfo.textContent = 'Tidak ada tipe kamar yang tersedia untuk kategori ini. Silakan pilih kategori penghuni lain atau biarkan admin menentukan kamar yang sesuai.';
+                    }
+                    roomTypeInfo.classList.remove('hidden');
+                    roomTypeInfo.classList.remove('text-gray-500');
+                    roomTypeInfo.classList.add('text-amber-600');
+                } else {
+                    roomTypeInfo.textContent = `${availableRoomTypesCount} tipe kamar tersedia`;
+                    roomTypeInfo.classList.remove('hidden');
+                    roomTypeInfo.classList.remove('text-amber-600');
+                    roomTypeInfo.classList.add('text-gray-500');
+                }
+
+                // Reset room type jika tidak tersedia lagi
+                if (selectedRoomTypeId && roomTypeSelect.querySelector(`option[value="${selectedRoomTypeId}"]`)?.disabled) {
+                    roomTypeSelect.value = '';
+                }
+            }
+
+            // Event listeners
             citizenship.addEventListener('change', syncCountry);
+            residentCategory.addEventListener('change', filterDorms);
+            dormSelect.addEventListener('change', filterRoomTypes);
+
+            // Initial sync
             syncCountry();
+            filterDorms();
         })();
     </script>
 </x-guest-layout>

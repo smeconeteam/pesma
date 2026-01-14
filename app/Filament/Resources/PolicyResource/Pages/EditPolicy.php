@@ -14,4 +14,10 @@ class EditPolicy extends EditRecord
         // Setelah edit -> balik ke view aktif
         return PolicyResource::getUrl('active');
     }
+
+    public function getTitle(): string
+    {
+        return 'Ubah Kebijakan & Ketentuan';
+    }
+
 }
