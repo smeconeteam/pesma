@@ -325,7 +325,7 @@ class CreateBill extends CreateRecord
 
                                                 return Room::where('block_id', $blockId)
                                                     ->where('is_active', true)
-                                                    ->whereHas('activeResidents') // ✅ HANYA KAMAR YANG TERISI
+                                                    ->whereHas('activeResidents')
                                                     ->with(['block.dorm', 'activeResidents'])
                                                     ->get()
                                                     ->mapWithKeys(fn($room) => [
@@ -361,8 +361,61 @@ class CreateBill extends CreateRecord
                                             ->helperText('Pilih kamar untuk melihat penghuni dan tarif bulanan'),
                                     ]),
 
+                                Forms\Components\Section::make('Peringatan')
+                                    ->visible(
+                                        fn(Forms\Get $get) =>
+                                        !blank($get('block_id')) &&
+                                            blank($get('room_id'))
+                                    )
+                                    ->schema([
+                                        Forms\Components\Placeholder::make('no_rooms_warning')
+                                            ->label('')
+                                            ->content(new \Illuminate\Support\HtmlString('
+                                                <div class="flex items-center gap-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                                                    <svg class="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                                    </svg>
+                                                    <div>
+                                                        <div class="font-semibold text-yellow-800 dark:text-yellow-200">
+                                                            Tidak Ada Kamar yang Terisi
+                                                        </div>
+                                                        <div class="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                                                            Tidak ditemukan kamar yang memiliki penghuni aktif di komplek ini. Silakan pilih komplek lain atau isi kamar terlebih dahulu.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ')),
+                                    ]),
+
+                                Forms\Components\Section::make('Peringatan Penghuni')
+                                    ->visible(
+                                        fn(Forms\Get $get) =>
+                                        !blank($get('room_id')) &&
+                                            empty($get('residents'))
+                                    )
+                                    ->schema([
+                                        Forms\Components\Placeholder::make('no_residents_in_room_warning')
+                                            ->label('')
+                                            ->content(new \Illuminate\Support\HtmlString('
+                                                <div class="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                                                    <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    </svg>
+                                                    <div>
+                                                        <div class="font-semibold text-red-800 dark:text-red-200">
+                                                            Kamar Tidak Memiliki Penghuni Aktif
+                                                        </div>
+                                                        <div class="text-sm text-red-700 dark:text-red-300 mt-1">
+                                                            Kamar yang dipilih tidak memiliki penghuni aktif. Silakan pilih kamar lain atau tambahkan penghuni ke kamar ini terlebih dahulu.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ')),
+                                    ]),
+
                                 Forms\Components\Section::make('Periode')
                                     ->columns(2)
+                                    ->visible(fn(Forms\Get $get) => !empty($get('residents'))) 
                                     ->schema([
                                         Forms\Components\Grid::make(2)
                                             ->schema([
@@ -429,7 +482,7 @@ class CreateBill extends CreateRecord
                                     ]),
 
                                 Forms\Components\Section::make('Info Tarif Kamar')
-                                    ->visible(fn(Forms\Get $get) => !blank($get('room_id')))
+                                    ->visible(fn(Forms\Get $get) => !blank($get('room_id')) && !empty($get('residents'))) 
                                     ->schema([
                                         Forms\Components\Placeholder::make('room_rate_info')
                                             ->label('')
@@ -445,20 +498,20 @@ class CreateBill extends CreateRecord
                                                 $totalPeriod = $monthlyRate * $months;
 
                                                 return new \Illuminate\Support\HtmlString("
-                                                    <div class='space-y-2'>
-                                                        <div class='flex justify-between'>
-                                                            <span>Tarif Bulanan Kamar:</span>
-                                                            <strong>Rp " . number_format($monthlyRate, 0, ',', '.') . "</strong>
-                                                        </div>
-                                                        <div class='flex justify-between'>
-                                                            <span>Total untuk {$months} bulan:</span>
-                                                            <strong>Rp " . number_format($totalPeriod, 0, ',', '.') . "</strong>
-                                                        </div>
-                                                        <div class='text-sm text-gray-500 italic'>
-                                                            Tiap penghuni bisa dikasih diskon berbeda di bawah
-                                                        </div>
-                                                    </div>
-                                                ");
+                            <div class='space-y-2'>
+                                <div class='flex justify-between'>
+                                    <span>Tarif Bulanan Kamar:</span>
+                                    <strong>Rp " . number_format($monthlyRate, 0, ',', '.') . "</strong>
+                                </div>
+                                <div class='flex justify-between'>
+                                    <span>Total untuk {$months} bulan:</span>
+                                    <strong>Rp " . number_format($totalPeriod, 0, ',', '.') . "</strong>
+                                </div>
+                                <div class='text-sm text-gray-500 italic'>
+                                    Tiap penghuni bisa dikasih diskon berbeda di bawah
+                                </div>
+                            </div>
+                        ");
                                             }),
                                     ]),
 
@@ -515,6 +568,7 @@ class CreateBill extends CreateRecord
                                     ]),
 
                                 Forms\Components\Section::make('Catatan')
+                                    ->visible(fn(Forms\Get $get) => !empty($get('residents'))) 
                                     ->schema([
                                         Forms\Components\Textarea::make('notes')
                                             ->label('Catatan (Opsional)')
@@ -594,8 +648,36 @@ class CreateBill extends CreateRecord
                                             ->helperText('Pilih kategori untuk melihat semua penghuni'),
                                     ]),
 
+                                Forms\Components\Section::make('Peringatan')
+                                    ->visible(
+                                        fn(Forms\Get $get) =>
+                                        !blank($get('resident_category_id')) &&
+                                            !blank($get('category_dorm_id')) &&
+                                            empty($get('residents'))
+                                    )
+                                    ->schema([
+                                        Forms\Components\Placeholder::make('no_residents_warning')
+                                            ->label('')
+                                            ->content(new \Illuminate\Support\HtmlString('
+                                                <div class="flex items-center gap-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                                                    <svg class="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                                    </svg>
+                                                    <div>
+                                                        <div class="font-semibold text-yellow-800 dark:text-yellow-200">
+                                                            Tidak Ada Penghuni yang Cocok
+                                                        </div>
+                                                        <div class="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                                                            Tidak ditemukan penghuni dengan kategori yang dipilih di cabang ini. Silakan pilih kategori atau cabang lain.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ')),
+                                    ]),
+
                                 Forms\Components\Section::make('Informasi Tagihan')
-                                    ->columns(2)
+                                    ->columns(1)
+                                    ->visible(fn(Forms\Get $get) => !empty($get('residents'))) 
                                     ->schema([
                                         Forms\Components\Select::make('billing_type_id')
                                             ->label('Jenis Tagihan')
@@ -606,7 +688,6 @@ class CreateBill extends CreateRecord
                                                     return BillingType::where('is_active', true)->pluck('name', 'id');
                                                 }
 
-                                                // Filter berdasarkan cabang yang dipilih
                                                 return BillingType::where('is_active', true)
                                                     ->where(function ($query) use ($dormId) {
                                                         $query->where('applies_to_all', true)
@@ -620,28 +701,11 @@ class CreateBill extends CreateRecord
                                             ->searchable()
                                             ->native(false)
                                             ->live(),
-
-                                        Forms\Components\TextInput::make('default_amount')
-                                            ->label('Nominal Default')
-                                            ->required(fn(Forms\Get $get) => $get('tab') === 'category')
-                                            ->numeric()
-                                            ->prefix('Rp')
-                                            ->default(100000)
-                                            ->live(onBlur: true)
-                                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                                                $residents = $get('residents') ?? [];
-                                                if (!empty($residents)) {
-                                                    foreach ($residents as $index => $resident) {
-                                                        $residents[$index]['amount'] = $state;
-                                                    }
-                                                    $set('residents', $residents);
-                                                }
-                                            })
-                                            ->helperText('Nominal ini akan jadi default untuk semua penghuni'),
                                     ]),
 
                                 Forms\Components\Section::make('Periode')
                                     ->columns(2)
+                                    ->visible(fn(Forms\Get $get) => !empty($get('residents')))
                                     ->schema([
                                         Forms\Components\DatePicker::make('period_start')
                                             ->label('Periode Mulai')
@@ -663,10 +727,9 @@ class CreateBill extends CreateRecord
                                         Forms\Components\Repeater::make('residents')
                                             ->label('')
                                             ->schema([
-                                                Forms\Components\Grid::make(6)
+                                                Forms\Components\Grid::make(5)
                                                     ->schema([
                                                         Forms\Components\Checkbox::make('selected')
-                                                            ->label('Pilih')
                                                             ->default(true)
                                                             ->live()
                                                             ->inline(),
@@ -679,73 +742,12 @@ class CreateBill extends CreateRecord
                                                         Forms\Components\TextInput::make('room_code')
                                                             ->label('Kamar')
                                                             ->disabled()
+                                                            ->visible(false)
                                                             ->dehydrated(false),
 
                                                         Forms\Components\TextInput::make('amount')
                                                             ->label('Nominal')
-                                                            ->required(fn(Forms\Get $get) => $get('tab') === 'category')
-                                                            ->numeric()
-                                                            ->prefix('Rp')
-                                                            ->live(onBlur: true)
-                                                            ->disabled(fn(Forms\Get $get) => !$get('selected')),
-
-                                                        Forms\Components\TextInput::make('discount_percent')
-                                                            ->label('Diskon (%)')
-                                                            ->numeric()
-                                                            ->default(0)
-                                                            ->minValue(0)
-                                                            ->maxValue(100)
-                                                            ->suffix('%')
-                                                            ->live(onBlur: true)
-                                                            ->disabled(fn(Forms\Get $get) => !$get('selected')),
-
-                                                        Forms\Components\Placeholder::make('total')
-                                                            ->label('Total')
-                                                            ->content(function (Forms\Get $get) {
-                                                                if (!$get('selected')) return '-';
-                                                                $amount = $get('amount') ?? 0;
-                                                                $discount = $get('discount_percent') ?? 0;
-                                                                $total = $amount - (($amount * $discount) / 100);
-                                                                return 'Rp ' . number_format($total, 0, ',', '.');
-                                                            }),
-                                                    ]),
-
-                                                Forms\Components\Hidden::make('user_id'),
-                                            ])
-                                            ->addable(false)
-                                            ->deletable(false)
-                                            ->reorderable(false)
-                                            ->columnSpanFull(),
-                                    ]),
-
-                                Forms\Components\Section::make('Daftar Penghuni & Nominal')
-                                    ->description('Centang penghuni yang mau dikasih tagihan. Bisa custom nominal & diskon per penghuni.')
-                                    ->visible(fn(Forms\Get $get) => !empty($get('residents')))
-                                    ->schema([
-                                        Forms\Components\Repeater::make('residents')
-                                            ->label('')
-                                            ->schema([
-                                                Forms\Components\Grid::make(6)
-                                                    ->schema([
-                                                        Forms\Components\Checkbox::make('selected')
-                                                            ->label('Pilih')
-                                                            ->default(true)
-                                                            ->live()
-                                                            ->inline(),
-
-                                                        Forms\Components\TextInput::make('name')
-                                                            ->label('Nama Penghuni')
-                                                            ->disabled()
-                                                            ->dehydrated(false),
-
-                                                        Forms\Components\TextInput::make('room_code')
-                                                            ->label('Kamar')
-                                                            ->disabled()
-                                                            ->dehydrated(false),
-
-                                                        Forms\Components\TextInput::make('amount')
-                                                            ->label('Nominal')
-                                                            ->required(fn(Forms\Get $get) => $get('tab') === 'category')
+                                                            ->required(fn(Forms\Get $get) => $get('selected'))
                                                             ->numeric()
                                                             ->prefix('Rp')
                                                             ->live(onBlur: true)
@@ -781,6 +783,7 @@ class CreateBill extends CreateRecord
                                     ]),
 
                                 Forms\Components\Section::make('Catatan')
+                                    ->visible(fn(Forms\Get $get) => !empty($get('residents'))) 
                                     ->schema([
                                         Forms\Components\Textarea::make('notes')
                                             ->label('Catatan (Opsional)')
@@ -807,6 +810,26 @@ class CreateBill extends CreateRecord
     {
         $billService = app(BillService::class);
         $tab = $data['tab'] ?? 'individual';
+
+        if ($tab === 'room' && empty($data['residents'])) {
+            Notification::make()
+                ->warning()
+                ->title('Tidak Ada Penghuni')
+                ->body('Kamar yang dipilih tidak memiliki penghuni aktif. Silakan pilih kamar lain.')
+                ->send();
+
+            $this->halt();
+        }
+
+        if ($tab === 'category' && empty($data['residents'])) {
+            Notification::make()
+                ->warning()
+                ->title('Tidak Ada Penghuni')
+                ->body('Tidak ditemukan penghuni yang cocok dengan kategori dan cabang yang dipilih.')
+                ->send();
+
+            $this->halt();
+        }
 
         try {
             DB::beginTransaction();
