@@ -15,9 +15,6 @@ class ViewBill extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make()
-                ->visible(fn($record) => $record->status === 'issued' && $record->paid_amount == 0),
-
             Actions\DeleteAction::make()
                 ->visible(fn($record) => $record->canBeDeleted()),
         ];
@@ -121,13 +118,13 @@ class ViewBill extends ViewRecord
                         Infolists\Components\TextEntry::make('period_start')
                             ->label('Periode Mulai')
                             ->date('d F Y')
-                            ->default('-')
+                            ->placeholder('-')
                             ->icon('heroicon-o-calendar'),
 
                         Infolists\Components\TextEntry::make('period_end')
                             ->label('Periode Selesai')
                             ->date('d F Y')
-                            ->default('-')
+                            ->placeholder('-')
                             ->icon('heroicon-o-calendar')
                             ->color(fn($record) => $record->isOverdue() ? 'danger' : null)
                             ->weight(fn($record) => $record->isOverdue() ? 'bold' : null),
@@ -189,14 +186,16 @@ class ViewBill extends ViewRecord
                             ->columns(5)
                             ->grid(1),
 
-                        Infolists\Components\Placeholder::make('summary')
+                        // SOLUSI: Ganti Placeholder dengan TextEntry + HTML
+                        Infolists\Components\TextEntry::make('details_summary')
                             ->label('Ringkasan')
-                            ->content(function ($record) {
+                            ->html()
+                            ->formatStateUsing(function ($record) {
                                 $totalDetails = $record->details()->count();
                                 $totalAmount = $record->details()->sum('amount');
                                 $totalDiscount = $record->details()->sum('discount_amount');
 
-                                return new \Illuminate\Support\HtmlString("
+                                return "
                                     <div class='space-y-1'>
                                         <div class='flex justify-between'>
                                             <span>Total Bulan:</span>
@@ -211,8 +210,9 @@ class ViewBill extends ViewRecord
                                             <strong class='text-lg'>Rp " . number_format($totalAmount, 0, ',', '.') . "</strong>
                                         </div>
                                     </div>
-                                ");
-                            }),
+                                ";
+                            })
+                            ->columnSpanFull(),
                     ]),
 
                 Infolists\Components\Section::make('Riwayat Pembayaran')
@@ -272,7 +272,7 @@ class ViewBill extends ViewRecord
                                 Infolists\Components\TextEntry::make('verified_at')
                                     ->label('Diverifikasi')
                                     ->dateTime('d F Y H:i')
-                                    ->default('-')
+                                    ->placeholder('-')
                                     ->visible(fn($record) => $record->status === 'verified'),
 
                                 Infolists\Components\TextEntry::make('rejection_reason')
@@ -282,7 +282,7 @@ class ViewBill extends ViewRecord
 
                                 Infolists\Components\TextEntry::make('notes')
                                     ->label('Catatan')
-                                    ->default('-')
+                                    ->placeholder('-')
                                     ->visible(fn($state) => $state !== null)
                                     ->columnSpanFull(),
                             ])
@@ -294,7 +294,7 @@ class ViewBill extends ViewRecord
                     ->schema([
                         Infolists\Components\TextEntry::make('notes')
                             ->label('')
-                            ->default('-')
+                            ->placeholder('-')
                             ->prose()
                             ->columnSpanFull(),
                     ])
@@ -306,13 +306,13 @@ class ViewBill extends ViewRecord
                     ->schema([
                         Infolists\Components\TextEntry::make('issuedBy.name')
                             ->label('Dibuat Oleh')
-                            ->default('-')
+                            ->placeholder('-')
                             ->icon('heroicon-o-user'),
 
                         Infolists\Components\TextEntry::make('issued_at')
                             ->label('Tanggal Dibuat')
                             ->dateTime('d F Y H:i')
-                            ->default('-')
+                            ->placeholder('-')
                             ->icon('heroicon-o-clock'),
 
                         Infolists\Components\TextEntry::make('created_at')

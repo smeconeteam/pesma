@@ -136,7 +136,7 @@ class Bill extends Model
     public static function generateBillNumber(): string
     {
         $date = now()->format('Ymd');
-        $lastBill = self::where('bill_number', 'LIKE', "BILL-{$date}-%")
+        $lastBill = self::where('bill_number', 'LIKE', "{$date}-%")
             ->orderBy('bill_number', 'desc')
             ->first();
 

@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class BillResource extends Resource
 {
+    protected static ?string $slug = 'tagihan';
     protected static ?string $model = Bill::class;
     protected static ?string $navigationLabel = 'Tagihan';
     protected static ?string $modelLabel = 'Tagihan';
@@ -73,11 +74,6 @@ class BillResource extends Resource
                         'danger' => 'overdue',
                     ])
                     ->formatStateUsing(fn($record) => $record->status_label),
-
-                Tables\Columns\TextColumn::make('period_end')
-                    ->label('Jatuh Tempo')
-                    ->formatStateUsing(fn($record) => $record->due_date_display)
-                    ->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
@@ -111,7 +107,7 @@ class BillResource extends Resource
     {
         return [
             'index' => Pages\ListBills::route('/'),
-            'create' => Pages\CreateBill::route('/create'),
+            'create' => Pages\CreateBill::route('/buat'),
             'view' => Pages\ViewBill::route('/{record}'),
         ];
     }

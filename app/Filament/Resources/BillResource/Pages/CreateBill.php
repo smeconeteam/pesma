@@ -73,21 +73,6 @@ class CreateBill extends CreateRecord
                         Forms\Components\Tabs\Tab::make('Individual')
                             ->icon('heroicon-o-user')
                             ->schema([
-                                Forms\Components\Section::make('Info Tagihan Individual')
-                                    ->schema([
-                                        Forms\Components\Placeholder::make('info_individual')
-                                            ->label('')
-                                            ->content(new \Illuminate\Support\HtmlString('
-                                                <ul class="list-disc ml-6 space-y-1 text-sm">
-                                                    <li>Cari dan pilih <strong>beberapa penghuni</strong></li>
-                                                    <li>Setiap penghuni bisa punya <strong>nominal dan diskon berbeda</strong></li>
-                                                    <li>Periode selesai bisa <strong>kosong</strong> (tak terbatas)</li>
-                                                    <li>Jika periode selesai ada â†’ jadi <strong>jatuh tempo</strong></li>
-                                                </ul>
-                                            ')),
-                                    ])
-                                    ->collapsible(),
-
                                 Forms\Components\Section::make('Cari Penghuni')
                                     ->description('Cari penghuni berdasarkan nama atau cabang')
                                     ->columns(2)
@@ -147,7 +132,7 @@ class CreateBill extends CreateRecord
                                             ->multiple()
                                             ->searchable()
                                             ->preload()
-                                            ->required()
+                                            ->required(fn(Forms\Get $get) => $get('tab') === 'individual')
                                             ->live()
                                             ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                                                 if (empty($state)) {
@@ -207,7 +192,8 @@ class CreateBill extends CreateRecord
                                                     })
                                                     ->pluck('name', 'id');
                                             })
-                                            ->required(fn(Forms\Get $get) => $get('tab') === 'individual')->searchable()
+                                            ->required(fn(Forms\Get $get) => $get('tab') === 'individual')
+                                            ->searchable()
                                             ->native(false)
                                             ->live(),
                                     ]),
@@ -244,7 +230,7 @@ class CreateBill extends CreateRecord
 
                                                         Forms\Components\TextInput::make('amount')
                                                             ->label('Nominal')
-                                                            ->required()
+                                                            ->required(fn(Forms\Get $get) => $get('tab') === 'individual')
                                                             ->numeric()
                                                             ->prefix('Rp')
                                                             ->live(onBlur: true),
@@ -264,7 +250,7 @@ class CreateBill extends CreateRecord
                                                                 $amount = $get('amount') ?? 0;
                                                                 $discount = $get('discount_percent') ?? 0;
                                                                 $total = $amount - (($amount * $discount) / 100);
-                                                                return '**Rp ' . number_format($total, 0, ',', '.') . '**';
+                                                                return 'Rp ' . number_format($total, 0, ',', '.') . '';
                                                             }),
                                                     ]),
 
@@ -292,23 +278,6 @@ class CreateBill extends CreateRecord
                         Forms\Components\Tabs\Tab::make('Kamar')
                             ->icon('heroicon-o-home')
                             ->schema([
-                                Forms\Components\Section::make('Info Tagihan Kamar')
-                                    ->schema([
-                                        Forms\Components\Placeholder::make('info_room')
-                                            ->label('')
-                                            ->content(new \Illuminate\Support\HtmlString('
-                                                <ul class="list-disc ml-6 space-y-1 text-sm">
-                                                    <li><strong>Nominal diambil dari data kamar</strong> (monthly_rate)</li>
-                                                    <li>Generate untuk <strong>periode multi-bulan</strong> (max 60 bulan / 5 tahun)</li>
-                                                    <li>Tiap penghuni <strong>bisa punya diskon berbeda</strong></li>
-                                                    <li>Diskon dihitung dari <strong>total periode</strong>, baru dibagi per bulan</li>
-                                                    <li>Setiap bulan dicatat di detail tagihan</li>
-                                                    <li><strong>TIDAK ADA jatuh tempo</strong> (periode selesai otomatis dari jumlah bulan)</li>
-                                                </ul>
-                                            ')),
-                                    ])
-                                    ->collapsible(),
-
                                 Forms\Components\Section::make('Pilih Kamar')
                                     ->description('Pilih 1 kamar yang akan digenerate tagihannya')
                                     ->columns(3)
@@ -449,7 +418,7 @@ class CreateBill extends CreateRecord
                                                 }
 
                                                 try {
-                                                    return '**' . \Carbon\Carbon::parse($periodEnd)->format('d F Y') . '**';
+                                                    return \Carbon\Carbon::parse($periodEnd)->format('d F Y');
                                                 } catch (\Exception $e) {
                                                     return '-';
                                                 }
@@ -533,7 +502,7 @@ class CreateBill extends CreateRecord
 
                                                                 $afterDiscount = $totalPeriod - (($totalPeriod * $discount) / 100);
 
-                                                                return '**Rp ' . number_format($afterDiscount, 0, ',', '.') . "** ({$months} bln)";
+                                                                return 'Rp ' . number_format($afterDiscount, 0, ',', '.') . " ({$months} bln)";
                                                             }),
                                                     ]),
 
@@ -561,21 +530,6 @@ class CreateBill extends CreateRecord
                         Forms\Components\Tabs\Tab::make('Kategori')
                             ->icon('heroicon-o-user-group')
                             ->schema([
-                                Forms\Components\Section::make('Info Tagihan Kategori')
-                                    ->schema([
-                                        Forms\Components\Placeholder::make('info_category')
-                                            ->label('')
-                                            ->content(new \Illuminate\Support\HtmlString('
-                                                <ul class="list-disc ml-6 space-y-1 text-sm">
-                                                    <li>Pilih <strong>cabang dan kategori</strong> penghuni</li>
-                                                    <li>Semua penghuni di kategori tersebut akan muncul</li>
-                                                    <li>Nominal dan diskon bisa <strong>berbeda per penghuni</strong></li>
-                                                    <li>Periode selesai bisa <strong>kosong</strong> (tak terbatas)</li>
-                                                </ul>
-                                            ')),
-                                    ])
-                                    ->collapsible(),
-
                                 Forms\Components\Section::make('Pilih Cabang & Kategori')
                                     ->columns(2)
                                     ->schema([
@@ -752,7 +706,7 @@ class CreateBill extends CreateRecord
                                                                 $amount = $get('amount') ?? 0;
                                                                 $discount = $get('discount_percent') ?? 0;
                                                                 $total = $amount - (($amount * $discount) / 100);
-                                                                return '**Rp ' . number_format($total, 0, ',', '.') . '**';
+                                                                return 'Rp ' . number_format($total, 0, ',', '.');
                                                             }),
                                                     ]),
 
@@ -791,7 +745,7 @@ class CreateBill extends CreateRecord
 
                                                         Forms\Components\TextInput::make('amount')
                                                             ->label('Nominal')
-                                                            ->required()
+                                                            ->required(fn(Forms\Get $get) => $get('tab') === 'category')
                                                             ->numeric()
                                                             ->prefix('Rp')
                                                             ->live(onBlur: true)
@@ -814,7 +768,7 @@ class CreateBill extends CreateRecord
                                                                 $amount = $get('amount') ?? 0;
                                                                 $discount = $get('discount_percent') ?? 0;
                                                                 $total = $amount - (($amount * $discount) / 100);
-                                                                return '**Rp ' . number_format($total, 0, ',', '.') . '**';
+                                                                return 'Rp ' . number_format($total, 0, ',', '.');
                                                             }),
                                                     ]),
 
@@ -836,7 +790,7 @@ class CreateBill extends CreateRecord
                             ])
                             ->afterStateUpdated(fn(Forms\Set $set) => $set('tab', 'category')),
                     ])
-                    ->activeTab(0)
+                    ->activeTab(1)
                     ->columnSpanFull()
                     ->extraAttributes([
                         'x-on:click' => "

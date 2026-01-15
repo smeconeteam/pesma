@@ -2,13 +2,15 @@
 
 namespace App\Services;
 
+use Carbon\Carbon;
 use App\Models\Bill;
-use App\Models\BillDetail;
 use App\Models\Room;
 use App\Models\User;
-use Carbon\Carbon;
+use App\Models\BillDetail;
+use App\Models\BillingType;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class BillService
 {
@@ -24,8 +26,6 @@ class BillService
             $residents = $data['residents'];
 
             foreach ($residents as $resident) {
-                // Untuk individual & room, semua otomatis selected
-                // Untuk category, cek selected
                 if (isset($resident['selected']) && !$resident['selected']) {
                     continue;
                 }
@@ -35,10 +35,13 @@ class BillService
                 $discountAmount = ($baseAmount * $discountPercent) / 100;
                 $totalAmount = $baseAmount - $discountAmount;
 
+                $user = User::with('activeRoomResident')->find($resident['user_id']);
+                $roomId = $user?->activeRoomResident?->room_id;
+
                 $bill = Bill::create([
                     'user_id' => $resident['user_id'],
                     'billing_type_id' => $data['billing_type_id'],
-                    'room_id' => null,
+                    'room_id' => $roomId,
                     'base_amount' => $baseAmount,
                     'discount_percent' => $discountPercent,
                     'discount_amount' => $discountAmount,
@@ -66,14 +69,42 @@ class BillService
     }
 
     /**
+     *  Helper: Get atau Create BillingType "Biaya Kamar"
+     */
+    protected function getOrCreateBiayaKamarType(): BillingType
+    {
+        // Coba cari dulu
+        $billingType = BillingType::where('name', 'Biaya Kamar')->first();
+
+        // Jika tidak ada, auto-create
+        if (!$billingType) {
+            $billingType = BillingType::create([
+                'name' => 'Biaya Kamar',
+                'description' => 'Biaya kamar bulanan (JANGAN HAPUS - digunakan untuk generate tagihan kamar otomatis)',
+                'applies_to_all' => true,
+                'is_active' => true,
+            ]);
+
+            // Log untuk admin
+            \Log::warning('BillingType "Biaya Kamar" tidak ditemukan, sudah dibuat otomatis.', [
+                'billing_type_id' => $billingType->id,
+            ]);
+        }
+
+        return $billingType;
+    }
+
+    /**
      * Generate tagihan kamar (multi-bulan) dengan detail per bulan
-     * Max 60 bulan (5 tahun)
      */
     public function generateRoomBills(array $data): Collection
     {
         DB::beginTransaction();
 
         try {
+            // AUTO GET-OR-CREATE
+            $billingType = $this->getOrCreateBiayaKamarType();
+
             // Validasi max 60 bulan
             $totalMonths = $data['total_months'];
             if ($totalMonths > 60) {
@@ -99,10 +130,10 @@ class BillService
                 $discountAmount = ($totalForPeriod * $discountPercent) / 100;
                 $totalAfterDiscount = $totalForPeriod - $discountAmount;
 
-                // Buat bill
+                // Buat bill dengan billing_type_id otomatis
                 $bill = Bill::create([
                     'user_id' => $resident['user_id'],
-                    'billing_type_id' => $data['billing_type_id'],
+                    'billing_type_id' => $billingType->id, // 🔥 AUTO ASSIGN
                     'room_id' => $roomId,
                     'base_amount' => $totalForPeriod,
                     'discount_percent' => $discountPercent,
@@ -112,7 +143,7 @@ class BillService
                     'remaining_amount' => $totalAfterDiscount,
                     'period_start' => $periodStart,
                     'period_end' => $periodEnd,
-                    'due_date' => null, // Tagihan kamar tidak ada jatuh tempo
+                    'due_date' => null,
                     'notes' => $data['notes'] ?? null,
                     'status' => 'issued',
                     'issued_by' => auth()->id(),
@@ -125,7 +156,6 @@ class BillService
                 $discountPerMonth = round($discountAmount / $totalMonths);
 
                 for ($i = 1; $i <= $totalMonths; $i++) {
-                    // Untuk bulan terakhir, hitung sisa agar total pas
                     if ($i === $totalMonths) {
                         $sumPreviousMonths = BillDetail::where('bill_id', $bill->id)->sum('amount');
                         $monthlyAfterDiscount = $totalAfterDiscount - $sumPreviousMonths;
@@ -178,10 +208,13 @@ class BillService
                 $discountAmount = ($baseAmount * $discountPercent) / 100;
                 $totalAmount = $baseAmount - $discountAmount;
 
+                $user = User::with('activeRoomResident')->find($resident['user_id']);
+                $roomId = $user?->activeRoomResident?->room_id;
+
                 $bill = Bill::create([
                     'user_id' => $resident['user_id'],
                     'billing_type_id' => $data['billing_type_id'],
-                    'room_id' => null,
+                    'room_id' => $roomId,
                     'base_amount' => $baseAmount,
                     'discount_percent' => $discountPercent,
                     'discount_amount' => $discountAmount,
