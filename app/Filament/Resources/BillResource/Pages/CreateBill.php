@@ -270,7 +270,17 @@ class CreateBill extends CreateRecord
                                             ->nullable(),
                                     ]),
                             ])
-                            ->afterStateUpdated(fn(Forms\Set $set) => $set('tab', 'individual')),
+                            ->afterStateUpdated(function (Forms\Set $set) {
+                                $set('tab', 'individual');
+                                // Reset form fields
+                                $set('search_dorm_id', null);
+                                $set('search_user_ids', []);
+                                $set('billing_type_id', null);
+                                $set('period_start', now()->startOfMonth()->toDateString());
+                                $set('period_end', null);
+                                $set('residents', []);
+                                $set('notes', null);
+                            }),
 
                         // ============================================
                         // TAB 2: KAMAR (Multi-Bulan)
@@ -415,7 +425,7 @@ class CreateBill extends CreateRecord
 
                                 Forms\Components\Section::make('Periode')
                                     ->columns(2)
-                                    ->visible(fn(Forms\Get $get) => !empty($get('residents'))) 
+                                    ->visible(fn(Forms\Get $get) => !empty($get('residents')))
                                     ->schema([
                                         Forms\Components\Grid::make(2)
                                             ->schema([
@@ -482,7 +492,7 @@ class CreateBill extends CreateRecord
                                     ]),
 
                                 Forms\Components\Section::make('Info Tarif Kamar')
-                                    ->visible(fn(Forms\Get $get) => !blank($get('room_id')) && !empty($get('residents'))) 
+                                    ->visible(fn(Forms\Get $get) => !blank($get('room_id')) && !empty($get('residents')))
                                     ->schema([
                                         Forms\Components\Placeholder::make('room_rate_info')
                                             ->label('')
@@ -498,20 +508,20 @@ class CreateBill extends CreateRecord
                                                 $totalPeriod = $monthlyRate * $months;
 
                                                 return new \Illuminate\Support\HtmlString("
-                            <div class='space-y-2'>
-                                <div class='flex justify-between'>
-                                    <span>Tarif Bulanan Kamar:</span>
-                                    <strong>Rp " . number_format($monthlyRate, 0, ',', '.') . "</strong>
-                                </div>
-                                <div class='flex justify-between'>
-                                    <span>Total untuk {$months} bulan:</span>
-                                    <strong>Rp " . number_format($totalPeriod, 0, ',', '.') . "</strong>
-                                </div>
-                                <div class='text-sm text-gray-500 italic'>
-                                    Tiap penghuni bisa dikasih diskon berbeda di bawah
-                                </div>
-                            </div>
-                        ");
+                                                    <div class='space-y-2'>
+                                                        <div class='flex justify-between'>
+                                                            <span>Tarif Bulanan Kamar:</span>
+                                                            <strong>Rp " . number_format($monthlyRate, 0, ',', '.') . "</strong>
+                                                        </div>
+                                                        <div class='flex justify-between'>
+                                                            <span>Total untuk {$months} bulan:</span>
+                                                            <strong>Rp " . number_format($totalPeriod, 0, ',', '.') . "</strong>
+                                                        </div>
+                                                        <div class='text-sm text-gray-500 italic'>
+                                                            Tiap penghuni bisa dikasih diskon berbeda di bawah
+                                                        </div>
+                                                    </div>
+                                                ");
                                             }),
                                     ]),
 
@@ -568,7 +578,7 @@ class CreateBill extends CreateRecord
                                     ]),
 
                                 Forms\Components\Section::make('Catatan')
-                                    ->visible(fn(Forms\Get $get) => !empty($get('residents'))) 
+                                    ->visible(fn(Forms\Get $get) => !empty($get('residents')))
                                     ->schema([
                                         Forms\Components\Textarea::make('notes')
                                             ->label('Catatan (Opsional)')
@@ -576,7 +586,18 @@ class CreateBill extends CreateRecord
                                             ->nullable(),
                                     ]),
                             ])
-                            ->afterStateUpdated(fn(Forms\Set $set) => $set('tab', 'room')),
+                            ->afterStateUpdated(function (Forms\Set $set) {
+                                $set('tab', 'room');
+                                // Reset form fields
+                                $set('dorm_id', null);
+                                $set('block_id', null);
+                                $set('room_id', null);
+                                $set('period_start', now()->startOfMonth()->toDateString());
+                                $set('period_end', null);
+                                $set('total_months', 6);
+                                $set('residents', []);
+                                $set('notes', null);
+                            }),
 
                         // ============================================
                         // TAB 3: KATEGORI
@@ -677,7 +698,7 @@ class CreateBill extends CreateRecord
 
                                 Forms\Components\Section::make('Informasi Tagihan')
                                     ->columns(1)
-                                    ->visible(fn(Forms\Get $get) => !empty($get('residents'))) 
+                                    ->visible(fn(Forms\Get $get) => !empty($get('residents')))
                                     ->schema([
                                         Forms\Components\Select::make('billing_type_id')
                                             ->label('Jenis Tagihan')
@@ -783,7 +804,7 @@ class CreateBill extends CreateRecord
                                     ]),
 
                                 Forms\Components\Section::make('Catatan')
-                                    ->visible(fn(Forms\Get $get) => !empty($get('residents'))) 
+                                    ->visible(fn(Forms\Get $get) => !empty($get('residents')))
                                     ->schema([
                                         Forms\Components\Textarea::make('notes')
                                             ->label('Catatan (Opsional)')
@@ -791,7 +812,17 @@ class CreateBill extends CreateRecord
                                             ->nullable(),
                                     ]),
                             ])
-                            ->afterStateUpdated(fn(Forms\Set $set) => $set('tab', 'category')),
+                            ->afterStateUpdated(function (Forms\Set $set) {
+                                $set('tab', 'category');
+                                // Reset form fields
+                                $set('category_dorm_id', null);
+                                $set('resident_category_id', null);
+                                $set('billing_type_id', null);
+                                $set('period_start', now()->startOfMonth()->toDateString());
+                                $set('period_end', null);
+                                $set('residents', []);
+                                $set('notes', null);
+                            }),
                     ])
                     ->activeTab(1)
                     ->columnSpanFull()
