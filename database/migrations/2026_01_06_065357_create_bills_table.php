@@ -39,7 +39,7 @@ return new class extends Migration
             // Periode
             $table->date('period_start')->nullable();
             $table->date('period_end')->nullable();
-            $table->date('due_date');
+            $table->date('due_date')->nullable();
 
             // Status
             $table->enum('status', ['issued', 'partial', 'paid', 'overdue'])

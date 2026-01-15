@@ -6,31 +6,48 @@ use App\Models\Bill;
 use App\Models\BillDetail;
 use App\Models\Room;
 use App\Models\User;
-use App\Models\BillingType;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class BillService
 {
-    public function generateMultipleResidentBills(array $data): Collection
+    /**
+     * Generate tagihan untuk multiple penghuni (Individual)
+     */
+    public function generateIndividualBills(array $data): Collection
     {
         DB::beginTransaction();
 
         try {
             $bills = collect();
-            $userIds = $data['user_ids'];
+            $residents = $data['residents'];
 
-            foreach ($userIds as $userId) {
+            foreach ($residents as $resident) {
+                // Untuk individual & room, semua otomatis selected
+                // Untuk category, cek selected
+                if (isset($resident['selected']) && !$resident['selected']) {
+                    continue;
+                }
+
+                $baseAmount = $resident['amount'];
+                $discountPercent = $resident['discount_percent'] ?? 0;
+                $discountAmount = ($baseAmount * $discountPercent) / 100;
+                $totalAmount = $baseAmount - $discountAmount;
+
                 $bill = Bill::create([
-                    'user_id' => $userId,
+                    'user_id' => $resident['user_id'],
                     'billing_type_id' => $data['billing_type_id'],
-                    'room_id' => $data['room_id'] ?? null,
-                    'base_amount' => $data['base_amount'],
-                    'discount_percent' => $data['discount_percent'] ?? 0,
+                    'room_id' => null,
+                    'base_amount' => $baseAmount,
+                    'discount_percent' => $discountPercent,
+                    'discount_amount' => $discountAmount,
+                    'total_amount' => $totalAmount,
+                    'paid_amount' => 0,
+                    'remaining_amount' => $totalAmount,
                     'period_start' => $data['period_start'] ?? null,
                     'period_end' => $data['period_end'] ?? null,
-                    'due_date' => $data['due_date'],
+                    'due_date' => null,
                     'notes' => $data['notes'] ?? null,
                     'status' => 'issued',
                     'issued_by' => auth()->id(),
@@ -48,25 +65,132 @@ class BillService
         }
     }
 
+    /**
+     * Generate tagihan kamar (multi-bulan) dengan detail per bulan
+     * Max 60 bulan (5 tahun)
+     */
     public function generateRoomBills(array $data): Collection
     {
         DB::beginTransaction();
 
         try {
+            // Validasi max 60 bulan
+            $totalMonths = $data['total_months'];
+            if ($totalMonths > 60) {
+                throw new \Exception('Maksimal periode tagihan kamar adalah 60 bulan (5 tahun)');
+            }
+
             $bills = collect();
             $roomId = $data['room_id'];
             $residents = $data['residents'];
+            $periodStart = Carbon::parse($data['period_start']);
+            $periodEnd = Carbon::parse($data['period_end']);
+            $monthlyRate = $data['monthly_rate'];
 
             foreach ($residents as $resident) {
+                if (!($resident['selected'] ?? false)) {
+                    continue;
+                }
+
+                $discountPercent = $resident['discount_percent'] ?? 0;
+
+                // Total untuk periode
+                $totalForPeriod = $monthlyRate * $totalMonths;
+                $discountAmount = ($totalForPeriod * $discountPercent) / 100;
+                $totalAfterDiscount = $totalForPeriod - $discountAmount;
+
+                // Buat bill
                 $bill = Bill::create([
                     'user_id' => $resident['user_id'],
                     'billing_type_id' => $data['billing_type_id'],
                     'room_id' => $roomId,
-                    'base_amount' => $resident['amount'],
-                    'discount_percent' => $resident['discount_percent'] ?? 0,
+                    'base_amount' => $totalForPeriod,
+                    'discount_percent' => $discountPercent,
+                    'discount_amount' => $discountAmount,
+                    'total_amount' => $totalAfterDiscount,
+                    'paid_amount' => 0,
+                    'remaining_amount' => $totalAfterDiscount,
+                    'period_start' => $periodStart,
+                    'period_end' => $periodEnd,
+                    'due_date' => null, // Tagihan kamar tidak ada jatuh tempo
+                    'notes' => $data['notes'] ?? null,
+                    'status' => 'issued',
+                    'issued_by' => auth()->id(),
+                    'issued_at' => now(),
+                ]);
+
+                // Generate detail per bulan
+                $currentMonth = $periodStart->copy();
+                $monthlyAfterDiscount = round($totalAfterDiscount / $totalMonths);
+                $discountPerMonth = round($discountAmount / $totalMonths);
+
+                for ($i = 1; $i <= $totalMonths; $i++) {
+                    // Untuk bulan terakhir, hitung sisa agar total pas
+                    if ($i === $totalMonths) {
+                        $sumPreviousMonths = BillDetail::where('bill_id', $bill->id)->sum('amount');
+                        $monthlyAfterDiscount = $totalAfterDiscount - $sumPreviousMonths;
+
+                        $sumPreviousDiscounts = BillDetail::where('bill_id', $bill->id)->sum('discount_amount');
+                        $discountPerMonth = $discountAmount - $sumPreviousDiscounts;
+                    }
+
+                    BillDetail::create([
+                        'bill_id' => $bill->id,
+                        'month' => $i,
+                        'description' => 'Bulan ' . $currentMonth->format('F Y'),
+                        'base_amount' => $monthlyRate,
+                        'discount_amount' => $discountPerMonth,
+                        'amount' => $monthlyAfterDiscount,
+                    ]);
+
+                    $currentMonth->addMonth();
+                }
+
+                $bills->push($bill);
+            }
+
+            DB::commit();
+            return $bills;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Generate tagihan berdasarkan kategori penghuni
+     */
+    public function generateCategoryBills(array $data): Collection
+    {
+        DB::beginTransaction();
+
+        try {
+            $bills = collect();
+            $residents = $data['residents'];
+
+            foreach ($residents as $resident) {
+                if (!($resident['selected'] ?? false)) {
+                    continue;
+                }
+
+                $baseAmount = $resident['amount'];
+                $discountPercent = $resident['discount_percent'] ?? 0;
+                $discountAmount = ($baseAmount * $discountPercent) / 100;
+                $totalAmount = $baseAmount - $discountAmount;
+
+                $bill = Bill::create([
+                    'user_id' => $resident['user_id'],
+                    'billing_type_id' => $data['billing_type_id'],
+                    'room_id' => null,
+                    'base_amount' => $baseAmount,
+                    'discount_percent' => $discountPercent,
+                    'discount_amount' => $discountAmount,
+                    'total_amount' => $totalAmount,
+                    'paid_amount' => 0,
+                    'remaining_amount' => $totalAmount,
                     'period_start' => $data['period_start'] ?? null,
                     'period_end' => $data['period_end'] ?? null,
-                    'due_date' => $data['due_date'],
+                    'due_date' => null,
                     'notes' => $data['notes'] ?? null,
                     'status' => 'issued',
                     'issued_by' => auth()->id(),
@@ -84,6 +208,9 @@ class BillService
         }
     }
 
+    /**
+     * Generate tagihan pendaftaran (auto saat approve registration)
+     */
     public function generateRegistrationBill(User $user, array $data): Bill
     {
         return Bill::create([
@@ -91,7 +218,9 @@ class BillService
             'billing_type_id' => $data['billing_type_id'],
             'base_amount' => $data['amount'],
             'discount_percent' => $data['discount_percent'] ?? 0,
-            'due_date' => $data['due_date'],
+            'period_start' => $data['period_start'] ?? null,
+            'period_end' => $data['period_end'] ?? null,
+            'due_date' => null,
             'notes' => 'Biaya pendaftaran - ' . $user->name,
             'status' => 'issued',
             'issued_by' => auth()->id(),
@@ -99,10 +228,15 @@ class BillService
         ]);
     }
 
+    /**
+     * Update status tagihan yang sudah lewat periode selesai (jatuh tempo)
+     * Hanya untuk tagihan yang memiliki period_end
+     */
     public function updateOverdueStatus(): int
     {
         return Bill::whereIn('status', ['issued', 'partial'])
-            ->where('due_date', '<', now())
+            ->whereNotNull('period_end')
+            ->where('period_end', '<', now())
             ->update(['status' => 'overdue']);
     }
 
@@ -160,85 +294,5 @@ class BillService
             'paid_amount' => $paidAmount,
             'remaining_amount' => $remainingAmount,
         ];
-    }
-
-    public function generateMultiMonthRoomBills(array $data): Collection
-    {
-        DB::beginTransaction();
-
-        try {
-            $bills = collect();
-
-            $roomId = $data['room_id'];
-            $residents = $data['residents'];
-            $periodStart = Carbon::parse($data['period_start']);
-            $periodEnd = Carbon::parse($data['period_end']);
-            $monthlyRate = $data['monthly_rate'];
-            $totalMonths = $data['total_months'];
-
-            foreach ($residents as $resident) {
-                $discountPercent = $resident['discount_percent'] ?? 0;
-
-                // Total untuk periode
-                $totalForPeriod = $monthlyRate * $totalMonths;
-                $discountAmount = ($totalForPeriod * $discountPercent) / 100;
-                $totalAfterDiscount = $totalForPeriod - $discountAmount;
-
-                // Buat bill
-                $bill = Bill::create([
-                    'user_id' => $resident['user_id'],
-                    'billing_type_id' => $data['billing_type_id'],
-                    'room_id' => $roomId,
-                    'base_amount' => $totalForPeriod,
-                    'discount_percent' => $discountPercent,
-                    'discount_amount' => $discountAmount,
-                    'total_amount' => $totalAfterDiscount,
-                    'paid_amount' => 0,
-                    'remaining_amount' => $totalAfterDiscount,
-                    'period_start' => $periodStart,
-                    'period_end' => $periodEnd,
-                    'due_date' => $data['due_date'],
-                    'notes' => $data['notes'] ?? null,
-                    'status' => 'issued',
-                    'issued_by' => auth()->id(),
-                    'issued_at' => now(),
-                ]);
-
-                // Generate detail per bulan
-                $currentMonth = $periodStart->copy();
-                $monthlyAfterDiscount = round($totalAfterDiscount / $totalMonths);
-                $discountPerMonth = round($discountAmount / $totalMonths);
-
-                for ($i = 1; $i <= $totalMonths; $i++) {
-                    // Untuk bulan terakhir, hitung sisa agar total pas
-                    if ($i === $totalMonths) {
-                        $sumPreviousMonths = BillDetail::where('bill_id', $bill->id)->sum('amount');
-                        $monthlyAfterDiscount = $totalAfterDiscount - $sumPreviousMonths;
-
-                        $sumPreviousDiscounts = BillDetail::where('bill_id', $bill->id)->sum('discount_amount');
-                        $discountPerMonth = $discountAmount - $sumPreviousDiscounts;
-                    }
-
-                    BillDetail::create([
-                        'bill_id' => $bill->id,
-                        'month' => $i,
-                        'description' => 'Bulan ' . $currentMonth->format('F Y'),
-                        'base_amount' => $monthlyRate,
-                        'discount_amount' => $discountPerMonth,
-                        'amount' => $monthlyAfterDiscount,
-                    ]);
-
-                    $currentMonth->addMonth();
-                }
-
-                $bills->push($bill);
-            }
-
-            DB::commit();
-            return $bills;
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
     }
 }

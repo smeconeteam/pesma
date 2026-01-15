@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 class BillResource extends Resource
 {
     protected static ?string $model = Bill::class;
-    protected static ?string $navigationLabel = 'BuatTagihan';
+    protected static ?string $navigationLabel = 'Tagihan';
     protected static ?string $modelLabel = 'Tagihan';
     protected static ?string $pluralModelLabel = 'Tagihan';
     protected static ?string $navigationGroup = 'Keuangan';
@@ -74,9 +74,9 @@ class BillResource extends Resource
                     ])
                     ->formatStateUsing(fn($record) => $record->status_label),
 
-                Tables\Columns\TextColumn::make('due_date')
+                Tables\Columns\TextColumn::make('period_end')
                     ->label('Jatuh Tempo')
-                    ->date('d M Y')
+                    ->formatStateUsing(fn($record) => $record->due_date_display)
                     ->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
@@ -112,7 +112,6 @@ class BillResource extends Resource
         return [
             'index' => Pages\ListBills::route('/'),
             'create' => Pages\CreateBill::route('/create'),
-            'create-room' => Pages\CreateRoomBill::route('/create-room'), // ✅ BARU
             'view' => Pages\ViewBill::route('/{record}'),
         ];
     }

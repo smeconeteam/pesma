@@ -70,13 +70,6 @@ class ViewBill extends ViewRecord
                             ->label('Kamar')
                             ->default('-')
                             ->icon('heroicon-o-home'),
-
-                        Infolists\Components\TextEntry::make('due_date')
-                            ->label('Jatuh Tempo')
-                            ->date('d F Y')
-                            ->icon('heroicon-o-calendar')
-                            ->color(fn($record) => $record->isOverdue() ? 'danger' : null)
-                            ->weight(fn($record) => $record->isOverdue() ? 'bold' : null),
                     ]),
 
                 Infolists\Components\Section::make('Rincian Nominal')
@@ -122,28 +115,60 @@ class ViewBill extends ViewRecord
                     ]),
 
                 Infolists\Components\Section::make('Periode')
-                    ->columns(2)
+                    ->columns(3)
                     ->visible(fn($record) => $record->period_start || $record->period_end)
                     ->schema([
                         Infolists\Components\TextEntry::make('period_start')
                             ->label('Periode Mulai')
                             ->date('d F Y')
-                            ->default('-'),
+                            ->default('-')
+                            ->icon('heroicon-o-calendar'),
 
                         Infolists\Components\TextEntry::make('period_end')
                             ->label('Periode Selesai')
                             ->date('d F Y')
-                            ->default('-'),
+                            ->default('-')
+                            ->icon('heroicon-o-calendar')
+                            ->color(fn($record) => $record->isOverdue() ? 'danger' : null)
+                            ->weight(fn($record) => $record->isOverdue() ? 'bold' : null),
+
+                        Infolists\Components\TextEntry::make('period_info')
+                            ->label('Keterangan')
+                            ->default(function ($record) {
+                                if (!$record->period_end) {
+                                    return 'Tidak Terbatas';
+                                }
+
+                                if ($record->isOverdue()) {
+                                    return 'Sudah Jatuh Tempo';
+                                }
+
+                                $days = now()->diffInDays($record->period_end);
+                                return "Sisa {$days} hari";
+                            })
+                            ->badge()
+                            ->color(function ($record) {
+                                if (!$record->period_end) return 'gray';
+                                if ($record->isOverdue()) return 'danger';
+                                return 'info';
+                            }),
                     ]),
 
-                Infolists\Components\Section::make('Detail Item')
+                Infolists\Components\Section::make('Detail Tagihan Per Bulan')
+                    ->description('Rincian tagihan bulanan')
                     ->visible(fn($record) => $record->details()->exists())
                     ->schema([
                         Infolists\Components\RepeatableEntry::make('details')
                             ->label('')
                             ->schema([
+                                Infolists\Components\TextEntry::make('month')
+                                    ->label('Bulan Ke-')
+                                    ->badge()
+                                    ->color('primary'),
+
                                 Infolists\Components\TextEntry::make('description')
-                                    ->label('Deskripsi'),
+                                    ->label('Deskripsi')
+                                    ->icon('heroicon-o-calendar'),
 
                                 Infolists\Components\TextEntry::make('base_amount')
                                     ->label('Nominal Dasar')
@@ -152,17 +177,46 @@ class ViewBill extends ViewRecord
                                 Infolists\Components\TextEntry::make('discount_amount')
                                     ->label('Diskon')
                                     ->money('IDR')
-                                    ->color('success'),
+                                    ->color('success')
+                                    ->visible(fn($state) => $state > 0),
 
                                 Infolists\Components\TextEntry::make('amount')
                                     ->label('Total')
                                     ->money('IDR')
-                                    ->weight('bold'),
+                                    ->weight('bold')
+                                    ->color('primary'),
                             ])
-                            ->columns(4),
+                            ->columns(5)
+                            ->grid(1),
+
+                        Infolists\Components\Placeholder::make('summary')
+                            ->label('Ringkasan')
+                            ->content(function ($record) {
+                                $totalDetails = $record->details()->count();
+                                $totalAmount = $record->details()->sum('amount');
+                                $totalDiscount = $record->details()->sum('discount_amount');
+
+                                return new \Illuminate\Support\HtmlString("
+                                    <div class='space-y-1'>
+                                        <div class='flex justify-between'>
+                                            <span>Total Bulan:</span>
+                                            <strong>{$totalDetails} Bulan</strong>
+                                        </div>
+                                        <div class='flex justify-between'>
+                                            <span>Total Diskon:</span>
+                                            <strong class='text-green-600'>Rp " . number_format($totalDiscount, 0, ',', '.') . "</strong>
+                                        </div>
+                                        <div class='flex justify-between border-t pt-1'>
+                                            <span>Total Tagihan:</span>
+                                            <strong class='text-lg'>Rp " . number_format($totalAmount, 0, ',', '.') . "</strong>
+                                        </div>
+                                    </div>
+                                ");
+                            }),
                     ]),
 
                 Infolists\Components\Section::make('Riwayat Pembayaran')
+                    ->description('Daftar pembayaran yang sudah dilakukan')
                     ->visible(fn($record) => $record->payments()->exists())
                     ->schema([
                         Infolists\Components\RepeatableEntry::make('payments')
@@ -171,20 +225,25 @@ class ViewBill extends ViewRecord
                                 Infolists\Components\TextEntry::make('payment_number')
                                     ->label('No. Pembayaran')
                                     ->copyable()
-                                    ->icon('heroicon-o-clipboard-document'),
-
-                                Infolists\Components\TextEntry::make('amount')
-                                    ->label('Jumlah')
-                                    ->money('IDR')
+                                    ->icon('heroicon-o-clipboard-document')
                                     ->weight('bold'),
 
                                 Infolists\Components\TextEntry::make('payment_date')
                                     ->label('Tanggal')
-                                    ->date('d F Y'),
+                                    ->date('d F Y')
+                                    ->icon('heroicon-o-calendar'),
+
+                                Infolists\Components\TextEntry::make('amount')
+                                    ->label('Jumlah')
+                                    ->money('IDR')
+                                    ->weight('bold')
+                                    ->color('success'),
 
                                 Infolists\Components\TextEntry::make('paid_by_name')
                                     ->label('Dibayar Oleh')
-                                    ->icon('heroicon-o-user'),
+                                    ->icon('heroicon-o-user')
+                                    ->badge()
+                                    ->color('info'),
 
                                 Infolists\Components\TextEntry::make('paymentMethod.kind')
                                     ->label('Metode')
@@ -194,15 +253,41 @@ class ViewBill extends ViewRecord
                                         'qris' => 'QRIS',
                                         'cash' => 'Cash',
                                         default => $state
-                                    }),
+                                    })
+                                    ->color('gray'),
 
                                 Infolists\Components\TextEntry::make('status')
                                     ->label('Status')
                                     ->badge()
                                     ->color(fn($record) => $record->status_color)
                                     ->formatStateUsing(fn($record) => $record->status_label),
+
+                                Infolists\Components\ImageEntry::make('proof_path')
+                                    ->label('Bukti Pembayaran')
+                                    ->disk('public')
+                                    ->visible(fn($state) => $state !== null)
+                                    ->height(100)
+                                    ->defaultImageUrl('/images/no-image.png'),
+
+                                Infolists\Components\TextEntry::make('verified_at')
+                                    ->label('Diverifikasi')
+                                    ->dateTime('d F Y H:i')
+                                    ->default('-')
+                                    ->visible(fn($record) => $record->status === 'verified'),
+
+                                Infolists\Components\TextEntry::make('rejection_reason')
+                                    ->label('Alasan Ditolak')
+                                    ->color('danger')
+                                    ->visible(fn($record) => $record->status === 'rejected'),
+
+                                Infolists\Components\TextEntry::make('notes')
+                                    ->label('Catatan')
+                                    ->default('-')
+                                    ->visible(fn($state) => $state !== null)
+                                    ->columnSpanFull(),
                             ])
-                            ->columns(6),
+                            ->columns(6)
+                            ->grid(1),
                     ]),
 
                 Infolists\Components\Section::make('Catatan')
@@ -210,12 +295,14 @@ class ViewBill extends ViewRecord
                         Infolists\Components\TextEntry::make('notes')
                             ->label('')
                             ->default('-')
-                            ->prose(),
+                            ->prose()
+                            ->columnSpanFull(),
                     ])
                     ->visible(fn($record) => $record->notes),
 
                 Infolists\Components\Section::make('Informasi Tambahan')
                     ->columns(2)
+                    ->collapsed()
                     ->schema([
                         Infolists\Components\TextEntry::make('issuedBy.name')
                             ->label('Dibuat Oleh')

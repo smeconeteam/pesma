@@ -45,6 +45,7 @@ class Bill extends Model
         'issued_at' => 'datetime',
     ];
 
+    // Boot method untuk auto-generate bill_number
     protected static function boot()
     {
         parent::boot();
@@ -54,6 +55,7 @@ class Bill extends Model
                 $bill->bill_number = self::generateBillNumber();
             }
 
+            // Auto-calculate amounts jika belum diset
             if (empty($bill->discount_amount)) {
                 $bill->discount_amount = ($bill->base_amount * $bill->discount_percent) / 100;
             }
@@ -63,11 +65,12 @@ class Bill extends Model
             }
 
             if (!isset($bill->remaining_amount)) {
-                $bill->remaining_amount = $bill->total_amount - ($bill->paid_amount ?? 0);
+                $bill->remaining_amount = $bill->total_amount - $bill->paid_amount;
             }
         });
     }
 
+    // Relations
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -98,6 +101,7 @@ class Bill extends Model
         return $this->hasMany(BillDetail::class);
     }
 
+    // Scopes
     public function scopeDraft($query)
     {
         return $query->where('status', 'draft');
@@ -128,10 +132,11 @@ class Bill extends Model
         return $query->whereIn('status', ['issued', 'partial', 'overdue']);
     }
 
+    // Helper Methods
     public static function generateBillNumber(): string
     {
         $date = now()->format('Ymd');
-        $lastBill = self::where('bill_number', 'LIKE', "{$date}-%")
+        $lastBill = self::where('bill_number', 'LIKE', "BILL-{$date}-%")
             ->orderBy('bill_number', 'desc')
             ->first();
 
@@ -153,6 +158,7 @@ class Bill extends Model
 
         $this->remaining_amount = $this->total_amount - $this->paid_amount;
 
+        // Update status
         if ($this->paid_amount == 0) {
             $this->status = 'issued';
         } elseif ($this->paid_amount > 0 && $this->paid_amount < $this->total_amount) {
@@ -174,7 +180,12 @@ class Bill extends Model
 
     public function isOverdue(): bool
     {
-        return now()->gt($this->due_date) && $this->status !== 'paid';
+        // Jika tidak ada period_end (tak terbatas), tidak bisa overdue
+        if (!$this->period_end) {
+            return false;
+        }
+
+        return now()->gt($this->period_end) && $this->status !== 'paid';
     }
 
     public function markAsIssued(User $admin): void
@@ -187,9 +198,11 @@ class Bill extends Model
 
     public function canBeDeleted(): bool
     {
+        // Tidak bisa dihapus jika sudah ada pembayaran
         return !$this->payments()->exists();
     }
 
+    // Format currency untuk display
     public function getFormattedBaseAmountAttribute(): string
     {
         return 'Rp ' . number_format($this->base_amount, 0, ',', '.');
@@ -213,7 +226,6 @@ class Bill extends Model
     public function getStatusLabelAttribute(): string
     {
         return match ($this->status) {
-            'draft' => 'Draft',
             'issued' => 'Tertagih',
             'partial' => 'Dibayar Sebagian',
             'paid' => 'Lunas',
@@ -225,12 +237,20 @@ class Bill extends Model
     public function getStatusColorAttribute(): string
     {
         return match ($this->status) {
-            'draft' => 'gray',
             'issued' => 'warning',
             'partial' => 'info',
             'paid' => 'success',
             'overdue' => 'danger',
             default => 'gray',
         };
+    }
+
+    public function getDueDateDisplayAttribute(): string
+    {
+        if (!$this->period_end) {
+            return 'Tak Terbatas';
+        }
+
+        return $this->period_end->format('d M Y');
     }
 }
