@@ -17,6 +17,7 @@ class Bill extends Model
         'user_id',
         'billing_type_id',
         'room_id',
+        'registration_id',
         'base_amount',
         'discount_percent',
         'discount_amount',
@@ -86,6 +87,11 @@ class Bill extends Model
         return $this->belongsTo(Room::class);
     }
 
+    public function registration(): BelongsTo
+    {
+        return $this->belongsTo(Registration::class);
+    }
+
     public function issuedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'issued_by');
@@ -136,7 +142,7 @@ class Bill extends Model
     public static function generateBillNumber(): string
     {
         $date = now()->format('Ymd');
-        $lastBill = self::where('bill_number', 'LIKE', "BILL-{$date}-%")
+        $lastBill = self::where('bill_number', 'LIKE', "{$date}-%")
             ->orderBy('bill_number', 'desc')
             ->first();
 
@@ -147,7 +153,7 @@ class Bill extends Model
             $newNumber = '0001';
         }
 
-        return "BILL-{$date}-{$newNumber}";
+        return "{$date}-{$newNumber}";
     }
 
     public function updatePaymentStatus(): void
@@ -180,7 +186,12 @@ class Bill extends Model
 
     public function isOverdue(): bool
     {
-        return now()->gt($this->due_date) && $this->status !== 'paid';
+        // Jika tidak ada period_end (tak terbatas), tidak bisa overdue
+        if (!$this->period_end) {
+            return false;
+        }
+
+        return now()->gt($this->period_end) && $this->status !== 'paid';
     }
 
     public function markAsIssued(User $admin): void
@@ -221,7 +232,6 @@ class Bill extends Model
     public function getStatusLabelAttribute(): string
     {
         return match ($this->status) {
-            'draft' => 'Draft',
             'issued' => 'Tertagih',
             'partial' => 'Dibayar Sebagian',
             'paid' => 'Lunas',
@@ -233,12 +243,20 @@ class Bill extends Model
     public function getStatusColorAttribute(): string
     {
         return match ($this->status) {
-            'draft' => 'gray',
             'issued' => 'warning',
             'partial' => 'info',
             'paid' => 'success',
             'overdue' => 'danger',
             default => 'gray',
         };
+    }
+
+    public function getDueDateDisplayAttribute(): string
+    {
+        if (!$this->period_end) {
+            return 'Tak Terbatas';
+        }
+
+        return $this->period_end->format('d M Y');
     }
 }

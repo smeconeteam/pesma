@@ -2,24 +2,19 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\BillResource\Pages;
 use App\Models\Bill;
-use App\Models\BillingType;
 use App\Models\Dorm;
-use App\Models\Block;
-use App\Models\Room;
-use App\Models\User;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Forms\Form;
 use Filament\Tables\Table;
+use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
+use App\Filament\Resources\BillResource\Pages;
 
 class BillResource extends Resource
 {
-    protected static ?string $model = Bill::class;
     protected static ?string $slug = 'tagihan';
+    protected static ?string $model = Bill::class;
     protected static ?string $navigationLabel = 'Tagihan';
     protected static ?string $modelLabel = 'Tagihan';
     protected static ?string $pluralModelLabel = 'Tagihan';
@@ -28,109 +23,7 @@ class BillResource extends Resource
 
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make('Informasi Tagihan')
-                    ->columns(2)
-                    ->schema([
-                        Forms\Components\Select::make('user_id')
-                            ->label('Penghuni')
-                            ->options(fn() => User::whereHas('residentProfile')
-                                ->with('residentProfile')
-                                ->get()
-                                ->pluck('residentProfile.full_name', 'id'))
-                            ->searchable()
-                            ->required()
-                            ->preload(),
-
-                        Forms\Components\Select::make('billing_type_id')
-                            ->label('Jenis Tagihan')
-                            ->options(BillingType::where('is_active', true)->pluck('name', 'id'))
-                            ->required()
-                            ->searchable(),
-
-                        Forms\Components\Select::make('room_id')
-                            ->label('Kamar (Opsional)')
-                            ->options(Room::with(['block.dorm'])
-                                ->get()
-                                ->mapWithKeys(fn($room) => [
-                                    $room->id => "{$room->block->dorm->name} - {$room->block->name} - {$room->code}"
-                                ]))
-                            ->searchable()
-                            ->nullable(),
-                    ]),
-
-                Forms\Components\Section::make('Nominal')
-                    ->columns(2)
-                    ->schema([
-                        Forms\Components\TextInput::make('base_amount')
-                            ->label('Nominal Dasar')
-                            ->required()
-                            ->numeric()
-                            ->prefix('Rp')
-                            ->reactive()
-                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                                $discount = $get('discount_percent') ?? 0;
-                                $discountAmount = ($state * $discount) / 100;
-                                $set('discount_amount', $discountAmount);
-                                $set('total_amount', $state - $discountAmount);
-                                $set('remaining_amount', $state - $discountAmount);
-                            }),
-
-                        Forms\Components\TextInput::make('discount_percent')
-                            ->label('Diskon (%)')
-                            ->numeric()
-                            ->default(0)
-                            ->minValue(0)
-                            ->maxValue(100)
-                            ->suffix('%')
-                            ->reactive()
-                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                                $base = $get('base_amount') ?? 0;
-                                $discountAmount = ($base * $state) / 100;
-                                $set('discount_amount', $discountAmount);
-                                $set('total_amount', $base - $discountAmount);
-                                $set('remaining_amount', $base - $discountAmount);
-                            }),
-
-                        Forms\Components\Placeholder::make('discount_amount_display')
-                            ->label('Nominal Diskon')
-                            ->content(fn(Forms\Get $get) => 'Rp ' . number_format($get('discount_amount') ?? 0, 0, ',', '.')),
-
-                        Forms\Components\Placeholder::make('total_amount_display')
-                            ->label('Total Tagihan')
-                            ->content(fn(Forms\Get $get) => 'Rp ' . number_format($get('total_amount') ?? 0, 0, ',', '.')),
-
-                        Forms\Components\Hidden::make('discount_amount'),
-                        Forms\Components\Hidden::make('total_amount'),
-                        Forms\Components\Hidden::make('remaining_amount'),
-                    ]),
-
-                Forms\Components\Section::make('Periode & Jatuh Tempo')
-                    ->columns(3)
-                    ->schema([
-                        Forms\Components\DatePicker::make('period_start')
-                            ->label('Periode Mulai')
-                            ->nullable(),
-
-                        Forms\Components\DatePicker::make('period_end')
-                            ->label('Periode Selesai')
-                            ->nullable(),
-
-                        Forms\Components\DatePicker::make('due_date')
-                            ->label('Jatuh Tempo')
-                            ->required()
-                            ->default(now()->addDays(7)),
-                    ]),
-
-                Forms\Components\Section::make('Catatan')
-                    ->schema([
-                        Forms\Components\Textarea::make('notes')
-                            ->label('Catatan')
-                            ->rows(3)
-                            ->nullable(),
-                    ]),
-            ]);
+        return $form->schema([]);
     }
 
     public static function table(Table $table): Table
@@ -140,37 +33,38 @@ class BillResource extends Resource
                 Tables\Columns\TextColumn::make('bill_number')
                     ->label('No. Tagihan')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->copyable()
+                    ->weight('bold'),
 
                 Tables\Columns\TextColumn::make('user.residentProfile.full_name')
                     ->label('Penghuni')
-                    ->searchable()
+                    ->searchable(['users.name', 'resident_profiles.full_name'])
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('billingType.name')
-                    ->label('Jenis Tagihan')
-                    ->sortable(),
+                    ->label('Jenis')
+                    ->sortable()
+                    ->badge()
+                    ->color('info'),
 
                 Tables\Columns\TextColumn::make('room.code')
                     ->label('Kamar')
-                    ->default('-')
-                    ->sortable(),
+                    ->sortable()
+                    ->default('-'),
 
                 Tables\Columns\TextColumn::make('total_amount')
                     ->label('Total')
                     ->money('IDR')
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('paid_amount')
-                    ->label('Dibayar')
-                    ->money('IDR')
-                    ->sortable(),
+                    ->sortable()
+                    ->weight('bold'),
 
                 Tables\Columns\TextColumn::make('remaining_amount')
                     ->label('Sisa')
                     ->money('IDR')
                     ->sortable()
-                    ->color(fn($record) => $record->remaining_amount > 0 ? 'danger' : 'success'),
+                    ->color(fn($record) => $record->remaining_amount > 0 ? 'danger' : 'success')
+                    ->weight('bold'),
 
                 Tables\Columns\BadgeColumn::make('status')
                     ->label('Status')
@@ -180,18 +74,7 @@ class BillResource extends Resource
                         'success' => 'paid',
                         'danger' => 'overdue',
                     ])
-                    ->formatStateUsing(fn($state) => match ($state) {
-                        'issued' => 'Tertagih',
-                        'partial' => 'Sebagian',
-                        'paid' => 'Lunas',
-                        'overdue' => 'Jatuh Tempo',
-                        default => $state,
-                    }),
-
-                Tables\Columns\TextColumn::make('due_date')
-                    ->label('Jatuh Tempo')
-                    ->date('d M Y')
-                    ->sortable(),
+                    ->formatStateUsing(fn($record) => $record->status_label),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
@@ -202,20 +85,69 @@ class BillResource extends Resource
                         'partial' => 'Dibayar Sebagian',
                         'paid' => 'Lunas',
                         'overdue' => 'Jatuh Tempo',
-                    ]),
+                    ])
+                    ->multiple(),
 
                 Tables\Filters\SelectFilter::make('billing_type_id')
                     ->label('Jenis Tagihan')
-                    ->relationship('billingType', 'name'),
+                    ->relationship('billingType', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable(),
 
-                Tables\Filters\Filter::make('overdue_only')
-                    ->label('Hanya Jatuh Tempo')
-                    ->query(fn(Builder $query) => $query->where('status', 'overdue')),
+                Tables\Filters\SelectFilter::make('dorm_id')
+                    ->label('Cabang')
+                    ->options(function () {
+                        $user = auth()->user();
+
+                        if ($user->hasRole(['super_admin', 'main_admin'])) {
+                            return Dorm::where('is_active', true)
+                                ->pluck('name', 'id');
+                        }
+
+                        if ($user->hasRole('branch_admin')) {
+                            return Dorm::whereIn('id', $user->branchDormIds())
+                                ->pluck('name', 'id');
+                        }
+
+                        if ($user->hasRole('block_admin')) {
+                            $dormIds = \App\Models\Block::whereIn('id', $user->blockIds())
+                                ->pluck('dorm_id')
+                                ->unique();
+
+                            return Dorm::whereIn('id', $dormIds)
+                                ->pluck('name', 'id');
+                        }
+
+                        return [];
+                    })
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->whereHas('room.block.dorm', function ($q) use ($data) {
+                                $q->whereIn('dorms.id', $data['value']);
+                            });
+                        }
+                    })
+                    ->multiple()
+                    ->preload()
+                    ->searchable(),
+
+                Tables\Filters\TernaryFilter::make('overdue')
+                    ->label('Jatuh Tempo')
+                    ->placeholder('Semua')
+                    ->trueLabel('Ya (Lewat Jatuh Tempo)')
+                    ->falseLabel('Tidak')
+                    ->queries(
+                        true: fn(Builder $query) => $query->where('due_date', '<', now())
+                            ->whereIn('status', ['issued', 'partial', 'overdue']),
+                        false: fn(Builder $query) => $query->where(function ($q) {
+                            $q->where('due_date', '>=', now())
+                                ->orWhere('status', 'paid');
+                        }),
+                    ),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make()
-                    ->visible(fn($record) => $record->status === 'issued' && $record->paid_amount == 0),
                 Tables\Actions\DeleteAction::make()
                     ->visible(fn($record) => $record->canBeDeleted()),
             ])
@@ -230,19 +162,43 @@ class BillResource extends Resource
             'index' => Pages\ListBills::route('/'),
             'create' => Pages\CreateBill::route('/buat'),
             'view' => Pages\ViewBill::route('/{record}'),
-            'edit' => Pages\EditBill::route('/{record}/edit'),
-            'generate-room' => Pages\GenerateRoomBills::route('/buat-kamar'),
-            'generate-resident' => Pages\GenerateResidentBills::route('/buat-penghuni'),
         ];
     }
 
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::whereIn('status', ['issued', 'partial', 'overdue'])->count();
+        $count = static::getModel()::whereIn('status', ['issued', 'partial', 'overdue'])->count();
+        return $count > 0 ? (string) $count : null;
     }
 
     public static function getNavigationBadgeColor(): ?string
     {
         return 'danger';
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $user = auth()->user();
+        $query = parent::getEloquentQuery();
+
+        if ($user->hasRole(['super_admin', 'main_admin'])) {
+            return $query;
+        }
+
+        if ($user->hasRole('branch_admin')) {
+            $dormIds = $user->branchDormIds();
+            return $query->whereHas('user.roomResidents.room.block.dorm', function ($q) use ($dormIds) {
+                $q->whereIn('dorms.id', $dormIds);
+            });
+        }
+
+        if ($user->hasRole('block_admin')) {
+            $blockIds = $user->blockIds();
+            return $query->whereHas('user.roomResidents.room.block', function ($q) use ($blockIds) {
+                $q->whereIn('blocks.id', $blockIds);
+            });
+        }
+
+        return $query;
     }
 }

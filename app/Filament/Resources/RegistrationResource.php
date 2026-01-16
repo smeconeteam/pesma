@@ -200,7 +200,6 @@ class RegistrationResource extends Resource
                             ->default('WNI')
                             ->reactive()
                             ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                                // Set default Indonesia hanya jika country_id masih kosong
                                 if ($state === 'WNI' && blank($get('country_id'))) {
                                     $indoId = Country::query()->where('iso2', 'ID')->value('id');
                                     if ($indoId) {
@@ -290,6 +289,76 @@ class RegistrationResource extends Resource
                             ->nullable()
                             ->columnSpanFull(),
                     ]),
+
+                Forms\Components\Section::make('Biaya Pendaftaran (Opsional)')
+                    ->description('Buat tagihan biaya pendaftaran sekaligus saat mendaftarkan penghuni')
+                    ->collapsed()
+                    ->visible(fn(string $operation) => $operation === 'create')
+                    ->schema([
+                        Forms\Components\Toggle::make('generate_registration_bill')
+                            ->label('Generate Tagihan Biaya Pendaftaran?')
+                            ->default(false)
+                            ->live()
+                            ->columnSpanFull(),
+
+                        Forms\Components\Grid::make(3)
+                            ->visible(fn(Forms\Get $get) => $get('generate_registration_bill'))
+                            ->schema([
+                                Forms\Components\TextInput::make('registration_fee_amount')
+                                    ->label('Nominal Biaya')
+                                    ->numeric()
+                                    ->prefix('Rp')
+                                    ->default(500000)
+                                    ->required(fn(Forms\Get $get) => $get('generate_registration_bill'))
+                                    ->minValue(0),
+
+                                Forms\Components\TextInput::make('registration_fee_discount')
+                                    ->label('Diskon (%)')
+                                    ->numeric()
+                                    ->suffix('%')
+                                    ->default(0)
+                                    ->minValue(0)
+                                    ->maxValue(100),
+
+                                Forms\Components\DatePicker::make('registration_fee_due_date')
+                                    ->label('Jatuh Tempo')
+                                    ->native(false)
+                                    ->displayFormat('d/m/Y')
+                                    ->format('Y-m-d')
+                                    ->default(now()->addWeeks(2))
+                                    ->minDate(now())
+                                    ->helperText('Batas waktu pembayaran'),
+                            ]),
+
+                        Forms\Components\Placeholder::make('registration_fee_info')
+                            ->label('')
+                            ->visible(fn(Forms\Get $get) => $get('generate_registration_bill'))
+                            ->content(function (Forms\Get $get) {
+                                $amount = $get('registration_fee_amount') ?? 0;
+                                $discount = $get('registration_fee_discount') ?? 0;
+                                $total = $amount - (($amount * $discount) / 100);
+
+                                return new \Illuminate\Support\HtmlString("
+                                    <div class='rounded-lg bg-blue-50 dark:bg-blue-900/20 p-4 border border-blue-200 dark:border-blue-800'>
+                                        <div class='flex items-start gap-3'>
+                                            <svg class='w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                                                <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'></path>
+                                            </svg>
+                                            <div class='flex-1'>
+                                                <div class='font-semibold text-blue-900 dark:text-blue-100 mb-1'>Total Tagihan</div>
+                                                <div class='text-2xl font-bold text-blue-600 dark:text-blue-400'>
+                                                    Rp " . number_format($total, 0, ',', '.') . "
+                                                </div>
+                                                <div class='text-sm text-blue-700 dark:text-blue-300 mt-2'>
+                                                    Tagihan akan dibuat otomatis dengan status <strong>Tertagih</strong> setelah pendaftaran berhasil.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ");
+                            })
+                            ->columnSpanFull(),
+                    ]),
             ]);
     }
 
@@ -347,6 +416,19 @@ class RegistrationResource extends Resource
                     ->label('Disetujui Pada')
                     ->date('d M Y H:i')
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\IconColumn::make('has_registration_bill')
+                    ->label('Tagihan')
+                    ->boolean()
+                    ->getStateUsing(fn($record) => $record->hasRegistrationBill())
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('gray')
+                    ->tooltip(fn($record) => $record->hasRegistrationBill()
+                        ? 'Sudah ada tagihan pendaftaran'
+                        : 'Belum ada tagihan pendaftaran')
+                    ->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('status')
@@ -378,6 +460,16 @@ class RegistrationResource extends Resource
                     ->color('success')
                     ->visible(fn(Registration $record) => $record->status === 'pending' && $canApproveReject)
                     ->url(fn(Registration $record) => static::getUrl('approve', ['record' => $record])),
+
+                Tables\Actions\Action::make('generate_bill')
+                    ->label('Buat Tagihan')
+                    ->icon('heroicon-o-banknotes')
+                    ->color('info')
+                    ->visible(fn(Registration $record) => !$record->hasRegistrationBill())
+                    ->url(fn(Registration $record) => route('filament.admin.resources.tagihan.create', [
+                        'registration_id' => $record->id,
+                        'auto_fill' => true,
+                    ])),
 
                 Tables\Actions\Action::make('reject')
                     ->label('Tolak')

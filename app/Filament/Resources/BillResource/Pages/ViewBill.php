@@ -15,23 +15,8 @@ class ViewBill extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('issue')
-                ->label('Issue Tagihan')
-                ->icon('heroicon-o-check-circle')
-                ->color('success')
-                ->visible(fn($record) => $record->status === 'draft')
-                ->requiresConfirmation()
-                ->action(function () {
-                    $this->record->markAsIssued(auth()->user());
-                    \Filament\Notifications\Notification::make()
-                        ->title('Tagihan berhasil di-issue')
-                        ->success()
-                        ->send();
-                    $this->redirect($this->getResource()::getUrl('view', ['record' => $this->record]));
-                }),
-
-            Actions\EditAction::make()
-                ->visible(fn($record) => $record->status === 'draft'),
+            Actions\DeleteAction::make()
+                ->visible(fn($record) => $record->canBeDeleted()),
         ];
     }
 
@@ -40,30 +25,48 @@ class ViewBill extends ViewRecord
         return $infolist
             ->schema([
                 Infolists\Components\Section::make('Informasi Tagihan')
-                    ->columns(2)
+                    ->columns(3)
                     ->schema([
                         Infolists\Components\TextEntry::make('bill_number')
-                            ->label('No. Tagihan'),
+                            ->label('No. Tagihan')
+                            ->copyable()
+                            ->copyMessage('Nomor tagihan disalin!')
+                            ->icon('heroicon-o-clipboard-document')
+                            ->weight('bold')
+                            ->size('lg'),
 
                         Infolists\Components\TextEntry::make('status')
                             ->label('Status')
                             ->badge()
                             ->color(fn($record) => $record->status_color)
-                            ->formatStateUsing(fn($record) => $record->status_label),
+                            ->formatStateUsing(fn($record) => $record->status_label)
+                            ->size('lg'),
+
+                        Infolists\Components\TextEntry::make('payment_percentage')
+                            ->label('Progress Pembayaran')
+                            ->formatStateUsing(fn($record) => $record->payment_percentage . '%')
+                            ->badge()
+                            ->color(fn($record) => match (true) {
+                                $record->payment_percentage == 100 => 'success',
+                                $record->payment_percentage >= 50 => 'info',
+                                $record->payment_percentage > 0 => 'warning',
+                                default => 'gray'
+                            })
+                            ->size('lg'),
 
                         Infolists\Components\TextEntry::make('user.residentProfile.full_name')
-                            ->label('Penghuni'),
+                            ->label('Penghuni')
+                            ->icon('heroicon-o-user'),
 
                         Infolists\Components\TextEntry::make('billingType.name')
-                            ->label('Jenis Tagihan'),
+                            ->label('Jenis Tagihan')
+                            ->badge()
+                            ->color('info'),
 
                         Infolists\Components\TextEntry::make('room.code')
                             ->label('Kamar')
-                            ->default('-'),
-
-                        Infolists\Components\TextEntry::make('due_date')
-                            ->label('Jatuh Tempo')
-                            ->date('d F Y'),
+                            ->default('-')
+                            ->icon('heroicon-o-home'),
                     ]),
 
                 Infolists\Components\Section::make('Rincian Nominal')
@@ -71,115 +74,256 @@ class ViewBill extends ViewRecord
                     ->schema([
                         Infolists\Components\TextEntry::make('base_amount')
                             ->label('Nominal Dasar')
-                            ->money('IDR'),
+                            ->money('IDR')
+                            ->icon('heroicon-o-calculator'),
 
                         Infolists\Components\TextEntry::make('discount_percent')
                             ->label('Diskon')
-                            ->formatStateUsing(fn($state) => $state . '%'),
+                            ->formatStateUsing(fn($state) => $state . '%')
+                            ->icon('heroicon-o-tag'),
 
                         Infolists\Components\TextEntry::make('discount_amount')
                             ->label('Nominal Diskon')
-                            ->money('IDR'),
+                            ->money('IDR')
+                            ->color('success')
+                            ->icon('heroicon-o-minus-circle'),
 
                         Infolists\Components\TextEntry::make('total_amount')
                             ->label('Total Tagihan')
                             ->money('IDR')
-                            ->weight('bold'),
+                            ->weight('bold')
+                            ->size('lg')
+                            ->icon('heroicon-o-currency-dollar'),
 
                         Infolists\Components\TextEntry::make('paid_amount')
                             ->label('Sudah Dibayar')
                             ->money('IDR')
-                            ->color('success'),
+                            ->color('success')
+                            ->weight('bold')
+                            ->icon('heroicon-o-check-circle'),
 
                         Infolists\Components\TextEntry::make('remaining_amount')
                             ->label('Sisa Tagihan')
                             ->money('IDR')
-                            ->color(fn($state) => $state > 0 ? 'danger' : 'success'),
-
-                        Infolists\Components\TextEntry::make('payment_percentage')
-                            ->label('Persentase Pembayaran')
-                            ->formatStateUsing(fn($record) => $record->payment_percentage . '%')
-                            ->color(fn($record) => $record->payment_percentage == 100 ? 'success' : 'warning'),
+                            ->color(fn($state) => $state > 0 ? 'danger' : 'success')
+                            ->weight('bold')
+                            ->size('lg')
+                            ->icon(fn($state) => $state > 0 ? 'heroicon-o-exclamation-triangle' : 'heroicon-o-check-badge'),
                     ]),
 
                 Infolists\Components\Section::make('Periode')
-                    ->columns(2)
+                    ->columns(3)
+                    ->visible(fn($record) => $record->period_start || $record->period_end)
                     ->schema([
                         Infolists\Components\TextEntry::make('period_start')
                             ->label('Periode Mulai')
                             ->date('d F Y')
-                            ->default('-'),
+                            ->placeholder('-')
+                            ->icon('heroicon-o-calendar'),
 
                         Infolists\Components\TextEntry::make('period_end')
                             ->label('Periode Selesai')
                             ->date('d F Y')
-                            ->default('-'),
+                            ->placeholder('-')
+                            ->icon('heroicon-o-calendar')
+                            ->color(fn($record) => $record->isOverdue() ? 'danger' : null)
+                            ->weight(fn($record) => $record->isOverdue() ? 'bold' : null),
+
+                        Infolists\Components\TextEntry::make('period_info')
+                            ->label('Keterangan')
+                            ->default(function ($record) {
+                                if (!$record->period_end) {
+                                    return 'Tidak Terbatas';
+                                }
+
+                                if ($record->isOverdue()) {
+                                    return 'Sudah Jatuh Tempo';
+                                }
+
+                                $days = now()->diffInDays($record->period_end);
+                                return "Sisa {$days} hari";
+                            })
+                            ->badge()
+                            ->color(function ($record) {
+                                if (!$record->period_end) return 'gray';
+                                if ($record->isOverdue()) return 'danger';
+                                return 'info';
+                            }),
                     ]),
 
-                Infolists\Components\Section::make('Detail Item')
+                Infolists\Components\Section::make('Detail Tagihan Per Bulan')
+                    ->description('Rincian tagihan bulanan')
                     ->visible(fn($record) => $record->details()->exists())
                     ->schema([
                         Infolists\Components\RepeatableEntry::make('details')
                             ->label('')
                             ->schema([
+                                Infolists\Components\TextEntry::make('month')
+                                    ->label('Bulan Ke-')
+                                    ->badge()
+                                    ->color('primary'),
+
                                 Infolists\Components\TextEntry::make('description')
-                                    ->label('Deskripsi'),
+                                    ->label('Deskripsi')
+                                    ->icon('heroicon-o-calendar'),
+
+                                Infolists\Components\TextEntry::make('base_amount')
+                                    ->label('Nominal Dasar')
+                                    ->money('IDR'),
+
+                                Infolists\Components\TextEntry::make('discount_amount')
+                                    ->label('Diskon')
+                                    ->money('IDR')
+                                    ->color('success')
+                                    ->visible(fn($state) => $state > 0),
 
                                 Infolists\Components\TextEntry::make('amount')
-                                    ->label('Nominal')
-                                    ->money('IDR'),
+                                    ->label('Total')
+                                    ->money('IDR')
+                                    ->weight('bold')
+                                    ->color('primary'),
                             ])
-                            ->columns(2),
+                            ->columns(5)
+                            ->grid(1),
+
+                        // SOLUSI: Ganti Placeholder dengan TextEntry + HTML
+                        Infolists\Components\TextEntry::make('details_summary')
+                            ->label('Ringkasan')
+                            ->html()
+                            ->formatStateUsing(function ($record) {
+                                $totalDetails = $record->details()->count();
+                                $totalAmount = $record->details()->sum('amount');
+                                $totalDiscount = $record->details()->sum('discount_amount');
+
+                                return "
+                                    <div class='space-y-1'>
+                                        <div class='flex justify-between'>
+                                            <span>Total Bulan:</span>
+                                            <strong>{$totalDetails} Bulan</strong>
+                                        </div>
+                                        <div class='flex justify-between'>
+                                            <span>Total Diskon:</span>
+                                            <strong class='text-green-600'>Rp " . number_format($totalDiscount, 0, ',', '.') . "</strong>
+                                        </div>
+                                        <div class='flex justify-between border-t pt-1'>
+                                            <span>Total Tagihan:</span>
+                                            <strong class='text-lg'>Rp " . number_format($totalAmount, 0, ',', '.') . "</strong>
+                                        </div>
+                                    </div>
+                                ";
+                            })
+                            ->columnSpanFull(),
                     ]),
 
                 Infolists\Components\Section::make('Riwayat Pembayaran')
+                    ->description('Daftar pembayaran yang sudah dilakukan')
                     ->visible(fn($record) => $record->payments()->exists())
                     ->schema([
                         Infolists\Components\RepeatableEntry::make('payments')
                             ->label('')
                             ->schema([
                                 Infolists\Components\TextEntry::make('payment_number')
-                                    ->label('No. Pembayaran'),
-
-                                Infolists\Components\TextEntry::make('amount')
-                                    ->label('Jumlah')
-                                    ->money('IDR'),
+                                    ->label('No. Pembayaran')
+                                    ->copyable()
+                                    ->icon('heroicon-o-clipboard-document')
+                                    ->weight('bold'),
 
                                 Infolists\Components\TextEntry::make('payment_date')
                                     ->label('Tanggal')
-                                    ->date('d F Y'),
+                                    ->date('d F Y')
+                                    ->icon('heroicon-o-calendar'),
 
-                                Infolists\Components\TextEntry::make('paidBy.name')
-                                    ->label('Dibayar Oleh'),
+                                Infolists\Components\TextEntry::make('amount')
+                                    ->label('Jumlah')
+                                    ->money('IDR')
+                                    ->weight('bold')
+                                    ->color('success'),
+
+                                Infolists\Components\TextEntry::make('paid_by_name')
+                                    ->label('Dibayar Oleh')
+                                    ->icon('heroicon-o-user')
+                                    ->badge()
+                                    ->color('info'),
+
+                                Infolists\Components\TextEntry::make('paymentMethod.kind')
+                                    ->label('Metode')
+                                    ->badge()
+                                    ->formatStateUsing(fn($state) => match ($state) {
+                                        'transfer' => 'Transfer',
+                                        'qris' => 'QRIS',
+                                        'cash' => 'Cash',
+                                        default => $state
+                                    })
+                                    ->color('gray'),
 
                                 Infolists\Components\TextEntry::make('status')
                                     ->label('Status')
                                     ->badge()
                                     ->color(fn($record) => $record->status_color)
                                     ->formatStateUsing(fn($record) => $record->status_label),
+
+                                Infolists\Components\ImageEntry::make('proof_path')
+                                    ->label('Bukti Pembayaran')
+                                    ->disk('public')
+                                    ->visible(fn($state) => $state !== null)
+                                    ->height(100)
+                                    ->defaultImageUrl('/images/no-image.png'),
+
+                                Infolists\Components\TextEntry::make('verified_at')
+                                    ->label('Diverifikasi')
+                                    ->dateTime('d F Y H:i')
+                                    ->placeholder('-')
+                                    ->visible(fn($record) => $record->status === 'verified'),
+
+                                Infolists\Components\TextEntry::make('rejection_reason')
+                                    ->label('Alasan Ditolak')
+                                    ->color('danger')
+                                    ->visible(fn($record) => $record->status === 'rejected'),
+
+                                Infolists\Components\TextEntry::make('notes')
+                                    ->label('Catatan')
+                                    ->placeholder('-')
+                                    ->visible(fn($state) => $state !== null)
+                                    ->columnSpanFull(),
                             ])
-                            ->columns(5),
+                            ->columns(6)
+                            ->grid(1),
                     ]),
 
                 Infolists\Components\Section::make('Catatan')
                     ->schema([
                         Infolists\Components\TextEntry::make('notes')
                             ->label('')
-                            ->default('-'),
+                            ->placeholder('-')
+                            ->prose()
+                            ->columnSpanFull(),
                     ])
                     ->visible(fn($record) => $record->notes),
 
                 Infolists\Components\Section::make('Informasi Tambahan')
                     ->columns(2)
+                    ->collapsed()
                     ->schema([
                         Infolists\Components\TextEntry::make('issuedBy.name')
-                            ->label('Di-issue Oleh')
-                            ->default('-'),
+                            ->label('Dibuat Oleh')
+                            ->placeholder('-')
+                            ->icon('heroicon-o-user'),
 
                         Infolists\Components\TextEntry::make('issued_at')
-                            ->label('Tanggal Issue')
+                            ->label('Tanggal Dibuat')
                             ->dateTime('d F Y H:i')
-                            ->default('-'),
+                            ->placeholder('-')
+                            ->icon('heroicon-o-clock'),
+
+                        Infolists\Components\TextEntry::make('created_at')
+                            ->label('Dibuat Pada')
+                            ->dateTime('d F Y H:i')
+                            ->icon('heroicon-o-calendar'),
+
+                        Infolists\Components\TextEntry::make('updated_at')
+                            ->label('Terakhir Diupdate')
+                            ->dateTime('d F Y H:i')
+                            ->icon('heroicon-o-arrow-path'),
                     ]),
             ]);
     }

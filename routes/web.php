@@ -24,7 +24,7 @@ Route::middleware(['auth', 'verified', 'resident.only'])->group(function () {
     Route::get('/kamar-saya', MyRoomController::class)
         ->name('resident.my-room');
 
-    // ✅ Riwayat Kamar
+    // Riwayat Kamar
     Route::get('/riwayat-kamar', [RoomHistoryController::class, 'index'])
         ->name('resident.room-history');
 
