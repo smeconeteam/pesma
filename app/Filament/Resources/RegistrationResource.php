@@ -108,13 +108,12 @@ class RegistrationResource extends Resource
                             ->required(fn(string $operation) => $operation === 'create')
                             ->dehydrated(fn($state) => filled($state))
                             ->revealable()
-                            ->default('123456789')
                             ->minLength(8)
                             ->maxLength(255)
                             ->columnSpanFull()
                             ->helperText(fn(string $operation) => $operation === 'edit'
                                 ? 'Kosongkan jika tidak ingin mengubah password.'
-                                : 'Minimal 8 karakter.'),
+                                : 'Password default: 123456789 (minimal 8 karakter)'),
                     ]),
 
                 Forms\Components\Section::make('Profil Calon Penghuni')
@@ -172,9 +171,12 @@ class RegistrationResource extends Resource
                             ->native(false)
                             ->displayFormat('d/m/Y')
                             ->format('Y-m-d')
-                            ->default(now()->subYears(18))
+                            ->default(now()->subYears(6)->startOfDay())
                             ->maxDate(now()->subYears(6))
-                            ->helperText('Minimal usia 6 tahun')
+                            ->helperText('Minimal usia 6 tahun. Default: 6 tahun yang lalu')
+                            ->extraAttributes([
+                                'x-data' => '{ init() { this.$nextTick(() => { if (this.$el.querySelector("input[type=text]")) { this.$el.querySelector("input[type=text]").dispatchEvent(new Event("click")); } }) } }'
+                            ])
                             ->required(),
 
                         Forms\Components\TextInput::make('university_school')
@@ -261,7 +263,7 @@ class RegistrationResource extends Resource
                             ->displayFormat('d/m/Y')
                             ->format('Y-m-d')
                             ->default(now())
-                            ->helperText('Tanggal saat pendaftaran dilakukan (bisa tanggal lama untuk data historis)')
+                            ->helperText('Default: Hari ini. Bisa diubah untuk data historis')
                             ->required()
                             ->columnSpanFull(),
 
@@ -285,7 +287,7 @@ class RegistrationResource extends Resource
                             ->displayFormat('d/m/Y')
                             ->format('Y-m-d')
                             ->default(now()->addDays(7))
-                            ->helperText('Bisa tanggal masa lalu untuk data lama')
+                            ->helperText('Default: 1 minggu dari hari ini. Bisa diubah sesuai kebutuhan')
                             ->nullable()
                             ->columnSpanFull(),
                     ]),
@@ -327,7 +329,8 @@ class RegistrationResource extends Resource
                                     ->format('Y-m-d')
                                     ->default(now()->addWeeks(2))
                                     ->minDate(now())
-                                    ->helperText('Batas waktu pembayaran'),
+                                    ->helperText('Default: 2 minggu dari hari ini. Opsional, bisa dikosongkan')
+                                    ->nullable(),
                             ]),
 
                         Forms\Components\Placeholder::make('registration_fee_info')

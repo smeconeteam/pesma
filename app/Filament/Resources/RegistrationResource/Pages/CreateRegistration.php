@@ -88,11 +88,15 @@ class CreateRegistration extends CreateRecord
 
         parent::mount();
 
+        // Pre-fill form dengan default values
         $this->form->fill([
+            'birth_date' => now()->subYears(6)->format('Y-m-d'),
+            'created_at' => now()->format('Y-m-d'),
+            'planned_check_in_date' => now()->addDays(7)->format('Y-m-d'),
             'generate_registration_bill' => false,
             'registration_fee_amount' => 500000,
             'registration_fee_discount' => 0,
-            'registration_fee_due_date' => now()->addWeeks(2)->toDateString(),
+            'registration_fee_due_date' => now()->addWeeks(2)->format('Y-m-d'),
         ]);
     }
 }
