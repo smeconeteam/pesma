@@ -105,7 +105,6 @@ class RegistrationResource extends Resource
                         Forms\Components\TextInput::make('password')
                             ->label('Password')
                             ->password()
-                            ->required(fn(string $operation) => $operation === 'create')
                             ->dehydrated(fn($state) => filled($state))
                             ->revealable()
                             ->minLength(8)
@@ -113,7 +112,7 @@ class RegistrationResource extends Resource
                             ->columnSpanFull()
                             ->helperText(fn(string $operation) => $operation === 'edit'
                                 ? 'Kosongkan jika tidak ingin mengubah password.'
-                                : 'Password default: 123456789 (minimal 8 karakter)'),
+                                : 'Password default: 123456789'),
                     ]),
 
                 Forms\Components\Section::make('Profil Calon Penghuni')
