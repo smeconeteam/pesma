@@ -311,7 +311,8 @@ class RegistrationResource extends Resource
                                     ->prefix('Rp')
                                     ->default(500000)
                                     ->required(fn(Forms\Get $get) => $get('generate_registration_bill'))
-                                    ->minValue(0),
+                                    ->minValue(0)
+                                    ->live(onBlur: true),
 
                                 Forms\Components\TextInput::make('registration_fee_discount')
                                     ->label('Diskon (%)')
@@ -319,7 +320,8 @@ class RegistrationResource extends Resource
                                     ->suffix('%')
                                     ->default(0)
                                     ->minValue(0)
-                                    ->maxValue(100),
+                                    ->maxValue(100)
+                                    ->live(onBlur: true),
 
                                 Forms\Components\DatePicker::make('registration_fee_due_date')
                                     ->label('Jatuh Tempo')
@@ -411,7 +413,7 @@ class RegistrationResource extends Resource
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Tanggal Daftar')
-                    ->dateTime('d M Y H:i')
+                    ->date('d M Y')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('approved_at')

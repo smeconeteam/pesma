@@ -53,12 +53,13 @@ class CreateRegistration extends CreateRecord
 
         if (!empty($data['generate_registration_bill']) && !empty($data['registration_fee_amount'])) {
             try {
-                $billService = app(BillService::class);
+                $billService = app(\App\Services\BillService::class);
 
                 $billService->generateRegistrationBill($registration, [
                     'amount' => $data['registration_fee_amount'],
                     'discount_percent' => $data['registration_fee_discount'] ?? 0,
                     'due_date' => $data['registration_fee_due_date'] ?? now()->addWeeks(2)->toDateString(),
+                    'notes' => $data['notes'] ?? null,
                 ]);
 
                 Notification::make()
