@@ -25,6 +25,7 @@ class RoomTypeResource extends Resource
 {
     protected static ?string $model = RoomType::class;
 
+    protected static ?string $slug = 'tipe-kamar';
     protected static ?string $navigationGroup = 'Asrama';
     protected static ?int $navigationSort = 10;
 
@@ -324,7 +325,7 @@ class RoomTypeResource extends Resource
     {
         return [
             'index'  => Pages\ListRoomTypes::route('/'),
-            'create' => Pages\CreateRoomType::route('/create'),
+            'create' => Pages\CreateRoomType::route('/buat'),
             'edit'   => Pages\EditRoomType::route('/{record}/edit'),
         ];
     }

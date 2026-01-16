@@ -10,12 +10,10 @@ class Policy extends Model
         'title',
         'content',
         'is_active',
-        'published_at',
         'created_by',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
-        'published_at' => 'datetime',
     ];
 }

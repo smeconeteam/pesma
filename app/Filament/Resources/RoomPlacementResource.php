@@ -19,7 +19,8 @@ use Illuminate\Database\Eloquent\Model;
 class RoomPlacementResource extends Resource
 {
     protected static ?string $model = User::class;
-
+    
+    protected static ?string $slug = 'penempatan-kamar';
     protected static ?string $navigationGroup = 'Penghuni';
     protected static ?string $navigationLabel = 'Penempatan Kamar';
     protected static ?string $pluralLabel = 'Penempatan Kamar';
@@ -93,9 +94,9 @@ class RoomPlacementResource extends Resource
                         $block = $room->block;
                         $dorm = $block->dorm;
 
-                        return "{$dorm->name} - {$block->name} - {$room->code}";
+                        return "{$dorm->name} - {$block->name} - {$room->number}";
                     }),
-
+                    
                 Tables\Columns\IconColumn::make('has_room')
                     ->label('Ada Kamar?')
                     ->boolean()
@@ -157,9 +158,9 @@ class RoomPlacementResource extends Resource
     {
         return [
             'index'    => Pages\ListRoomPlacements::route('/'),
-            'place'    => Pages\PlaceResident::route('/{record}/place'),
-            'transfer' => Pages\TransferResident::route('/{record}/transfer'),
-            'checkout' => Pages\CheckoutResident::route('/{record}/checkout'),
+            'place'    => Pages\PlaceResident::route('/{record}/tempatkan'),
+            'transfer' => Pages\TransferResident::route('/{record}/pindah'),
+            'checkout' => Pages\CheckoutResident::route('/{record}/keluar'),
         ];
     }
 }

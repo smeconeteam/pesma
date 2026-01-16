@@ -13,7 +13,7 @@ class InstitutionResource extends Resource
 {
     protected static ?string $model = Institution::class;
 
-    protected static ?string $slug = 'institution';
+    protected static ?string $slug = 'lembaga';
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office';
 

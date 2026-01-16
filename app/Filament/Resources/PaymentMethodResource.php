@@ -9,7 +9,8 @@ use Filament\Resources\Resource;
 class PaymentMethodResource extends Resource
 {
     protected static ?string $model = PaymentMethod::class;
-
+    
+    protected static ?string $slug = 'metode-pembayaran';
     protected static ?string $navigationGroup = 'Keuangan';
     protected static ?string $navigationLabel = 'Metode Pembayaran';
     protected static ?string $pluralLabel = 'Metode Pembayaran';

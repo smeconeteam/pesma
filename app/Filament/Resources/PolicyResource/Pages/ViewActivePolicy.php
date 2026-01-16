@@ -8,7 +8,6 @@ use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Pages\Page;
-use Illuminate\Support\Carbon;
 
 class ViewActivePolicy extends Page
 {
@@ -24,31 +23,24 @@ class ViewActivePolicy extends Page
     {
         $this->record = Policy::query()
             ->where('is_active', true)
-            ->latest('published_at')
+            ->latest('updated_at')
             ->first();
 
-        if ($this->record) {
-            $publishedAt = $this->record->published_at
-                ? Carbon::parse($this->record->published_at)
-                    ->timezone('Asia/Jakarta')
-                    ->locale('id')
-                    ->translatedFormat('d F Y') // <-- tanggal bulan tahun
-                : '-';
-
-            $this->form->fill([
-                'title'              => $this->record->title,
-                'content_html'       => $this->record->content,
-                'is_active'          => $this->record->is_active,
-                'published_at_label' => $publishedAt,
-            ]);
-        } else {
-            $this->form->fill([
-                'title'              => '-',
-                'content_html'       => '<p>Belum ada kebijakan aktif.</p>',
-                'is_active'          => false,
-                'published_at_label' => '-',
+        // Jika belum ada record, buat default record
+        if (! $this->record) {
+            $this->record = Policy::create([
+                'title' => 'Kebijakan & Ketentuan',
+                'content' => '<p>Silakan edit untuk mengisi kebijakan dan ketentuan.</p>',
+                'is_active' => true,
+                'created_by' => auth()->id(),
             ]);
         }
+
+        $this->form->fill([
+            'title'        => $this->record->title,
+            'content_html' => $this->record->content,
+            'is_active'    => $this->record->is_active,
+        ]);
     }
 
     public function getTitle(): string
@@ -65,10 +57,6 @@ class ViewActivePolicy extends Page
 
     protected function getHeaderActions(): array
     {
-        if (! $this->record) {
-            return [];
-        }
-
         return [
             Actions\Action::make('edit')
                 ->label('Edit')
@@ -95,11 +83,6 @@ class ViewActivePolicy extends Page
 
                 Forms\Components\Toggle::make('is_active')
                     ->label('Aktif')
-                    ->disabled()
-                    ->dehydrated(false),
-
-                Forms\Components\TextInput::make('published_at_label')
-                    ->label('Tanggal Berlaku')
                     ->disabled()
                     ->dehydrated(false),
             ]);

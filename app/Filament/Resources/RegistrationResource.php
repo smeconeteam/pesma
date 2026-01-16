@@ -21,6 +21,7 @@ class RegistrationResource extends Resource
 {
     protected static ?string $model = Registration::class;
 
+    protected static ?string $slug = 'pendaftaran';
     protected static ?string $navigationGroup = 'Penghuni';
     protected static ?string $navigationLabel = 'Pendaftaran';
     protected static ?string $pluralLabel = 'Pendaftaran';
@@ -524,10 +525,10 @@ class RegistrationResource extends Resource
     {
         return [
             'index' => Pages\ListRegistrations::route('/'),
-            'create' => Pages\CreateRegistration::route('/create'),
+            'create' => Pages\CreateRegistration::route('/buat'),
             'edit' => Pages\EditRegistration::route('/{record}/edit'),
             'view' => Pages\ViewRegistration::route('/{record}'),
-            'approve' => Pages\ApproveRegistration::route('/{record}/approve'),
+            'approve' => Pages\ApproveRegistration::route('/{record}/setujui'),
         ];
     }
 }

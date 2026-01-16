@@ -21,10 +21,10 @@ use Illuminate\Support\Facades\DB;
 class ResidentCategoryResource extends Resource
 {
     protected static ?string $model = ResidentCategory::class;
-
+    
+    protected static ?string $slug = 'kategori';
     protected static ?string $navigationGroup = 'Asrama';
     protected static ?int $navigationSort = 12;
-
     protected static ?string $navigationLabel = 'Kategori';
     protected static ?string $pluralLabel = 'Kategori';
     protected static ?string $modelLabel = 'Kategori';
@@ -439,7 +439,7 @@ class ResidentCategoryResource extends Resource
     {
         return [
             'index'  => Pages\ListResidentCategories::route('/'),
-            'create' => Pages\CreateResidentCategory::route('/create'),
+            'create' => Pages\CreateResidentCategory::route('/buat'),
             'edit'   => Pages\EditResidentCategory::route('/{record}/edit'),
         ];
     }

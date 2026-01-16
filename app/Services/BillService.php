@@ -242,7 +242,7 @@ class BillService
     }
 
     /**
-     * Generate tagihan pendaftaran (auto saat approve registration)
+     * Generate tagihan pendaftaran
      */
     public function generateRegistrationBill(User $user, array $data): Bill
     {
