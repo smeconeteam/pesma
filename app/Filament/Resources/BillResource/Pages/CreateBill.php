@@ -2,20 +2,21 @@
 
 namespace App\Filament\Resources\BillResource\Pages;
 
-use App\Filament\Resources\BillResource;
-use App\Models\BillingType;
-use App\Models\Block;
+use Filament\Forms;
 use App\Models\Dorm;
-use App\Models\ResidentCategory;
 use App\Models\Room;
 use App\Models\User;
-use App\Services\BillService;
-use Filament\Forms;
+use App\Models\Block;
 use Filament\Forms\Form;
-use Filament\Notifications\Notification;
-use Filament\Resources\Pages\CreateRecord;
-use Illuminate\Database\Eloquent\Builder;
+use App\Models\BillingType;
+use App\Models\Registration;
+use App\Services\BillService;
+use App\Models\ResidentCategory;
 use Illuminate\Support\Facades\DB;
+use App\Filament\Resources\BillResource;
+use Filament\Notifications\Notification;
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Resources\Pages\CreateRecord;
 
 class CreateBill extends CreateRecord
 {
@@ -23,7 +24,9 @@ class CreateBill extends CreateRecord
 
     public function mount(): void
     {
+        $registrationId = request()->query('registration_id');
         $user = auth()->user();
+
         $fillData = [
             'tab' => 'individual',
             'discount_percent' => 0,
@@ -31,6 +34,18 @@ class CreateBill extends CreateRecord
             'residents' => [],
             'total_months' => 6,
         ];
+
+        if ($registrationId && $autoFill) {
+            $registration = Registration::find($registrationId);
+
+            if ($registration) {
+                $fillData['tab'] = 'registration';
+                $fillData['registration_id'] = $registration->id;
+                $fillData['registration_fee_amount'] = 500000;
+                $fillData['registration_fee_discount'] = 0;
+                $fillData['registration_fee_due_date'] = now()->addWeeks(2)->toDateString();
+            }
+        }
 
         if ($user->hasRole('branch_admin')) {
             $dormIds = $user->branchDormIds();
@@ -67,6 +82,125 @@ class CreateBill extends CreateRecord
 
                 Forms\Components\Tabs::make('billing_tabs')
                     ->tabs([
+                        Forms\Components\Tabs\Tab::make('Biaya Pendaftaran')
+                            ->icon('heroicon-o-user-plus')
+                            ->schema([
+                                Forms\Components\Section::make('Pilih Pendaftaran')
+                                    ->description('Generate tagihan biaya pendaftaran untuk pendaftar yang belum memiliki tagihan')
+                                    ->schema([
+                                        Forms\Components\Select::make('registration_id')
+                                            ->label('Pilih Pendaftaran')
+                                            ->options(function () {
+                                                return Registration::query()
+                                                    ->whereDoesntHave('bills', function ($q) {
+                                                        $q->whereHas('billingType', function ($q2) {
+                                                            $q2->where('name', 'Biaya Pendaftaran');
+                                                        });
+                                                    })
+                                                    ->orderBy('created_at', 'desc')
+                                                    ->get()
+                                                    ->mapWithKeys(function ($reg) {
+                                                        $status = match ($reg->status) {
+                                                            'pending' => 'Menunggu',
+                                                            'approved' => 'Disetujui',
+                                                            'rejected' => 'Ditolak',
+                                                        };
+
+                                                        return [
+                                                            $reg->id => "{$reg->full_name} ({$reg->email}) - {$status}"
+                                                        ];
+                                                    });
+                                            })
+                                            ->searchable()
+                                            ->native(false)
+                                            ->required(fn(Forms\Get $get) => $get('tab') === 'registration')
+                                            ->live()
+                                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                                if ($state) {
+                                                    $registration = Registration::find($state);
+                                                    if ($registration) {
+                                                        $set('registration_full_name', $registration->full_name);
+                                                        $set('registration_email', $registration->email);
+                                                        $set('registration_category', $registration->residentCategory?->name ?? '-');
+                                                    }
+                                                }
+                                            })
+                                            ->helperText('Hanya pendaftaran yang belum memiliki tagihan biaya pendaftaran yang muncul di sini'),
+
+                                        Forms\Components\Grid::make(3)
+                                            ->visible(fn(Forms\Get $get) => !blank($get('registration_id')))
+                                            ->schema([
+                                                Forms\Components\Placeholder::make('registration_full_name')
+                                                    ->label('Nama Lengkap')
+                                                    ->content(fn(Forms\Get $get) => $get('registration_full_name') ?? '-'),
+
+                                                Forms\Components\Placeholder::make('registration_email')
+                                                    ->label('Email')
+                                                    ->content(fn(Forms\Get $get) => $get('registration_email') ?? '-'),
+
+                                                Forms\Components\Placeholder::make('registration_category')
+                                                    ->label('Kategori')
+                                                    ->content(fn(Forms\Get $get) => $get('registration_category') ?? '-'),
+                                            ]),
+                                    ]),
+
+                                Forms\Components\Section::make('Detail Biaya Pendaftaran')
+                                    ->description('Jenis tagihan otomatis: "Biaya Pendaftaran" (tidak bisa diubah)')
+                                    ->visible(fn(Forms\Get $get) => !blank($get('registration_id')))
+                                    ->columns(3)
+                                    ->schema([
+                                        Forms\Components\TextInput::make('registration_fee_amount')
+                                            ->label('Nominal Biaya')
+                                            ->numeric()
+                                            ->prefix('Rp')
+                                            ->default(500000)
+                                            ->required(fn(Forms\Get $get) => $get('tab') === 'registration')
+                                            ->minValue(0)
+                                            ->live(debounce: 500),
+
+                                        Forms\Components\TextInput::make('registration_fee_discount')
+                                            ->label('Diskon (%)')
+                                            ->numeric()
+                                            ->suffix('%')
+                                            ->default(0)
+                                            ->minValue(0)
+                                            ->maxValue(100)
+                                            ->live(debounce: 500),
+
+                                        Forms\Components\DatePicker::make('registration_fee_due_date')
+                                            ->label('Jatuh Tempo')
+                                            ->native(false)
+                                            ->displayFormat('d/m/Y')
+                                            ->format('Y-m-d')
+                                            ->default(now()->addWeeks(2))
+                                            ->minDate(now())
+                                            ->required(fn(Forms\Get $get) => $get('tab') === 'registration')
+                                            ->helperText('Batas waktu pembayaran'),
+
+                                        Forms\Components\Placeholder::make('registration_total')
+                                            ->label('Total Tagihan')
+                                            ->content(function (Forms\Get $get) {
+                                                $amount = $get('registration_fee_amount') ?? 0;
+                                                $discount = $get('registration_fee_discount') ?? 0;
+                                                $total = $amount - (($amount * $discount) / 100);
+
+                                                return 'Rp ' . number_format($total, 0, ',', '.');
+                                            })
+                                            ->columnSpan(3),
+                                    ]),
+
+                                Forms\Components\Section::make('Catatan')
+                                    ->visible(fn(Forms\Get $get) => !blank($get('registration_id')))
+                                    ->schema([
+                                        Forms\Components\Textarea::make('notes')
+                                            ->label('Catatan (Opsional)')
+                                            ->rows(3)
+                                            ->nullable(),
+                                    ]),
+                            ])
+                            ->afterStateUpdated(function (Forms\Set $set) {
+                                $set('tab', 'registration');
+                            }),
                         // ============================================
                         // TAB 1: INDIVIDUAL (Perorangan)
                         // ============================================
@@ -841,6 +975,75 @@ class CreateBill extends CreateRecord
     {
         $billService = app(BillService::class);
         $tab = $data['tab'] ?? 'individual';
+
+        if ($tab === 'registration') {
+            if (empty($data['registration_id'])) {
+                Notification::make()
+                    ->warning()
+                    ->title('Pendaftaran Belum Dipilih')
+                    ->body('Silakan pilih pendaftaran terlebih dahulu.')
+                    ->send();
+
+                $this->halt();
+            }
+
+            $registration = Registration::find($data['registration_id']);
+
+            if (!$registration) {
+                Notification::make()
+                    ->danger()
+                    ->title('Pendaftaran Tidak Ditemukan')
+                    ->send();
+
+                $this->halt();
+            }
+
+            if ($registration->hasRegistrationBill()) {
+                Notification::make()
+                    ->warning()
+                    ->title('Tagihan Sudah Ada')
+                    ->body('Pendaftaran ini sudah memiliki tagihan biaya pendaftaran.')
+                    ->send();
+
+                $this->halt();
+            }
+
+            try {
+                DB::beginTransaction();
+
+                $bill = $billService->generateRegistrationBill($registration, [
+                    'amount' => $data['registration_fee_amount'],
+                    'discount_percent' => $data['registration_fee_discount'] ?? 0,
+                    'due_date' => $data['registration_fee_due_date'] ?? now()->addWeeks(2)->toDateString(),
+                ]);
+
+                // Update notes jika ada
+                if (!empty($data['notes'])) {
+                    $bill->notes = $data['notes'];
+                    $bill->save();
+                }
+
+                DB::commit();
+
+                Notification::make()
+                    ->success()
+                    ->title('Berhasil membuat tagihan')
+                    ->body("Tagihan biaya pendaftaran untuk {$registration->full_name} berhasil dibuat")
+                    ->send();
+
+                return $bill;
+            } catch (\Exception $e) {
+                DB::rollBack();
+
+                Notification::make()
+                    ->danger()
+                    ->title('Gagal membuat tagihan')
+                    ->body($e->getMessage())
+                    ->send();
+
+                throw $e;
+            }
+        }
 
         if ($tab === 'room' && empty($data['residents'])) {
             Notification::make()

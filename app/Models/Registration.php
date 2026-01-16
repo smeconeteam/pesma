@@ -3,8 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Registration extends Model
 {
@@ -83,6 +84,11 @@ class Registration extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function bills(): HasMany
+    {
+        return $this->hasMany(Bill::class);
+    }
+
     // Scopes
     public function scopePending($query)
     {
@@ -97,5 +103,23 @@ class Registration extends Model
     public function scopeRejected($query)
     {
         return $query->where('status', 'rejected');
+    }
+
+    public function hasRegistrationBill(): bool
+    {
+        return $this->bills()
+            ->whereHas('billingType', function ($q) {
+                $q->where('name', 'Biaya Pendaftaran');
+            })
+            ->exists();
+    }
+
+    public function getRegistrationBill()
+    {
+        return $this->bills()
+            ->whereHas('billingType', function ($q) {
+                $q->where('name', 'Biaya Pendaftaran');
+            })
+            ->first();
     }
 }

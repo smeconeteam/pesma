@@ -17,6 +17,7 @@ class Bill extends Model
         'user_id',
         'billing_type_id',
         'room_id',
+        'registration_id',
         'base_amount',
         'discount_percent',
         'discount_amount',
@@ -84,6 +85,11 @@ class Bill extends Model
     public function room(): BelongsTo
     {
         return $this->belongsTo(Room::class);
+    }
+
+    public function registration(): BelongsTo
+    {
+        return $this->belongsTo(Registration::class);
     }
 
     public function issuedBy(): BelongsTo
