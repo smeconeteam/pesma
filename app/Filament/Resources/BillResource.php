@@ -2,13 +2,14 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\BillResource\Pages;
 use App\Models\Bill;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
+use App\Models\Dorm;
 use Filament\Tables;
+use Filament\Forms\Form;
 use Filament\Tables\Table;
+use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
+use App\Filament\Resources\BillResource\Pages;
 
 class BillResource extends Resource
 {
@@ -91,7 +92,59 @@ class BillResource extends Resource
                     ->label('Jenis Tagihan')
                     ->relationship('billingType', 'name')
                     ->multiple()
-                    ->preload(),
+                    ->preload()
+                    ->searchable(),
+
+                Tables\Filters\SelectFilter::make('dorm_id')
+                    ->label('Cabang')
+                    ->options(function () {
+                        $user = auth()->user();
+
+                        if ($user->hasRole(['super_admin', 'main_admin'])) {
+                            return Dorm::where('is_active', true)
+                                ->pluck('name', 'id');
+                        }
+
+                        if ($user->hasRole('branch_admin')) {
+                            return Dorm::whereIn('id', $user->branchDormIds())
+                                ->pluck('name', 'id');
+                        }
+
+                        if ($user->hasRole('block_admin')) {
+                            $dormIds = \App\Models\Block::whereIn('id', $user->blockIds())
+                                ->pluck('dorm_id')
+                                ->unique();
+
+                            return Dorm::whereIn('id', $dormIds)
+                                ->pluck('name', 'id');
+                        }
+
+                        return [];
+                    })
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->whereHas('room.block.dorm', function ($q) use ($data) {
+                                $q->whereIn('dorms.id', $data['value']);
+                            });
+                        }
+                    })
+                    ->multiple()
+                    ->preload()
+                    ->searchable(),
+
+                Tables\Filters\TernaryFilter::make('overdue')
+                    ->label('Jatuh Tempo')
+                    ->placeholder('Semua')
+                    ->trueLabel('Ya (Lewat Jatuh Tempo)')
+                    ->falseLabel('Tidak')
+                    ->queries(
+                        true: fn(Builder $query) => $query->where('due_date', '<', now())
+                            ->whereIn('status', ['issued', 'partial', 'overdue']),
+                        false: fn(Builder $query) => $query->where(function ($q) {
+                            $q->where('due_date', '>=', now())
+                                ->orWhere('status', 'paid');
+                        }),
+                    ),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
