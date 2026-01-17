@@ -157,13 +157,11 @@ class EditResident extends EditRecord
 
                     Forms\Components\TextInput::make('residentProfile.national_id')
                         ->label('NIK')
-                        ->rule('digits:16')
-                        ->helperText('16 digit, hanya angka.')
+                        ->helperText('Hanya angka.')
                         ->extraInputAttributes(['inputmode' => 'numeric', 'pattern' => '[0-9]*']),
 
                     Forms\Components\TextInput::make('residentProfile.student_id')
-                        ->label('NIM')
-                        ->maxLength(50),
+                        ->label('NIM'),
 
                     Forms\Components\Select::make('residentProfile.gender')
                         ->label('Jenis Kelamin')
