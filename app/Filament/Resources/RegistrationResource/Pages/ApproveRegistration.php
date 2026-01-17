@@ -334,6 +334,78 @@ class ApproveRegistration extends Page
                                 return null;
                             }),
                     ]),
+                Forms\Components\Section::make('Tagihan Pendaftaran')
+                    ->description('Opsional: Buat tagihan biaya pendaftaran sekaligus')
+                    ->columns(2)
+                    ->collapsed()
+                    ->schema([
+                        Forms\Components\Toggle::make('generate_registration_bill')
+                            ->label('Buat Tagihan Biaya Pendaftaran?')
+                            ->default(false)
+                            ->live()
+                            ->helperText('Aktifkan untuk membuat tagihan biaya pendaftaran otomatis')
+                            ->columnSpanFull(),
+
+                        Forms\Components\Grid::make(3)
+                            ->visible(fn(Forms\Get $get) => $get('generate_registration_bill'))
+                            ->schema([
+                                Forms\Components\TextInput::make('registration_fee_amount')
+                                    ->label('Nominal Biaya')
+                                    ->numeric()
+                                    ->prefix('Rp')
+                                    ->default(500000)
+                                    ->required(fn(Forms\Get $get) => $get('generate_registration_bill'))
+                                    ->minValue(0)
+                                    ->live(debounce: 500),
+
+                                Forms\Components\TextInput::make('registration_fee_discount')
+                                    ->label('Diskon (%)')
+                                    ->numeric()
+                                    ->suffix('%')
+                                    ->default(0)
+                                    ->minValue(0)
+                                    ->maxValue(100)
+                                    ->live(debounce: 500),
+
+                                Forms\Components\DatePicker::make('registration_fee_due_date')
+                                    ->label('Jatuh Tempo')
+                                    ->native(false)
+                                    ->displayFormat('d/m/Y')
+                                    ->format('Y-m-d')
+                                    ->minDate(now()->addDay())
+                                    ->nullable()
+                                    ->helperText('Opsional - Minimal besok'),
+                            ]),
+
+                        Forms\Components\Placeholder::make('registration_fee_info')
+                            ->label('')
+                            ->visible(fn(Forms\Get $get) => $get('generate_registration_bill'))
+                            ->content(function (Forms\Get $get) {
+                                $amount = $get('registration_fee_amount') ?? 0;
+                                $discount = $get('registration_fee_discount') ?? 0;
+                                $total = $amount - (($amount * $discount) / 100);
+
+                                return new \Illuminate\Support\HtmlString("
+                                    <div class='rounded-lg bg-blue-50 dark:bg-blue-900/20 p-4 border border-blue-200 dark:border-blue-800'>
+                                        <div class='flex items-start gap-3'>
+                                            <svg class='w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                                                <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'></path>
+                                            </svg>
+                                            <div class='flex-1'>
+                                                <div class='font-semibold text-blue-900 dark:text-blue-100 mb-1'>Total Tagihan</div>
+                                                <div class='text-2xl font-bold text-blue-600 dark:text-blue-400'>
+                                                    Rp " . number_format($total, 0, ',', '.') . "
+                                                </div>
+                                                <div class='text-sm text-blue-700 dark:text-blue-300 mt-2'>
+                                                    Tagihan akan dibuat otomatis dengan status <strong>Tertagih</strong> setelah pendaftaran disetujui.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ");
+                            })
+                            ->columnSpanFull(),
+                    ]),
             ])
             ->statePath('data');
     }
@@ -380,7 +452,15 @@ class ApproveRegistration extends Page
 
             $user->residentProfile()->create($profileData);
 
-            // 4) Jika status active, tempatkan di kamar
+            // 4) Update Registration DULU (agar user_id tersimpan)
+            $registration->update([
+                'status' => 'approved',
+                'approved_by' => auth()->id(),
+                'approved_at' => now(),
+                'user_id' => $user->id,
+            ]);
+
+            // 5) Jika status active, tempatkan di kamar
             if ($status === 'active' && !empty($data['room_id'])) {
                 $roomId = $data['room_id'];
                 $checkIn = $data['check_in_date'] ?? now()->toDateString();
@@ -428,7 +508,7 @@ class ApproveRegistration extends Page
                     ]);
                 }
 
-                // PERBAIKAN: Buat RoomResident TANPA events untuk menghindari duplikasi
+                // Buat RoomResident TANPA events
                 $roomResident = RoomResident::withoutEvents(function () use ($roomId, $user, $checkIn, $isPic) {
                     return RoomResident::create([
                         'room_id' => $roomId,
@@ -439,7 +519,7 @@ class ApproveRegistration extends Page
                     ]);
                 });
 
-                // Buat SATU history saja secara manual
+                // Buat history manual
                 RoomHistory::create([
                     'user_id' => $user->id,
                     'room_id' => $roomId,
@@ -453,13 +533,20 @@ class ApproveRegistration extends Page
                 ]);
             }
 
-            // 5) Update Registration
-            $registration->update([
-                'status' => 'approved',
-                'approved_by' => auth()->id(),
-                'approved_at' => now(),
-                'user_id' => $user->id,
-            ]);
+            // 6) ✅ Buat Tagihan Pendaftaran (DI DALAM TRANSACTION)
+            if ($data['generate_registration_bill'] ?? false) {
+                $billService = app(\App\Services\BillService::class);
+                
+                // Refresh registration untuk memastikan user_id sudah ada
+                $registration->refresh();
+                
+                $billService->generateRegistrationBill($registration, [
+                    'amount' => $data['registration_fee_amount'],
+                    'discount_percent' => $data['registration_fee_discount'] ?? 0,
+                    'due_date' => $data['registration_fee_due_date'] ?? null,
+                    'notes' => 'Biaya pendaftaran - ' . $registration->full_name,
+                ]);
+            }
         });
 
         Notification::make()
