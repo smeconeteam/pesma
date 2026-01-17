@@ -11,6 +11,8 @@ use Filament\Infolists\Components\Section as InfoSection;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Support\Carbon;
+use App\Models\RoomResident;
+
 
 class ViewResident extends ViewRecord
 {
@@ -27,6 +29,16 @@ class ViewResident extends ViewRecord
     {
         parent::mount($record);
 
+        $active = RoomResident::query()
+            ->with(['room.roomType', 'room.block.dorm'])
+            ->where('user_id', $this->record->id)
+            ->whereNull('check_out_date')
+            ->orderByDesc('id')
+            ->first();
+
+        $this->record->setRelation('activeRoomResident', $active);
+
+
         $this->record->load([
             // ✅ penting: load profile yang trashed
             'residentProfile' => function ($q) {
@@ -40,7 +52,7 @@ class ViewResident extends ViewRecord
             'roomHistories',
             $this->record->roomHistories()
                 ->with(['room.roomType', 'room.block.dorm', 'recordedBy'])
-                ->orderBy('check_in_date', 'desc')
+                ->orderByDesc('id')
                 ->get()
                 ->unique('id')
         );
