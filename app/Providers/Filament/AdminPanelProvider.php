@@ -26,6 +26,20 @@ class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
+        // Get institution data
+        $institution = null;
+        try {
+            $institution = Institution::first();
+        } catch (\Exception $e) {
+            // Handle error jika tabel belum ada
+        }
+
+        // Setup favicon
+        $faviconUrl = null;
+        if ($institution && $institution->logo_path && Storage::disk('public')->exists($institution->logo_path)) {
+            $faviconUrl = asset('storage/' . $institution->logo_path);
+        }
+
         return $panel
             ->default()
             ->id('admin')
@@ -42,6 +56,10 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authGuard('web')
             ->defaultThemeMode(ThemeMode::Light)
+            
+            // Set favicon dinamis
+            ->favicon($faviconUrl)
+            
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -144,6 +162,10 @@ class AdminPanelProvider extends PanelProvider
                         </div>
                     </div>
                 HTML)
-            );
+            )
+        ->renderHook(
+            'panels::head.end',
+            fn() => view('filament.components.favicon')
+        );    
     }
 }

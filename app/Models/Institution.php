@@ -41,4 +41,12 @@ class Institution extends Model
 
         return null;
     }
+
+    public function getLogoFullPathAttribute(): ?string
+    {
+        if ($this->logo_path) {
+            return Storage::disk('public')->path($this->logo_path);
+        }
+        return null;
+    }
 }
