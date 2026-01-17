@@ -40,7 +40,8 @@ class BillResource extends Resource
                 Tables\Columns\TextColumn::make('user.residentProfile.full_name')
                     ->label('Penghuni')
                     ->searchable(['users.name', 'resident_profiles.full_name'])
-                    ->sortable(),
+                    ->sortable()
+                    ->default('Belum terdaftar'),
 
                 Tables\Columns\TextColumn::make('billingType.name')
                     ->label('Jenis')
@@ -51,7 +52,8 @@ class BillResource extends Resource
                 Tables\Columns\TextColumn::make('room.code')
                     ->label('Kamar')
                     ->sortable()
-                    ->default('-'),
+                    ->default('Belum punya kamar')
+                    ->formatStateUsing(fn($state) => $state ?? 'Belum punya kamar'),
 
                 Tables\Columns\TextColumn::make('total_amount')
                     ->label('Total')
@@ -123,8 +125,13 @@ class BillResource extends Resource
                     })
                     ->query(function (Builder $query, array $data) {
                         if (!empty($data['value'])) {
-                            $query->whereHas('room.block.dorm', function ($q) use ($data) {
-                                $q->whereIn('dorms.id', $data['value']);
+                            $query->where(function ($q) use ($data) {
+                                $q->whereHas('room.block.dorm', function ($subQ) use ($data) {
+                                    $subQ->whereIn('dorms.id', $data['value']);
+                                })
+                                ->orWhereHas('user.roomResidents.room.block.dorm', function ($subQ) use ($data) {
+                                    $subQ->whereIn('dorms.id', $data['value']);
+                                });
                             });
                         }
                     })
@@ -138,10 +145,12 @@ class BillResource extends Resource
                     ->trueLabel('Ya (Lewat Jatuh Tempo)')
                     ->falseLabel('Tidak')
                     ->queries(
-                        true: fn(Builder $query) => $query->where('due_date', '<', now())
+                        true: fn(Builder $query) => $query->whereNotNull('period_end')
+                            ->where('period_end', '<', now())
                             ->whereIn('status', ['issued', 'partial', 'overdue']),
                         false: fn(Builder $query) => $query->where(function ($q) {
-                            $q->where('due_date', '>=', now())
+                            $q->where('period_end', '>=', now())
+                                ->orWhereNull('period_end')
                                 ->orWhere('status', 'paid');
                         }),
                     ),
@@ -187,15 +196,25 @@ class BillResource extends Resource
 
         if ($user->hasRole('branch_admin')) {
             $dormIds = $user->branchDormIds();
-            return $query->whereHas('user.roomResidents.room.block.dorm', function ($q) use ($dormIds) {
-                $q->whereIn('dorms.id', $dormIds);
+            return $query->where(function ($q) use ($dormIds) {
+                $q->whereHas('room.block.dorm', function ($subQ) use ($dormIds) {
+                    $subQ->whereIn('dorms.id', $dormIds);
+                })
+                ->orWhereHas('user.roomResidents.room.block.dorm', function ($subQ) use ($dormIds) {
+                    $subQ->whereIn('dorms.id', $dormIds);
+                });
             });
         }
 
         if ($user->hasRole('block_admin')) {
             $blockIds = $user->blockIds();
-            return $query->whereHas('user.roomResidents.room.block', function ($q) use ($blockIds) {
-                $q->whereIn('blocks.id', $blockIds);
+            return $query->where(function ($q) use ($blockIds) {
+                $q->whereHas('room.block', function ($subQ) use ($blockIds) {
+                    $subQ->whereIn('blocks.id', $blockIds);
+                })
+                ->orWhereHas('user.roomResidents.room.block', function ($subQ) use ($blockIds) {
+                    $subQ->whereIn('blocks.id', $blockIds);
+                });
             });
         }
 
