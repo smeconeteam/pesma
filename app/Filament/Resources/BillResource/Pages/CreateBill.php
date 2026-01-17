@@ -25,7 +25,7 @@ class CreateBill extends CreateRecord
     public function mount(): void
     {
         $registrationId = request()->query('registration_id');
-        $autoFill = request()->query('auto_fill'); // ✅ PERBAIKAN: Tambahkan definisi variabel
+        $autoFill = request()->query('auto_fill');
         $user = auth()->user();
 
         $fillData = [
@@ -42,9 +42,9 @@ class CreateBill extends CreateRecord
             if ($registration) {
                 $fillData['tab'] = 'registration';
                 $fillData['registration_id'] = $registration->id;
-                $fillData['registration_fee_amount'] = 500000;
+                // ✅ HAPUS DEFAULT VALUE
+                // $fillData['registration_fee_amount'] = 500000;
                 $fillData['registration_fee_discount'] = 0;
-                // Set data pendaftaran untuk ditampilkan
                 $fillData['registration_full_name'] = $registration->full_name;
                 $fillData['registration_email'] = $registration->email;
                 $fillData['registration_category'] = $registration->residentCategory?->name ?? '-';
@@ -159,7 +159,9 @@ class CreateBill extends CreateRecord
                                             ->prefix('Rp')
                                             ->required(fn(Forms\Get $get) => $get('tab') === 'registration')
                                             ->minValue(0)
-                                            ->live(debounce: 500),
+                                            ->live(debounce: 500)
+                                            // ✅ HAPUS DEFAULT VALUE
+                                            ->placeholder('Masukkan nominal biaya pendaftaran'),
 
                                         Forms\Components\TextInput::make('registration_fee_discount')
                                             ->label('Diskon (%)')
@@ -171,14 +173,15 @@ class CreateBill extends CreateRecord
                                             ->live(debounce: 500),
 
                                         Forms\Components\DatePicker::make('registration_fee_due_date')
-                                            ->label('Jatuh Tempo (Opsinal')
+                                            ->label('Jatuh Tempo (Opsional)')
                                             ->native(false)
                                             ->displayFormat('d/m/Y')
                                             ->format('Y-m-d')
-                                            ->default(now()->addWeeks(2))
+                                            // ✅ HAPUS DEFAULT VALUE
+                                            // ->default(now()->addWeeks(2))
                                             ->minDate(now())
                                             ->nullable()
-                                            ->helperText('Batas waktu pembayaran'),
+                                            ->helperText('Batas waktu pembayaran (opsional)'),
 
                                         Forms\Components\Placeholder::make('registration_total')
                                             ->label('Total Tagihan')
@@ -205,7 +208,6 @@ class CreateBill extends CreateRecord
                                 $set('tab', 'registration');
                             }),
                         // Tab Individual, Room, dan Kategori tetap sama seperti sebelumnya...
-                        // (sisanya tidak diubah)
                     ])
                     ->activeTab(1)
                     ->columnSpanFull()
@@ -220,7 +222,6 @@ class CreateBill extends CreateRecord
             ]);
     }
 
-    // Sisanya tetap sama...
     protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
     {
         $billService = app(BillService::class);
@@ -367,8 +368,18 @@ class CreateBill extends CreateRecord
         return $billService->generateRoomBills($data);
     }
 
+    // ✅ OVERRIDE getRedirectUrl() untuk cek sumber pembuatan
     protected function getRedirectUrl(): string
     {
+        $registrationId = request()->query('registration_id');
+        $autoFill = request()->query('auto_fill');
+        
+        // Jika dari action "Buat Tagihan" di Registration, redirect kembali ke Registration
+        if ($registrationId && $autoFill) {
+            return \App\Filament\Resources\RegistrationResource::getUrl('index');
+        }
+        
+        // Jika dari menu Tagihan biasa, redirect ke list Bills
         return $this->getResource()::getUrl('index');
     }
 }
