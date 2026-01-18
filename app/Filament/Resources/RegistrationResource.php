@@ -105,14 +105,13 @@ class RegistrationResource extends Resource
                         Forms\Components\TextInput::make('password')
                             ->label('Password')
                             ->password()
-                            // ✅ tampilkan default 1–9 hanya saat CREATE (bukan edit)
-                            ->default(fn (string $operation) => $operation === 'create' ? '123456789' : null)
-                            ->dehydrated(fn ($state) => filled($state))
+                            ->default(fn(string $operation) => $operation === 'create' ? '123456789' : null)
+                            ->dehydrated(fn($state) => filled($state))
                             ->revealable()
                             ->minLength(8)
                             ->maxLength(255)
                             ->columnSpanFull()
-                            ->helperText(fn (string $operation) => $operation === 'edit'
+                            ->helperText(fn(string $operation) => $operation === 'edit'
                                 ? 'Kosongkan jika tidak ingin mengubah password.'
                                 : 'Password default: 123456789'),
                     ]),
@@ -122,7 +121,7 @@ class RegistrationResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('resident_category_id')
                             ->label('Kategori Penghuni')
-                            ->options(fn () => ResidentCategory::query()->orderBy('name')->pluck('name', 'id'))
+                            ->options(fn() => ResidentCategory::query()->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
                             ->required()
@@ -214,10 +213,10 @@ class RegistrationResource extends Resource
 
                         Forms\Components\Select::make('country_id')
                             ->label('Asal Negara')
-                            ->options(fn () => Country::query()->orderBy('name')->pluck('name', 'id'))
+                            ->options(fn() => Country::query()->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
-                            ->default(fn () => Country::query()->where('iso2', 'ID')->value('id'))
+                            ->default(fn() => Country::query()->where('iso2', 'ID')->value('id'))
                             ->createOptionForm([
                                 Forms\Components\TextInput::make('name')
                                     ->label('Nama Negara')
@@ -229,7 +228,7 @@ class RegistrationResource extends Resource
                                     ->required()
                                     ->columnSpan(1),
                             ])
-                            ->createOptionUsing(fn (array $data) => Country::firstOrCreate(
+                            ->createOptionUsing(fn(array $data) => Country::firstOrCreate(
                                 ['name' => $data['name']],
                                 ['calling_code' => $data['calling_code'] ?? null]
                             )->id)
@@ -270,14 +269,14 @@ class RegistrationResource extends Resource
 
                         Forms\Components\Select::make('preferred_dorm_id')
                             ->label('Cabang Yang Diinginkan')
-                            ->options(fn () => Dorm::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))
+                            ->options(fn() => Dorm::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
                             ->nullable(),
 
                         Forms\Components\Select::make('preferred_room_type_id')
                             ->label('Tipe Kamar Yang Diinginkan')
-                            ->options(fn () => RoomType::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))
+                            ->options(fn() => RoomType::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))
                             ->searchable()
                             ->native(false)
                             ->nullable(),
@@ -292,8 +291,6 @@ class RegistrationResource extends Resource
                             ->nullable()
                             ->columnSpanFull(),
                     ]),
-
-                // ❌ DIHAPUS: Section untuk generate tagihan pendaftaran
             ]);
     }
 
@@ -321,7 +318,7 @@ class RegistrationResource extends Resource
                         'success' => 'approved',
                         'danger' => 'rejected',
                     ])
-                    ->formatStateUsing(fn ($state) => match ($state) {
+                    ->formatStateUsing(fn($state) => match ($state) {
                         'pending' => 'Menunggu',
                         'approved' => 'Disetujui',
                         'rejected' => 'Ditolak',
@@ -355,12 +352,12 @@ class RegistrationResource extends Resource
                 Tables\Columns\IconColumn::make('has_registration_bill')
                     ->label('Tagihan')
                     ->boolean()
-                    ->getStateUsing(fn ($record) => $record->hasRegistrationBill())
+                    ->getStateUsing(fn($record) => $record->hasRegistrationBill())
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
                     ->trueColor('success')
                     ->falseColor('gray')
-                    ->tooltip(fn ($record) => $record->hasRegistrationBill()
+                    ->tooltip(fn($record) => $record->hasRegistrationBill()
                         ? 'Sudah ada tagihan pendaftaran'
                         : 'Belum ada tagihan pendaftaran')
                     ->toggleable(),
@@ -377,81 +374,84 @@ class RegistrationResource extends Resource
 
                 SelectFilter::make('preferred_dorm_id')
                     ->label('Cabang Pilihan')
-                    ->options(fn () => Dorm::query()->orderBy('name')->pluck('name', 'id'))
+                    ->options(fn() => Dorm::query()->orderBy('name')->pluck('name', 'id'))
                     ->searchable()
                     ->native(false),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make()
-                    ->label('Lihat'),
+                Tables\Actions\ActionGroup::make([
 
-                Tables\Actions\EditAction::make()
-                    ->label('Edit')
-                    ->visible(fn (Registration $record) => $record->status === 'pending' && $canApproveReject),
+                    Tables\Actions\ViewAction::make()
+                        ->label('Lihat'),
 
-                Tables\Actions\Action::make('approve')
-                    ->label('Setujui')
-                    ->icon('heroicon-o-check-circle')
-                    ->color('success')
-                    ->visible(fn (Registration $record) => $record->status === 'pending' && $canApproveReject)
-                    ->url(fn (Registration $record) => static::getUrl('approve', ['record' => $record])),
+                    Tables\Actions\EditAction::make()
+                        ->label('Edit')
+                        ->visible(fn(Registration $record) => $record->status === 'pending' && $canApproveReject),
 
-                Tables\Actions\Action::make('generate_bill')
-                    ->label('Buat Tagihan')
-                    ->icon('heroicon-o-banknotes')
-                    ->color('info')
-                    ->visible(fn (Registration $record) => !$record->hasRegistrationBill())
-                    ->url(fn (Registration $record) => route('filament.admin.resources.tagihan.create', [
-                        'registration_id' => $record->id,
-                        'auto_fill' => true,
-                    ])),
+                    Tables\Actions\Action::make('approve')
+                        ->label('Setujui')
+                        ->icon('heroicon-o-check-circle')
+                        ->color('success')
+                        ->visible(fn(Registration $record) => $record->status === 'pending' && $canApproveReject)
+                        ->url(fn(Registration $record) => static::getUrl('approve', ['record' => $record])),
 
-                Tables\Actions\Action::make('reject')
-                    ->label('Tolak')
-                    ->icon('heroicon-o-x-circle')
-                    ->color('danger')
-                    ->visible(fn (Registration $record) => $record->status === 'pending' && $canApproveReject)
-                    ->form([
-                        Forms\Components\Textarea::make('rejection_reason')
-                            ->label('Alasan Penolakan')
-                            ->helperText('Opsional, tapi disarankan untuk diisi')
-                            ->rows(3)
-                            ->nullable(),
-                    ])
-                    ->action(function (Registration $record, array $data) {
-                        $record->update([
-                            'status' => 'rejected',
-                            'rejection_reason' => $data['rejection_reason'] ?? null,
-                        ]);
+                    Tables\Actions\Action::make('generate_bill')
+                        ->label('Buat Tagihan')
+                        ->icon('heroicon-o-banknotes')
+                        ->color('info')
+                        ->visible(fn(Registration $record) => !$record->hasRegistrationBill())
+                        ->url(fn(Registration $record) => route('filament.admin.resources.tagihan.create', [
+                            'registration_id' => $record->id,
+                            'auto_fill' => true,
+                        ])),
 
-                        \Filament\Notifications\Notification::make()
-                            ->title('Pendaftaran ditolak')
-                            ->success()
-                            ->send();
-                    }),
+                    Tables\Actions\Action::make('reject')
+                        ->label('Tolak')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->visible(fn(Registration $record) => $record->status === 'pending' && $canApproveReject)
+                        ->form([
+                            Forms\Components\Textarea::make('rejection_reason')
+                                ->label('Alasan Penolakan')
+                                ->helperText('Opsional, tapi disarankan untuk diisi')
+                                ->rows(3)
+                                ->nullable(),
+                        ])
+                        ->action(function (Registration $record, array $data) {
+                            $record->update([
+                                'status' => 'rejected',
+                                'rejection_reason' => $data['rejection_reason'] ?? null,
+                            ]);
 
-                Tables\Actions\Action::make('force_delete')
-                    ->label('Hapus')
-                    ->icon('heroicon-o-trash')
-                    ->color('danger')
-                    ->visible(fn (Registration $record) => static::canForceDelete($record))
-                    ->requiresConfirmation()
-                    ->modalHeading('Hapus Permanen Pendaftaran')
-                    ->modalDescription(function (Registration $record): string {
-                        $desc = 'Apakah Anda yakin ingin menghapus permanen data pendaftaran ini? Data yang terhapus permanen tidak dapat dipulihkan.';
+                            \Filament\Notifications\Notification::make()
+                                ->title('Pendaftaran ditolak')
+                                ->success()
+                                ->send();
+                        }),
 
-                        if ($record->status === 'approved') {
-                            $desc .= "\n\nCatatan: status pendaftaran ini sudah disetujui.";
-                        }
+                    Tables\Actions\Action::make('force_delete')
+                        ->label('Hapus')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->visible(fn(Registration $record) => static::canForceDelete($record))
+                        ->requiresConfirmation()
+                        ->modalHeading('Hapus Permanen Pendaftaran')
+                        ->modalDescription(function (Registration $record): string {
+                            $desc = 'Apakah Anda yakin ingin menghapus permanen data pendaftaran ini? Data yang terhapus permanen tidak dapat dipulihkan.';
 
-                        if (!blank($record->user_id)) {
-                            $desc .= "\n\nCatatan: pendaftaran ini terhubung ke akun user_id: {$record->user_id}. Aksi ini hanya menghapus data pendaftaran, bukan akun user.";
-                        }
+                            if ($record->status === 'approved') {
+                                $desc .= "\n\nCatatan: status pendaftaran ini sudah disetujui.";
+                            }
 
-                        return $desc;
-                    })
-                    ->modalSubmitActionLabel('Ya, Hapus Permanen')
-                    ->action(fn (Registration $record) => $record->forceDelete()),
+                            if (!blank($record->user_id)) {
+                                $desc .= "\n\nCatatan: pendaftaran ini terhubung ke akun user_id: {$record->user_id}. Aksi ini hanya menghapus data pendaftaran, bukan akun user.";
+                            }
+
+                            return $desc;
+                        })
+                        ->modalSubmitActionLabel('Ya, Hapus Permanen')
+                        ->action(fn(Registration $record) => $record->forceDelete()),
+                ])
             ])
             ->defaultSort('created_at', 'desc');
     }
