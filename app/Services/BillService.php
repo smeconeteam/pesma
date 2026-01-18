@@ -8,6 +8,7 @@ use App\Models\Room;
 use App\Models\User;
 use App\Models\BillDetail;
 use App\Models\BillingType;
+use App\Models\Registration;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -133,7 +134,7 @@ class BillService
                 // Buat bill dengan billing_type_id otomatis
                 $bill = Bill::create([
                     'user_id' => $resident['user_id'],
-                    'billing_type_id' => $billingType->id, // 🔥 AUTO ASSIGN
+                    'billing_type_id' => $billingType->id,
                     'room_id' => $roomId,
                     'base_amount' => $totalForPeriod,
                     'discount_percent' => $discountPercent,
@@ -243,19 +244,60 @@ class BillService
 
     /**
      * Generate tagihan pendaftaran
+     * ✅ DIPERBAIKI: Otomatis ambil user_id dan room_id jika pendaftaran sudah approved
      */
-    public function generateRegistrationBill(User $user, array $data): Bill
+    public function generateRegistrationBill(Registration $registration, array $data): Bill
     {
+        // Validasi input
+        $amount = $data['amount'] ?? 0;
+        $discountPercent = $data['discount_percent'] ?? 0;
+        $dueDate = $data['due_date'] ?? null;
+
+        // Hitung total setelah diskon
+        $discountAmount = ($amount * $discountPercent) / 100;
+        $totalAmount = $amount - $discountAmount;
+
+        // Cari atau buat BillingType untuk "Biaya Pendaftaran"
+        $billingType = BillingType::firstOrCreate(
+            ['name' => 'Biaya Pendaftaran'],
+            [
+                'description' => 'Biaya pendaftaran penghuni baru',
+                'applies_to_all' => true,
+                'is_active' => true,
+            ]
+        );
+
+        // ✅ PERBAIKAN: Ambil user_id dan room_id jika pendaftaran sudah approved
+        $userId = null;
+        $roomId = null;
+
+        if ($registration->status === 'approved' && $registration->user_id) {
+            $userId = $registration->user_id;
+            
+            // Ambil room_id dari user yang sudah aktif
+            $user = User::with('activeRoomResident.room')->find($userId);
+            if ($user && $user->activeRoomResident) {
+                $roomId = $user->activeRoomResident->room_id;
+            }
+        }
+
+        // Buat Bill
         return Bill::create([
-            'user_id' => $user->id,
-            'billing_type_id' => $data['billing_type_id'],
-            'base_amount' => $data['amount'],
-            'discount_percent' => $data['discount_percent'] ?? 0,
-            'period_start' => $data['period_start'] ?? null,
-            'period_end' => $data['period_end'] ?? null,
-            'due_date' => null,
-            'notes' => 'Biaya pendaftaran - ' . $user->name,
+            'registration_id' => $registration->id,
+            'user_id' => $userId, // ✅ Otomatis terisi jika sudah approved
+            'billing_type_id' => $billingType->id,
+            'room_id' => $roomId, // ✅ Otomatis terisi jika sudah punya kamar
+            'base_amount' => $amount,
+            'discount_percent' => $discountPercent,
+            'discount_amount' => $discountAmount,
+            'total_amount' => $totalAmount,
+            'paid_amount' => 0,
+            'remaining_amount' => $totalAmount,
+            'period_start' => $dueDate ? now() : null,
+            'period_end' => $dueDate,
+            'due_date' => $dueDate,
             'status' => 'issued',
+            'notes' => $data['notes'] ?? 'Biaya pendaftaran untuk: ' . $registration->full_name,
             'issued_by' => auth()->id(),
             'issued_at' => now(),
         ]);

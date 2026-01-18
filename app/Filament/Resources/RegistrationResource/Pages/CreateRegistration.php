@@ -8,6 +8,7 @@ use App\Services\BillService;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Support\Str;
 
 class CreateRegistration extends CreateRecord
 {
@@ -33,9 +34,21 @@ class CreateRegistration extends CreateRecord
             }
         }
 
-        if (empty($data['password'])) {
-            $data['password'] = bcrypt('123456789');
+        // ✅ Pastikan password SELALU ter-hash
+        $plain = $data['password'] ?? null;
+
+        if (blank($plain)) {
+            $plain = '123456789';
         }
+
+        // Kalau sudah hash (bcrypt/argon), jangan di-hash ulang
+        $isHashed = is_string($plain) && (
+            Str::startsWith($plain, '$2y$') ||
+            Str::startsWith($plain, '$argon2i$') ||
+            Str::startsWith($plain, '$argon2id$')
+        );
+
+        $data['password'] = $isHashed ? $plain : bcrypt($plain);
 
         $data['status'] = 'pending';
 
@@ -53,12 +66,13 @@ class CreateRegistration extends CreateRecord
 
         if (!empty($data['generate_registration_bill']) && !empty($data['registration_fee_amount'])) {
             try {
-                $billService = app(BillService::class);
+                $billService = app(\App\Services\BillService::class);
 
                 $billService->generateRegistrationBill($registration, [
                     'amount' => $data['registration_fee_amount'],
                     'discount_percent' => $data['registration_fee_discount'] ?? 0,
                     'due_date' => $data['registration_fee_due_date'] ?? now()->addWeeks(2)->toDateString(),
+                    'notes' => $data['notes'] ?? null,
                 ]);
 
                 Notification::make()
@@ -88,11 +102,16 @@ class CreateRegistration extends CreateRecord
 
         parent::mount();
 
+        // ✅ Pre-fill form dengan default values + password default 1–9
         $this->form->fill([
+            'password' => '123456789',
+            'birth_date' => now()->subYears(6)->format('Y-m-d'),
+            'created_at' => now()->format('Y-m-d'),
+            'planned_check_in_date' => now()->addDays(7)->format('Y-m-d'),
             'generate_registration_bill' => false,
             'registration_fee_amount' => 500000,
             'registration_fee_discount' => 0,
-            'registration_fee_due_date' => now()->addWeeks(2)->toDateString(),
+            'registration_fee_due_date' => now()->addWeeks(2)->format('Y-m-d'),
         ]);
     }
 }

@@ -10,6 +10,9 @@ use Filament\Tables\Table;
 use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\BillResource\Pages;
+use Filament\Notifications\Notification;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class BillResource extends Resource
 {
@@ -40,7 +43,8 @@ class BillResource extends Resource
                 Tables\Columns\TextColumn::make('user.residentProfile.full_name')
                     ->label('Penghuni')
                     ->searchable(['users.name', 'resident_profiles.full_name'])
-                    ->sortable(),
+                    ->sortable()
+                    ->default('Belum terdaftar'),
 
                 Tables\Columns\TextColumn::make('billingType.name')
                     ->label('Jenis')
@@ -51,7 +55,8 @@ class BillResource extends Resource
                 Tables\Columns\TextColumn::make('room.code')
                     ->label('Kamar')
                     ->sortable()
-                    ->default('-'),
+                    ->default('Belum punya kamar')
+                    ->formatStateUsing(fn($state) => $state ?? 'Belum punya kamar'),
 
                 Tables\Columns\TextColumn::make('total_amount')
                     ->label('Total')
@@ -123,8 +128,13 @@ class BillResource extends Resource
                     })
                     ->query(function (Builder $query, array $data) {
                         if (!empty($data['value'])) {
-                            $query->whereHas('room.block.dorm', function ($q) use ($data) {
-                                $q->whereIn('dorms.id', $data['value']);
+                            $query->where(function ($q) use ($data) {
+                                $q->whereHas('room.block.dorm', function ($subQ) use ($data) {
+                                    $subQ->whereIn('dorms.id', $data['value']);
+                                })
+                                ->orWhereHas('user.roomResidents.room.block.dorm', function ($subQ) use ($data) {
+                                    $subQ->whereIn('dorms.id', $data['value']);
+                                });
                             });
                         }
                     })
@@ -138,22 +148,195 @@ class BillResource extends Resource
                     ->trueLabel('Ya (Lewat Jatuh Tempo)')
                     ->falseLabel('Tidak')
                     ->queries(
-                        true: fn(Builder $query) => $query->where('due_date', '<', now())
+                        true: fn(Builder $query) => $query->whereNotNull('period_end')
+                            ->where('period_end', '<', now())
                             ->whereIn('status', ['issued', 'partial', 'overdue']),
                         false: fn(Builder $query) => $query->where(function ($q) {
-                            $q->where('due_date', '>=', now())
+                            $q->where('period_end', '>=', now())
+                                ->orWhereNull('period_end')
                                 ->orWhere('status', 'paid');
                         }),
                     ),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->visible(fn($record) => !$record->trashed()),
+
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn($record) => $record->canBeDeleted()),
+                    ->visible(fn($record) => !$record->trashed() && $record->canBeDeleted()),
+
+                Tables\Actions\RestoreAction::make()
+                    ->label('Pulihkan')
+                    ->visible(fn(Bill $record): bool => 
+                        auth()->user()?->hasRole(['super_admin']) 
+                        && $record->trashed()
+                    )
+                    ->action(function (Bill $record) {
+                        $registrationBillingType = \App\Models\BillingType::where('name', 'Biaya Pendaftaran')->first();
+                        
+                        if ($registrationBillingType && $record->billing_type_id === $registrationBillingType->id) {
+                            $existingBill = Bill::withoutTrashed()
+                                ->where('user_id', $record->user_id)
+                                ->where('billing_type_id', $registrationBillingType->id)
+                                ->where('id', '!=', $record->id)
+                                ->exists();
+
+                            if ($existingBill) {
+                                Notification::make()
+                                    ->title('Gagal Memulihkan')
+                                    ->body('Pengguna ini sudah memiliki tagihan pendaftaran aktif. Tidak dapat memulihkan tagihan ini.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+                        }
+
+                        $record->restore();
+
+                        Notification::make()
+                            ->title('Berhasil')
+                            ->body("Tagihan berhasil dipulihkan.")
+                            ->success()
+                            ->send();
+                    }),
+
+                Tables\Actions\ForceDeleteAction::make()
+                    ->label('Hapus Permanen')
+                    ->visible(fn(Bill $record): bool =>
+                        auth()->user()?->hasRole(['super_admin'])
+                        && $record->trashed()
+                    )
+                    ->requiresConfirmation()
+                    ->modalHeading('Hapus Permanen Tagihan')
+                    ->modalDescription('Apakah Anda yakin ingin menghapus permanen tagihan ini? Data yang dihapus permanen tidak dapat dipulihkan.')
+                    ->modalSubmitActionLabel('Ya, Hapus Permanen'),
             ])
             ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+                Tables\Actions\DeleteBulkAction::make()
+                    ->label('Hapus')
+                    ->visible(function ($livewire) {
+                        return ($livewire->activeTab ?? null) !== 'terhapus';
+                    })
+                    ->deselectRecordsAfterCompletion(),
+
+                Tables\Actions\RestoreBulkAction::make()
+                    ->label('Pulihkan')
+                    ->visible(function ($livewire) {
+                        $user = auth()->user();
+
+                        if (!$user?->hasRole(['super_admin'])) {
+                            return false;
+                        }
+
+                        return ($livewire->activeTab ?? null) === 'terhapus';
+                    })
+                    ->action(function (Collection $records) {
+                        $registrationBillingType = \App\Models\BillingType::where('name', 'Biaya Pendaftaran')->first();
+                        $restorable = collect();
+                        $blocked = collect();
+
+                        foreach ($records as $record) {
+                            if (!method_exists($record, 'trashed') || !$record->trashed()) {
+                                continue;
+                            }
+
+                            if ($registrationBillingType && $record->billing_type_id === $registrationBillingType->id) {
+                                $existingBill = Bill::withoutTrashed()
+                                    ->where('user_id', $record->user_id)
+                                    ->where('billing_type_id', $registrationBillingType->id)
+                                    ->where('id', '!=', $record->id)
+                                    ->exists();
+
+                                if ($existingBill) {
+                                    $blocked->push($record);
+                                    continue;
+                                }
+                            }
+
+                            $restorable->push($record);
+                        }
+
+                        if ($restorable->isEmpty()) {
+                            Notification::make()
+                                ->title('Tidak Bisa Dipulihkan')
+                                ->body('Semua tagihan yang dipilih tidak dapat dipulihkan karena pengguna sudah memiliki tagihan pendaftaran aktif.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        foreach ($restorable as $r) {
+                            $r->restore();
+                        }
+
+                        $restoredCount = $restorable->count();
+
+                        if ($blocked->isNotEmpty()) {
+                            $blockedUsers = $blocked->map(fn($r) => $r->user->residentProfile->full_name ?? $r->user->name ?? 'Unknown')->unique()->take(5)->join(', ');
+                            Notification::make()
+                                ->title('Berhasil Sebagian')
+                                ->body("Berhasil memulihkan {$restoredCount} tagihan. Yang tidak bisa dipulihkan: {$blockedUsers}" . ($blocked->count() > 5 ? '...' : ''))
+                                ->warning()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('Berhasil')
+                                ->body("Berhasil memulihkan {$restoredCount} tagihan.")
+                                ->success()
+                                ->send();
+                        }
+                    })
+                    ->deselectRecordsAfterCompletion(),
             ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return parent::getEloquentQuery()->whereRaw('1 = 0');
+        }
+
+        $query = parent::getEloquentQuery();
+
+        // Super admin bisa lihat data terhapus
+        if ($user->hasRole('super_admin')) {
+            $query = $query->withoutGlobalScopes([
+                SoftDeletingScope::class
+            ]);
+        }
+
+        // Role-based filtering
+        if ($user->hasRole(['super_admin', 'main_admin'])) {
+            return $query;
+        }
+
+        if ($user->hasRole('branch_admin')) {
+            $dormIds = $user->branchDormIds();
+            return $query->where(function ($q) use ($dormIds) {
+                $q->whereHas('room.block.dorm', function ($subQ) use ($dormIds) {
+                    $subQ->whereIn('dorms.id', $dormIds);
+                })
+                ->orWhereHas('user.roomResidents.room.block.dorm', function ($subQ) use ($dormIds) {
+                    $subQ->whereIn('dorms.id', $dormIds);
+                });
+            });
+        }
+
+        if ($user->hasRole('block_admin')) {
+            $blockIds = $user->blockIds();
+            return $query->where(function ($q) use ($blockIds) {
+                $q->whereHas('room.block', function ($subQ) use ($blockIds) {
+                    $subQ->whereIn('blocks.id', $blockIds);
+                })
+                ->orWhereHas('user.roomResidents.room.block', function ($subQ) use ($blockIds) {
+                    $subQ->whereIn('blocks.id', $blockIds);
+                });
+            });
+        }
+
+        return $query;
     }
 
     public static function getPages(): array
@@ -174,31 +357,5 @@ class BillResource extends Resource
     public static function getNavigationBadgeColor(): ?string
     {
         return 'danger';
-    }
-
-    public static function getEloquentQuery(): Builder
-    {
-        $user = auth()->user();
-        $query = parent::getEloquentQuery();
-
-        if ($user->hasRole(['super_admin', 'main_admin'])) {
-            return $query;
-        }
-
-        if ($user->hasRole('branch_admin')) {
-            $dormIds = $user->branchDormIds();
-            return $query->whereHas('user.roomResidents.room.block.dorm', function ($q) use ($dormIds) {
-                $q->whereIn('dorms.id', $dormIds);
-            });
-        }
-
-        if ($user->hasRole('block_admin')) {
-            $blockIds = $user->blockIds();
-            return $query->whereHas('user.roomResidents.room.block', function ($q) use ($blockIds) {
-                $q->whereIn('blocks.id', $blockIds);
-            });
-        }
-
-        return $query;
     }
 }

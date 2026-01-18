@@ -9,7 +9,6 @@ use Filament\Resources\Pages\ListRecords;
 use Filament\Resources\Components\Tab;
 use Illuminate\Database\Eloquent\Builder;
 
-
 class ListBills extends ListRecords
 {
     protected static string $resource = BillResource::class;
@@ -32,7 +31,6 @@ class ListBills extends ListRecords
         ];
     }
 
-
     protected function getHeaderActions(): array
     {
         return [
@@ -46,5 +44,11 @@ class ListBills extends ListRecords
         return [
             BillResource\Widgets\BillStatsOverview::class
         ];
+    }
+
+    // Reset selection saat pindah tab
+    public function updatedActiveTab(): void
+    {
+        $this->deselectAllTableRecords();
     }
 }

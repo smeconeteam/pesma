@@ -282,29 +282,112 @@ class TransferResident extends Page implements HasActions
                 ]);
             }
 
-            // BUAT ROOM_RESIDENT BARU (TANPA EVENTS untuk menghindari duplikasi)
-            $newRoomResident = RoomResident::withoutEvents(function () use ($newRoomId, $transferDate, $isPic) {
-                return RoomResident::create([
-                    'user_id'        => $this->record->id,
-                    'room_id'        => $newRoomId,
-                    'check_in_date'  => $transferDate->toDateString(),
-                    'check_out_date' => null,
-                    'is_pic'         => $isPic,
-                ]);
-            });
+            $transferDateStr = $transferDate->toDateString();
 
-            // Buat history manual untuk kamar baru
-            RoomHistory::create([
-                'user_id' => $this->record->id,
-                'room_id' => $newRoomId,
-                'room_resident_id' => $newRoomResident->id,
-                'check_in_date' => $transferDate->toDateString(),
-                'check_out_date' => null,
-                'is_pic' => $isPic,
-                'movement_type' => 'new', // Status "Masuk" untuk kamar baru
-                'notes' => $data['notes'] ?? 'Pindah dari kamar lain',
-                'recorded_by' => auth()->id(),
-            ]);
+            // Kalau user pernah masuk kamar ini di tanggal yang sama, jangan insert baru.
+            // Cukup "aktifkan lagi" record lama (karena constraint uniknya memang melarang duplikasi).
+            $existingSameDay = RoomResident::query()
+                ->where('user_id', $this->record->id)
+                ->where('room_id', $newRoomId)
+                ->whereDate('check_in_date', $transferDateStr)
+                ->first();
+
+            if ($existingSameDay) {
+                // Re-activate
+                $newRoomResident = RoomResident::withoutEvents(function () use ($existingSameDay, $isPic) {
+                    $existingSameDay->update([
+                        'check_out_date' => null,
+                        'is_pic'         => $isPic,
+                    ]);
+
+                    return $existingSameDay;
+                });
+
+                // Re-open history (kalau sebelumnya sudah ditutup karena transfer)
+                RoomHistory::query()
+                    ->where('room_resident_id', $newRoomResident->id)
+                    ->orderByDesc('id')
+                    ->first()?->update([
+                        'check_out_date' => null,
+                        'is_pic'         => $isPic,
+                        'movement_type'  => 'new',
+                        'notes'          => $data['notes'] ?? 'Kembali ke kamar yang sama di tanggal yang sama',
+                    ]);
+            } else {
+                // Normal: buat record baru
+                $transferDateStr = $transferDate->toDateString();
+
+                /**
+                 * Kalau user pernah masuk kamar yg sama di tanggal yg sama,
+                 * unique index (room_id,user_id,check_in_date) bakal menolak INSERT.
+                 * Solusinya: "hidupkan lagi" record lama (update check_out_date jadi null),
+                 * tapi TETAP buat RoomHistory BARU biar riwayat naik ke atas.
+                 */
+                $existingSameDay = RoomResident::query()
+                    ->where('user_id', $this->record->id)
+                    ->where('room_id', $newRoomId)
+                    ->whereDate('check_in_date', $transferDateStr)
+                    ->first();
+
+                if ($existingSameDay) {
+                    // Pastikan tidak ada history "open" nyangkut untuk record ini (jaga-jaga)
+                    RoomHistory::query()
+                        ->where('room_resident_id', $existingSameDay->id)
+                        ->whereNull('check_out_date')
+                        ->update([
+                            'check_out_date' => $transferDateStr,
+                            'movement_type'  => 'transfer',
+                            'notes'          => 'Auto-close (data tidak konsisten)',
+                        ]);
+
+                    // Re-activate room_resident lama (tanpa insert baru)
+                    $newRoomResident = RoomResident::withoutEvents(function () use ($existingSameDay, $isPic) {
+                        $existingSameDay->update([
+                            'check_out_date' => null,
+                            'is_pic'         => $isPic,
+                        ]);
+
+                        return $existingSameDay;
+                    });
+
+                    // ✅ Tetap buat history BARU agar "balik kamar" muncul paling atas
+                    RoomHistory::create([
+                        'user_id'          => $this->record->id,
+                        'room_id'          => $newRoomId,
+                        'room_resident_id' => $newRoomResident->id,
+                        'check_in_date'    => $transferDateStr,
+                        'check_out_date'   => null,
+                        'is_pic'           => $isPic,
+                        'movement_type'    => 'new',
+                        'notes'            => $data['notes'] ?? 'Kembali ke kamar sebelumnya',
+                        'recorded_by'      => auth()->id(),
+                    ]);
+                } else {
+                    // Normal: buat record baru
+                    $newRoomResident = RoomResident::withoutEvents(function () use ($newRoomId, $transferDateStr, $isPic) {
+                        return RoomResident::create([
+                            'user_id'        => $this->record->id,
+                            'room_id'        => $newRoomId,
+                            'check_in_date'  => $transferDateStr,
+                            'check_out_date' => null,
+                            'is_pic'         => $isPic,
+                        ]);
+                    });
+
+                    RoomHistory::create([
+                        'user_id'          => $this->record->id,
+                        'room_id'          => $newRoomId,
+                        'room_resident_id' => $newRoomResident->id,
+                        'check_in_date'    => $transferDateStr,
+                        'check_out_date'   => null,
+                        'is_pic'           => $isPic,
+                        'movement_type'    => 'new',
+                        'notes'            => $data['notes'] ?? 'Pindah dari kamar lain',
+                        'recorded_by'      => auth()->id(),
+                    ]);
+                }
+            }
+
 
             // PASTIKAN PENGHUNI TETAP AKTIF
             $this->record->forceFill(['is_active' => true])->save();

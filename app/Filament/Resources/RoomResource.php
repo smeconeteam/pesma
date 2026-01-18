@@ -48,12 +48,33 @@ class RoomResource extends Resource
                             ->label('Cabang')
                             ->dehydrated(false)
                             ->options(function (?Room $record) {
-                                $query = Dorm::query()->orderBy('name');
+                                $user = auth()->user();
 
-                                if ($record && $record->exists && $record->block?->dorm_id) {
-                                    $query->where(function ($q) use ($record) {
+                                $query = Dorm::query()
+                                    ->whereNull('deleted_at')
+                                    ->orderBy('name');
+
+                                // Batasi pilihan berdasarkan role
+                                if ($user?->hasRole('branch_admin')) {
+                                    $query->whereIn('id', $user->branchDormIds());
+                                } elseif ($user?->hasRole('block_admin')) {
+                                    $blockDormIds = Block::query()
+                                        ->whereIn('id', $user->blockIds())
+                                        ->pluck('dorm_id')
+                                        ->unique()
+                                        ->values()
+                                        ->all();
+
+                                    $query->whereIn('id', $blockDormIds);
+                                }
+
+                                // Tampilkan hanya yang aktif, tapi tetap izinkan nilai existing (meskipun nonaktif)
+                                $currentDormId = $record?->block?->dorm_id;
+
+                                if ($currentDormId) {
+                                    $query->where(function ($q) use ($currentDormId) {
                                         $q->where('is_active', true)
-                                            ->orWhere('id', $record->block->dorm_id);
+                                            ->orWhere('id', $currentDormId);
                                     });
                                 } else {
                                     $query->where('is_active', true);
@@ -75,6 +96,13 @@ class RoomResource extends Resource
                                 $set('code', null);
                             })
                             ->disabled(function ($record) {
+                                $user = auth()->user();
+
+                                // Admin komplek tidak boleh mengubah cabang
+                                if ($user?->hasRole('block_admin')) {
+                                    return true;
+                                }
+
                                 if (!$record) return false;
 
                                 return RoomResident::query()
@@ -83,8 +111,14 @@ class RoomResource extends Resource
                                     ->exists();
                             })
                             ->helperText(function ($record) {
+                                $user = auth()->user();
+
                                 if (!$record) {
                                     return 'Pilih cabang terlebih dahulu untuk memuat daftar komplek.';
+                                }
+
+                                if ($user?->hasRole('block_admin')) {
+                                    return 'Cabang dikunci untuk akun admin komplek.';
                                 }
 
                                 $hasActiveResidents = RoomResident::query()
@@ -102,19 +136,38 @@ class RoomResource extends Resource
                             ->live()
                             ->afterStateUpdated(fn(Set $set, Get $get) => static::generateRoomCode($set, $get))
                             ->options(function (Get $get, ?Room $record) {
+                                $user = auth()->user();
                                 $dormId = $get('dorm_id');
-                                if (!$dormId) {
+
+                                // Selain block_admin, komplek baru muncul setelah cabang dipilih
+                                if (!($user?->hasRole('block_admin') ?? false) && !$dormId) {
                                     return [];
                                 }
 
-                                $query = Block::query()
-                                    ->where('dorm_id', $dormId)
-                                    ->orderBy('name');
+                                $query = Block::query()->orderBy('name');
 
-                                if ($record && $record->exists && $record->block_id) {
-                                    $query->where(function ($q) use ($record) {
+                                if (!($user?->hasRole('block_admin') ?? false)) {
+                                    $query->where('dorm_id', $dormId);
+                                }
+
+                                // Batasi pilihan berdasarkan role
+                                if ($user?->hasRole('branch_admin')) {
+                                    $allowedDormIds = $user->branchDormIds()->toArray();
+                                    if ($dormId && !in_array((int) $dormId, array_map('intval', $allowedDormIds), true)) {
+                                        return [];
+                                    }
+                                    $query->whereIn('dorm_id', $allowedDormIds);
+                                } elseif ($user?->hasRole('block_admin')) {
+                                    $query->whereIn('id', $user->blockIds());
+                                }
+
+                                // Tampilkan hanya yang aktif, tapi tetap izinkan nilai existing (meskipun nonaktif)
+                                $currentBlockId = $record?->block_id;
+
+                                if ($currentBlockId) {
+                                    $query->where(function ($q) use ($currentBlockId) {
                                         $q->where('is_active', true)
-                                            ->orWhere('id', $record->block_id);
+                                            ->orWhere('id', $currentBlockId);
                                     });
                                 } else {
                                     $query->where('is_active', true);
@@ -126,21 +179,32 @@ class RoomResource extends Resource
                             ->native(false)
                             ->required()
                             ->disabled(function (Get $get, $record) {
-                                if (blank($get('dorm_id'))) return true;
+                                $user = auth()->user();
 
-                                if (!$record) return false;
+                                // Create: disable sampai cabang dipilih (kecuali block_admin)
+                                if (!$record) {
+                                    if ($user?->hasRole('block_admin')) {
+                                        return false;
+                                    }
+                                    return blank($get('dorm_id'));
+                                }
 
-                                return RoomResident::query()
+                                // Edit: kunci jika ada penghuni aktif
+                                $hasActiveResidents = RoomResident::query()
                                     ->where('room_id', $record->id)
                                     ->whereNull('check_out_date')
                                     ->exists();
+
+                                return $hasActiveResidents;
                             })
                             ->helperText(function (Get $get, $record) {
-                                if (blank($get('dorm_id'))) {
-                                    return 'Pilih cabang terlebih dahulu untuk memuat daftar komplek.';
-                                }
+                                $user = auth()->user();
 
-                                if (!$record) return null;
+                                if (!$record) {
+                                    return blank($get('dorm_id')) && !($user?->hasRole('block_admin') ?? false)
+                                        ? 'Pilih cabang terlebih dahulu untuk memuat daftar komplek.'
+                                        : null;
+                                }
 
                                 $hasActiveResidents = RoomResident::query()
                                     ->where('room_id', $record->id)
@@ -210,7 +274,34 @@ class RoomResource extends Resource
                             ->numeric()
                             ->minValue(1)
                             ->nullable()
-                            ->helperText('Otomatis terisi dari tipe kamar, dapat diubah sesuai kebutuhan.'),
+                            ->disabled(function (?Room $record) {
+                                if (!$record) return false;
+                                
+                                $activeCount = RoomResident::query()
+                                    ->where('room_id', $record->id)
+                                    ->whereNull('check_out_date')
+                                    ->count();
+                                
+                                // Disable jika ada penghuni aktif (untuk mencegah user ubah kapasitas)
+                                // Tapi tetap bisa dinaikkan lewat validasi di mutate
+                                return false; // Tetap enable, validasi ada di backend
+                            })
+                            ->helperText(function (?Room $record) {
+                                if (!$record) {
+                                    return 'Otomatis terisi dari tipe kamar, dapat diubah sesuai kebutuhan.';
+                                }
+                                
+                                $activeCount = RoomResident::query()
+                                    ->where('room_id', $record->id)
+                                    ->whereNull('check_out_date')
+                                    ->count();
+                                
+                                if ($activeCount > 0) {
+                                    return "Saat ini ada {$activeCount} penghuni aktif. Kapasitas tidak boleh kurang dari jumlah penghuni aktif.";
+                                }
+                                
+                                return 'Otomatis terisi dari tipe kamar, dapat diubah sesuai kebutuhan.';
+                            }),
 
                         Forms\Components\TextInput::make('monthly_rate')
                             ->label('Tarif Bulanan')
@@ -601,7 +692,7 @@ class RoomResource extends Resource
                 // ✅ Data terhapus tidak bisa di-edit
                 Tables\Actions\EditAction::make()
                     ->visible(
-                        fn(Room $record): bool => (auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false)
+                        fn(Room $record): bool => (auth()->user()?->hasRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']) ?? false)
                             && ! $record->trashed()
                     ),
 
@@ -610,7 +701,7 @@ class RoomResource extends Resource
                     ->visible(function (Room $record): bool {
                         $user = auth()->user();
 
-                        if (!($user?->hasRole(['super_admin', 'main_admin']) ?? false)) {
+                        if (!($user?->hasRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']) ?? false)) {
                             return false;
                         }
 
@@ -909,7 +1000,7 @@ class RoomResource extends Resource
     public static function canEdit($record): bool
     {
         $user = auth()->user();
-        if (!($user?->hasRole(['super_admin', 'main_admin']) ?? false)) {
+        if (!($user?->hasRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']) ?? false)) {
             return false;
         }
 
@@ -922,7 +1013,12 @@ class RoomResource extends Resource
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false;
+        return auth()->user()?->hasRole([
+            'super_admin',
+            'main_admin',
+            'branch_admin',
+            'block_admin',
+        ]) ?? false;
     }
 
     public static function canDeleteAny(): bool

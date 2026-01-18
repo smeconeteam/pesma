@@ -44,6 +44,8 @@ class Bill extends Model
         'period_end' => 'date',
         'due_date' => 'date',
         'issued_at' => 'datetime',
+        'created_at' => 'date',  // ✅ Ubah ke date
+        'updated_at' => 'date',  // ✅ Ubah ke date
     ];
 
     // Boot method untuk auto-generate bill_number
@@ -142,7 +144,10 @@ class Bill extends Model
     public static function generateBillNumber(): string
     {
         $date = now()->format('Ymd');
-        $lastBill = self::where('bill_number', 'LIKE', "{$date}-%")
+        
+        // ✅ PERBAIKAN: Gunakan withTrashed() untuk cek semua data termasuk yang dihapus
+        $lastBill = self::withTrashed()
+            ->where('bill_number', 'LIKE', "{$date}-%")
             ->orderBy('bill_number', 'desc')
             ->first();
 

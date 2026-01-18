@@ -63,21 +63,23 @@ class ResidentResource extends Resource
             return $query;
         }
 
-        // Branch admin: hanya penghuni di cabangnya (yang masih aktif penempatan kamar)
+        // ✅ Branch admin: hanya penghuni di cabangnya (yang masih aktif penempatan kamar)
         if ($user->hasRole('branch_admin')) {
             $dormIds = $user->branchDormIds()->toArray();
 
             return $query->whereHas('roomResidents', function (Builder $q) use ($dormIds) {
-                $q->whereHas('room.block', fn(Builder $b) => $b->whereIn('dorm_id', $dormIds));
+                $q->whereNull('check_out_date')
+                    ->whereHas('room.block', fn(Builder $b) => $b->whereIn('dorm_id', $dormIds));
             });
         }
 
-        // Block admin: hanya penghuni di kompleknya (yang masih aktif penempatan kamar)
+        // ✅ Block admin: hanya penghuni di kompleknya (yang masih aktif penempatan kamar)
         if ($user->hasRole('block_admin')) {
             $blockIds = $user->blockIds()->toArray();
 
             return $query->whereHas('roomResidents', function (Builder $q) use ($blockIds) {
-                $q->whereHas('room', fn(Builder $room) => $room->whereIn('block_id', $blockIds));
+                $q->whereNull('check_out_date')
+                    ->whereHas('room', fn(Builder $room) => $room->whereIn('block_id', $blockIds));
             });
         }
 
@@ -207,10 +209,7 @@ class ResidentResource extends Resource
                     }),
 
                 /**
-                 * ✅ FILTER CABANG
-                 * - branch_admin: auto isi & dikunci + chip tidak bisa dihapus
-                 * - block_admin : auto isi & dikunci + chip tidak bisa dihapus
-                 * - kalau cabang berubah => reset blok (super/main)
+                 * ✅ FILTER CABANG (HANYA PENGHUNI AKTIF, BUKAN HISTORY)
                  */
                 SelectFilter::make('dorm_id')
                     ->label('Cabang')
@@ -219,7 +218,8 @@ class ResidentResource extends Resource
                     ->query(function (Builder $query, array $data) {
                         return $query->when($data['value'] ?? null, function (Builder $q, $dormId) {
                             $q->whereHas('roomResidents', function (Builder $rr) use ($dormId) {
-                                $rr->whereHas('room.block', fn(Builder $b) => $b->where('dorm_id', $dormId));
+                                $rr->whereNull('check_out_date')
+                                    ->whereHas('room.block', fn(Builder $b) => $b->where('dorm_id', $dormId));
                             });
                         });
                     })
@@ -310,6 +310,9 @@ class ResidentResource extends Resource
                         ];
                     }),
 
+                /**
+                 * ✅ FILTER KOMPLEK (HANYA PENGHUNI AKTIF, BUKAN HISTORY)
+                 */
                 SelectFilter::make('block_id')
                     ->label('Komplek')
                     ->searchable()
@@ -317,7 +320,8 @@ class ResidentResource extends Resource
                     ->query(function (Builder $query, array $data) {
                         return $query->when($data['value'] ?? null, function (Builder $q, $blockId) {
                             $q->whereHas('roomResidents', function (Builder $rr) use ($blockId) {
-                                $rr->whereHas('room', fn(Builder $room) => $room->where('block_id', $blockId));
+                                $rr->whereNull('check_out_date')
+                                    ->whereHas('room', fn(Builder $room) => $room->where('block_id', $blockId));
                             });
                         });
                     })
@@ -519,258 +523,33 @@ class ResidentResource extends Resource
                                     ->send();
 
                                 $action->cancel();
-                                return;
                             }
-                            $hasActiveRoom = $record->roomResidents()
-                                ->whereNull('check_out_date')
-                                ->exists();
-
-                            if ($hasActiveRoom) {
-                                Notification::make()
-                                    ->danger()
-                                    ->title('Tidak dapat menghapus')
-                                    ->body('Penghuni masih menempati kamar. Lakukan CHECKOUT terlebih dahulu sebelum menghapus.')
-                                    ->persistent()
-                                    ->send();
-
-                                $action->cancel();
-                                return;
-                            }
-                        })
-                        ->action(function (User $record) {
-                            DB::transaction(function () use ($record) {
-                                // profile ikut soft delete (tapi sekarang tampil karena withTrashed)
-                                $record->residentProfile()?->delete();
-                                $record->delete();
-                            });
-
-                            Notification::make()
-                                ->success()
-                                ->title('Data penghuni berhasil dihapus')
-                                ->body('Data telah dipindahkan ke tab "Terhapus".')
-                                ->send();
                         }),
 
-                    // FORCE DELETE - Hapus permanen (karena sudah pasti checkout)
                     Tables\Actions\ForceDeleteAction::make()
                         ->label('Hapus Permanen')
-                        ->visible(function (User $record) {
-                            $user = auth()->user();
-                            if (! $user?->hasRole('super_admin')) {
-                                return false;
-                            }
+                        ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin']) ?? false),
 
-                            return method_exists($record, 'trashed') && $record->trashed();
-                        })
-                        ->requiresConfirmation()
-                        ->modalHeading('Hapus Permanen Data Penghuni')
-                        ->modalDescription('Apakah Anda yakin ingin menghapus permanen data ini? Data yang terhapus permanen tidak dapat dipulihkan.')
-                        ->modalSubmitActionLabel('Ya, Hapus Permanen')
-                        ->before(function (Tables\Actions\ForceDeleteAction $action, User $record) {
-                            // Double check: pastikan tidak ada kamar aktif
-                            $hasActiveRoom = $record->roomResidents()
-                                ->whereNull('check_out_date')
-                                ->exists();
-
-                            if ($hasActiveRoom) {
-                                Notification::make()
-                                    ->danger()
-                                    ->title('Tidak dapat menghapus permanen')
-                                    ->body('Penghuni masih menempati kamar. Ini tidak seharusnya terjadi. Hubungi administrator.')
-                                    ->send();
-
-                                $action->cancel();
-                            }
-                        }),
-
-                    // RESTORE
                     Tables\Actions\RestoreAction::make()
                         ->label('Pulihkan')
-                        ->visible(function (User $record) {
-                            $user = auth()->user();
-                            if (! $user?->hasRole('super_admin')) {
-                                return false;
-                            }
-
-                            return method_exists($record, 'trashed') && $record->trashed();
-                        })
-                        ->action(function (User $record) {
-                            DB::transaction(function () use ($record) {
-                                $record->restore();
-                                $record->residentProfile()->withTrashed()->restore();
-                            });
-
-                            Notification::make()
-                                ->success()
-                                ->title('Data penghuni berhasil dipulihkan')
-                                ->send();
-                        }),
-                ])
+                        ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin']) ?? false),
+                ]),
             ])
-            ->bulkActions([
-                // BULK SOFT DELETE - dengan validasi checkout
-                Tables\Actions\DeleteBulkAction::make()
-                    ->label('Hapus')
-                    ->visible(function ($livewire) {
-                        $user = auth()->user();
-
-                        // Hanya super_admin dan main_admin yang bisa bulk delete
-                        if (! $user?->hasAnyRole(['super_admin', 'main_admin'])) {
-                            return false;
-                        }
-
-                        return ($livewire->activeTab ?? null) !== 'terhapus';
-                    })
-                    ->action(function (Collection $records) {
-                        $cannotDelete = collect();
-                        $canDelete    = collect();
-
-                        foreach ($records as $record) {
-                            $reasons = [];
-
-                            if ($record->residentProfile?->status === 'active') {
-                                $reasons[] = 'status masih aktif';
-                            }
-
-                            // VALIDASI UTAMA: Harus sudah checkout
-                            if ($record->roomResidents()->whereNull('check_out_date')->exists()) {
-                                $reasons[] = 'masih menempati kamar (belum checkout)';
-                            }
-
-                            if (! empty($reasons)) {
-                                $cannotDelete->push([
-                                    'record'  => $record,
-                                    'reasons' => $reasons,
-                                ]);
-                            } else {
-                                $canDelete->push($record);
-                            }
-                        }
-
-                        if ($cannotDelete->count() > 0) {
-                            $message = "Terdapat {$cannotDelete->count()} penghuni yang tidak dapat dihapus:\n\n";
-
-                            foreach ($cannotDelete->take(5) as $item) {
-                                $name       = $item['record']->residentProfile?->full_name ?? $item['record']->name;
-                                $reasonText = implode(' dan ', $item['reasons']);
-                                $message   .= "• {$name} ({$reasonText})\n";
-                            }
-
-                            if ($cannotDelete->count() > 5) {
-                                $remaining = $cannotDelete->count() - 5;
-                                $message  .= "\ndan {$remaining} penghuni lainnya.";
-                            }
-
-                            $message .= "\n\n⚠️ Lakukan CHECKOUT terlebih dahulu untuk penghuni yang masih menempati kamar.";
-
-                            if ($canDelete->count() > 0) {
-                                $message .= "\n\n{$canDelete->count()} penghuni lainnya akan tetap dihapus.";
-
-                                Notification::make()
-                                    ->warning()
-                                    ->title('Sebagian Data Tidak Dapat Dihapus')
-                                    ->body($message)
-                                    ->persistent()
-                                    ->send();
-                            } else {
-                                Notification::make()
-                                    ->danger()
-                                    ->title('Tidak Ada Data yang Dapat Dihapus')
-                                    ->body($message)
-                                    ->persistent()
-                                    ->send();
-
-                                return;
-                            }
-                        }
-
-                        DB::transaction(function () use ($canDelete) {
-                            foreach ($canDelete as $record) {
-                                $record->residentProfile()?->delete();
-                                $record->delete();
-                            }
-                        });
-
-                        Notification::make()
-                            ->success()
-                            ->title('Berhasil Menghapus')
-                            ->body("{$canDelete->count()} penghuni berhasil dihapus.")
-                            ->send();
-                    })
-                    ->deselectRecordsAfterCompletion(),
-
-                // BULK RESTORE
-                Tables\Actions\RestoreBulkAction::make()
-                    ->label('Pulihkan')
-                    ->visible(function ($livewire) {
-                        $user = auth()->user();
-
-                        if (! $user?->hasRole('super_admin')) {
-                            return false;
-                        }
-
-                        return ($livewire->activeTab ?? null) === 'terhapus';
-                    })
-                    ->action(function (Collection $records) {
-                        DB::transaction(function () use ($records) {
-                            foreach ($records as $record) {
-                                $record->restore();
-                                $record->residentProfile()->withTrashed()->restore();
-                            }
-                        });
-
-                        Notification::make()
-                            ->success()
-                            ->title('Data berhasil dipulihkan')
-                            ->body("{$records->count()} penghuni berhasil dipulihkan.")
-                            ->send();
-                    })
-                    ->deselectRecordsAfterCompletion(),
-            ])
-            ->persistFiltersInSession()
-            ->deselectAllRecordsWhenFiltered(true)
-            ->defaultSort('residentProfile.status', 'desc');
+            ->defaultSort('created_at', 'desc');
     }
 
-    public static function shouldRegisterNavigation(): bool
+    public static function getRelations(): array
     {
-        $user = auth()->user();
-        return $user?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']) ?? false;
-    }
-
-    public static function canViewAny(): bool
-    {
-        $user = auth()->user();
-        return $user?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']) ?? false;
-    }
-
-    public static function canCreate(): bool
-    {
-        return false;
-    }
-
-    public static function canEdit(Model $record): bool
-    {
-        $user    = auth()->user();
-        $allowed = $user?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin']) ?? false;
-
-        if (! $allowed) {
-            return false;
-        }
-
-        if (method_exists($record, 'trashed') && $record->trashed()) {
-            return false;
-        }
-
-        return true;
+        return [];
     }
 
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListResidents::route('/'),
-            'edit'  => Pages\EditResident::route('/{record}/edit'),
-            'view'  => Pages\ViewResident::route('/{record}'),
+            'create' => Pages\CreateResident::route('/buat'),
+            'edit' => Pages\EditResident::route('/{record}/edit'),
+            'view' => Pages\ViewResident::route('/{record}'),
         ];
     }
 }

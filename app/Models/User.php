@@ -132,7 +132,7 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->hasOne(\App\Models\RoomResident::class)
             ->whereNull('check_out_date')
-            ->latestOfMany('check_in_date');
+            ->latestOfMany('id');
     }
 
 

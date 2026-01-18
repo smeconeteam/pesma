@@ -60,35 +60,28 @@ class ListRoomPlacements extends ListRecords
 
             'keluar' => Tab::make('Keluar')
                 ->modifyQueryUsing(function (Builder $query) {
-                    return $query
-                        // Hapus filter status dari getEloquentQuery
-                        ->withoutGlobalScopes()
+                    // Reset query dari scratch
+                    return User::query()
                         ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
-                        ->whereHas('residentProfile')
-                        ->whereHas('roomResidents', function (Builder $q) {
-                            // Pernah punya kamar
-                            $q->whereNotNull('check_out_date');
+                        ->where('is_active', false) // User tidak aktif
+                        ->whereHas('residentProfile', function (Builder $q) {
+                            $q->where('status', 'inactive');
                         })
-                        ->whereDoesntHave('roomResidents', function (Builder $q) {
-                            // Tidak punya kamar aktif saat ini
-                            $q->whereNull('check_out_date');
-                        })
+                        ->whereHas('roomResidents') // Pernah punya kamar
                         ->with([
                             'residentProfile.residentCategory',
                             'residentProfile.country',
                             'roomResidents' => fn($q) => $q->latest('check_out_date')->limit(1)
                         ]);
                 })
-                ->badge(
-                    fn() => $this->exitedResidentsQuery()
-                        ->whereHas('roomResidents', function (Builder $q) {
-                            $q->whereNotNull('check_out_date');
-                        })
-                        ->whereDoesntHave('roomResidents', function (Builder $q) {
-                            $q->whereNull('check_out_date');
-                        })
-                        ->count()
-                )
+                ->badge(function () {
+                    return User::query()
+                        ->whereHas('roles', fn($q) => $q->where('name', 'resident'))
+                        ->where('is_active', false)
+                        ->whereHas('residentProfile', fn($q) => $q->where('status', 'inactive'))
+                        ->whereHas('roomResidents')
+                        ->count();
+                })
                 ->badgeColor('danger'),
         ];
     }
