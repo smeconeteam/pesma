@@ -14,15 +14,15 @@
                             @else
                             <a href="{{ url('/') }}" class="flex items-center gap-3">
                                 @endauth
-
+                                
                                 @if ($institution?->logo_path)
-                                <img src="{{ \Illuminate\Support\Facades\Storage::url($institution->logo_path) }}"
-                                    alt="Logo {{ $institution->dormitory_name }}"
-                                    class="h-10 w-10 object-contain">
+                                    <img src="{{ \Illuminate\Support\Facades\Storage::url($institution->logo_path) }}" 
+                                         alt="Logo {{ $institution->dormitory_name }}" 
+                                         class="h-10 w-10 object-contain">
                                 @else
-                                <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
+                                    <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
                                 @endif
-
+                                
                                 <h1 class="text-xl font-semibold">
                                     {{ $institution?->dormitory_name ?? config('app.name') }}
                                 </h1>
@@ -166,9 +166,10 @@
             {{-- Language Switcher Mobile --}}
             <div class="px-4 py-2 border-t border-gray-200">
                 <label class="block text-xs font-medium text-gray-700 mb-2">{{ __('navigation.language') ?? 'Language' }}</label>
-                <x-locale-switcher
+                <x-locale-switcher 
                     :short="false"
-                    select-class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-green-500 focus:ring-green-500" />
+                    select-class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-green-500 focus:ring-green-500"
+                />
             </div>
 
             @if (\Illuminate\Support\Facades\Route::has('logout'))
@@ -197,4 +198,4 @@
             @endguest
         </div>
     </div>
-</nav>
+</nav>  

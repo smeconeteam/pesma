@@ -12,11 +12,15 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Illuminate\Foundation\Configuration\Middleware $middleware) {
         // alias lain bawaan Laravel / Breeze...
+        $middleware->web(append: [
+            \App\Http\Middleware\SetLocale::class,
+        ]);
 
         $middleware->alias([
             // alias lain...
             'resident.only' => \App\Http\Middleware\EnsureUserIsResident::class,
         ]);
+
     })->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
