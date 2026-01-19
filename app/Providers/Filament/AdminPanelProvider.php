@@ -8,6 +8,7 @@ use Filament\Widgets;
 use App\Models\Institution;
 use Filament\PanelProvider;
 use Filament\Enums\ThemeMode;
+use Filament\Navigation\MenuItem;
 use Filament\Navigation\NavigationGroup;
 use Filament\Support\Colors\Color;
 use Illuminate\Support\Facades\Blade;
@@ -71,6 +72,15 @@ class AdminPanelProvider extends PanelProvider
             
             // Set favicon dinamis
             ->favicon($faviconUrl)
+            
+            // User menu items
+            ->userMenuItems([
+                'profile' => MenuItem::make()
+                    ->label('Profile Saya')
+                    ->url(fn (): string => route('filament.admin.resources.profile-saya.index'))
+                    ->icon('heroicon-o-user-circle')
+                    ->visible(fn (): bool => auth()->user()?->hasRole('main_admin') ?? false),
+            ])
             
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
