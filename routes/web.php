@@ -1,11 +1,12 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PublicRegistrationController;
-use App\Http\Controllers\Resident\DashboardController;
 use App\Http\Controllers\Resident\MyRoomController;
 use App\Http\Controllers\Resident\RoomHistoryController;
 use Illuminate\Support\Facades\Route;
+
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -17,7 +18,7 @@ Route::get('/', function () {
 Route::middleware(['auth', 'verified', 'resident.only'])->group(function () {
 
     // Dashboard resident
-    Route::get('/dashboard', DashboardController::class)
+    Route::get('/dashboard', [DashboardController::class, 'index'])
         ->name('dashboard');
 
     // Halaman Kamar Saya (read-only)
