@@ -21,18 +21,4 @@
     aside.fi-sidebar nav > ul {
         gap: 0.25rem !important;
     }
-    
-    /* Ukuran teks menu grup */
-    li.fi-sidebar-group > button {
-        font-size: 1rem !important; /* 15px */
-        font-weight: 600 !important;
-        padding-top: 0.625rem !important; /* 10px */
-        padding-bottom: 0.625rem !important; /* 10px */
-    }
-    
-    /* Perbesar icon menu grup */
-    li.fi-sidebar-group > button svg {
-        width: 2rem !important; /* 22px */
-        height: 2rem !important; /* 22px */
-    }
-</style
+</style>
