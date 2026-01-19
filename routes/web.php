@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PublicRegistrationController;
 use App\Http\Controllers\Resident\MyRoomController;
 use App\Http\Controllers\Resident\RoomHistoryController;
+use App\Http\Controllers\Resident\BillsController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -28,6 +29,10 @@ Route::middleware(['auth', 'verified', 'resident.only'])->group(function () {
     // Riwayat Kamar
     Route::get('/riwayat-kamar', [RoomHistoryController::class, 'index'])
         ->name('resident.room-history');
+
+    // Halaman Tagihan Lengkap
+    Route::get('/tagihan', [BillsController::class, 'index'])
+        ->name('resident.bills');
 
     // Profile routes
     Route::get('/profile', [ProfileController::class, 'edit'])
