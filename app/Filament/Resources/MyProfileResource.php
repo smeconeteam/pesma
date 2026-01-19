@@ -23,6 +23,8 @@ class MyProfileResource extends Resource
     
     protected static ?string $pluralModelLabel = 'Profile';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function form(Form $form): Form
     {
         return $form
