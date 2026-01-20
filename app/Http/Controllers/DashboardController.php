@@ -62,9 +62,27 @@ class DashboardController extends Controller
         
         // Data kontak
         $contacts = Contact::where('is_active', true)
-            ->where(function ($q) use ($dorm) {
-                $q->whereNull('dorm_id')
-                  ->orWhere('dorm_id', $dorm?->id);
+            ->where(function ($q) use ($dorm, $isInactive, $user) {
+                if ($isInactive) {
+                    // Untuk penghuni inactive: tampilkan kontak global + kontak dari cabang terakhir
+                    $lastDorm = $user->roomHistories()
+                        ->whereNotNull('check_out_date')
+                        ->with('room.block.dorm')
+                        ->orderBy('check_out_date', 'desc')
+                        ->first()
+                        ?->room
+                        ?->block
+                        ?->dorm;
+                    
+                    $q->whereNull('dorm_id') // Kontak global
+                    ->when($lastDorm, function($query) use ($lastDorm) {
+                        $query->orWhere('dorm_id', $lastDorm->id); // Kontak cabang terakhir
+                    });
+                } else {
+                    // Untuk penghuni active: tampilkan kontak global + kontak cabang saat ini
+                    $q->whereNull('dorm_id')
+                    ->orWhere('dorm_id', $dorm?->id);
+                }
             })
             ->orderBy('display_name')
             ->get();
