@@ -97,16 +97,6 @@
                                 <span>Riwayat</span>
                             </a>
                         </div>
-                    @else
-                        <div class="mt-6">
-                            <a href="{{ route('resident.room-history') }}"
-                               class="inline-flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-gray-200 rounded-xl font-bold text-xs text-gray-700 uppercase tracking-wide hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all shadow-md hover:shadow-lg active:scale-95 w-full">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <span>Lihat Riwayat Kamar</span>
-                            </a>
-                        </div>
                     @endif
 
                     @if ($isInactive)
