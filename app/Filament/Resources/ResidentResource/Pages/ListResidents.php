@@ -16,16 +16,17 @@ class ListResidents extends ListRecords
     {
         $user = auth()->user();
 
-        // Tabs untuk semua admin kecuali super_admin (tidak ada tab Terhapus)
         $tabs = [
             'aktif' => Tab::make('Aktif')
                 ->modifyQueryUsing(function (Builder $query) use ($user) {
                     $query->withoutTrashed()
+                        ->where('is_active', true)
                         ->whereHas('residentProfile', fn(Builder $q) => $q->where('status', 'active'));
                 })
                 ->badge(function () use ($user) {
                     $query = User::query()
                         ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
+                        ->where('is_active', true)
                         ->whereHas('residentProfile', fn(Builder $q) => $q->where('status', 'active'))
                         ->withoutTrashed();
 
@@ -49,12 +50,16 @@ class ListResidents extends ListRecords
             'keluar' => Tab::make('Keluar')
                 ->modifyQueryUsing(function (Builder $query) use ($user) {
                     $query->withoutTrashed()
+                        // ✅ User TETAP AKTIF (tidak perlu filter is_active)
+                        ->whereHas('residentProfile', function (Builder $q) {
+                            $q->where('status', 'inactive'); // ✅ Status penghuni nonaktif
+                        })
                         ->whereHas('roomResidents', function (Builder $q) {
-                            // Pernah punya kamar
+                            // ✅ Pernah punya kamar (check_out_date ada)
                             $q->whereNotNull('check_out_date');
                         })
                         ->whereDoesntHave('roomResidents', function (Builder $q) {
-                            // Tidak punya kamar aktif saat ini
+                            // ✅ Tidak punya kamar aktif saat ini
                             $q->whereNull('check_out_date');
                         });
                 })
@@ -62,6 +67,8 @@ class ListResidents extends ListRecords
                     $query = User::query()
                         ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
                         ->withoutTrashed()
+                        // ✅ Tidak filter is_active, karena user tetap aktif
+                        ->whereHas('residentProfile', fn(Builder $q) => $q->where('status', 'inactive'))
                         ->whereHas('roomResidents', function (Builder $q) {
                             $q->whereNotNull('check_out_date');
                         })
@@ -84,7 +91,7 @@ class ListResidents extends ListRecords
 
                     return $query->count();
                 })
-                ->badgeColor('warning'),
+                ->badgeColor('danger'),
         ];
 
         // Tab Terhapus hanya untuk super_admin
@@ -97,7 +104,7 @@ class ListResidents extends ListRecords
                         ->onlyTrashed()
                         ->count()
                 )
-                ->badgeColor('danger');
+                ->badgeColor('gray');
         }
 
         return $tabs;

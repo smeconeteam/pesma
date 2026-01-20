@@ -16,14 +16,10 @@ class ListRoomPlacements extends ListRecords
     {
         return User::query()
             ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
-            ->whereHas('residentProfile', fn(Builder $q) => $q->whereIn('status', ['registered', 'active']));
-    }
-
-    protected function exitedResidentsQuery(): Builder
-    {
-        return User::query()
-            ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
-            ->whereHas('residentProfile'); // Ada resident profile, tanpa batasan status
+            // ✅ Tidak filter is_active, karena user tetap aktif meski sudah keluar
+            ->whereHas('residentProfile', fn(Builder $q) => 
+                $q->whereIn('status', ['registered', 'active'])
+            );
     }
 
     public function getTabs(): array
@@ -60,14 +56,21 @@ class ListRoomPlacements extends ListRecords
 
             'keluar' => Tab::make('Keluar')
                 ->modifyQueryUsing(function (Builder $query) {
-                    // Reset query dari scratch
+                    // ✅ Query penghuni yang sudah keluar
                     return User::query()
                         ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
-                        ->where('is_active', false) // User tidak aktif
+                        // ✅ User TETAP AKTIF (tidak filter is_active)
                         ->whereHas('residentProfile', function (Builder $q) {
-                            $q->where('status', 'inactive');
+                            $q->where('status', 'inactive'); // ✅ Status nonaktif
                         })
-                        ->whereHas('roomResidents') // Pernah punya kamar
+                        ->whereHas('roomResidents', function (Builder $q) {
+                            // ✅ Pernah punya kamar
+                            $q->whereNotNull('check_out_date');
+                        })
+                        ->whereDoesntHave('roomResidents', function (Builder $q) {
+                            // ✅ Tidak ada kamar aktif
+                            $q->whereNull('check_out_date');
+                        })
                         ->with([
                             'residentProfile.residentCategory',
                             'residentProfile.country',
@@ -77,9 +80,10 @@ class ListRoomPlacements extends ListRecords
                 ->badge(function () {
                     return User::query()
                         ->whereHas('roles', fn($q) => $q->where('name', 'resident'))
-                        ->where('is_active', false)
+                        // ✅ Tidak filter is_active
                         ->whereHas('residentProfile', fn($q) => $q->where('status', 'inactive'))
-                        ->whereHas('roomResidents')
+                        ->whereHas('roomResidents', fn($q) => $q->whereNotNull('check_out_date'))
+                        ->whereDoesntHave('roomResidents', fn($q) => $q->whereNull('check_out_date'))
                         ->count();
                 })
                 ->badgeColor('danger'),
