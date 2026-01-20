@@ -89,7 +89,9 @@
 
                     <div class="space-y-3">
                         @foreach ($urgentBills as $bill)
-                        <div class="p-4 bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl border-2 {{ $bill->status === 'overdue' ? 'border-red-300' : 'border-amber-200' }}">
+                        <button 
+                            onclick="openBillModal({{ $bill->id }})"
+                            class="w-full text-left p-4 bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl border-2 {{ $bill->status === 'overdue' ? 'border-red-300' : 'border-amber-200' }} hover:shadow-md transition-all">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center gap-2 flex-wrap">
@@ -113,12 +115,10 @@
                                             <span class="text-gray-600">Total:</span>
                                             <span class="font-bold text-gray-900">Rp {{ number_format($bill->total_amount, 0, ',', '.') }}</span>
                                         </div>
-                                        @if ($bill->status !== 'issued')
                                         <div>
                                             <span class="text-gray-600">Terbayar:</span>
                                             <span class="font-bold text-green-600">Rp {{ number_format($bill->paid_amount, 0, ',', '.') }}</span>
                                         </div>
-                                        @endif
                                         @if ($bill->remaining_amount > 0)
                                         <div>
                                             <span class="text-gray-600">Sisa:</span>
@@ -136,9 +136,15 @@
                                         </svg>
                                     </div>
                                 </div>
+                                @else
+                                <div class="shrink-0">
+                                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                </div>
                                 @endif
                             </div>
-                        </div>
+                        </button>
                         @endforeach
                     </div>
                 </div>
@@ -206,7 +212,7 @@
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @foreach ($billsCollection as $bill)
-                                <tr class="hover:bg-gray-50">
+                                <tr class="hover:bg-gray-50 cursor-pointer" onclick="openBillModal({{ $bill->id }})">
                                     <td class="px-4 py-4 text-sm font-medium text-gray-900">{{ $bill->bill_number }}</td>
                                     <td class="px-4 py-4 text-sm text-gray-900">{{ $bill->billingType->name }}</td>
                                     <td class="px-4 py-4 text-sm text-gray-600">
@@ -273,4 +279,150 @@
 
         </div>
     </div>
+
+    {{-- MODAL DETAIL TAGIHAN --}}
+    <div id="billModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 z-50 overflow-y-auto" onclick="closeBillModal(event)">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full" onclick="event.stopPropagation()">
+                <div class="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-indigo-600">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-bold text-white">Detail Tagihan</h3>
+                        <button onclick="closeBillModal()" class="text-white hover:text-gray-200 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div id="billModalContent" class="p-6 space-y-6">
+                    <div class="flex items-center justify-center py-12">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const billsData = @json($billsCollection->merge($urgentBills)->unique('id')->values());
+
+        function openBillModal(billId) {
+            const bill = billsData.find(b => b.id === billId);
+            if (!bill) return;
+
+            const modal = document.getElementById('billModal');
+            const content = document.getElementById('billModalContent');
+
+            let statusColor = 'bg-gray-100 text-gray-800';
+            if (bill.status === 'paid') statusColor = 'bg-green-100 text-green-800';
+            else if (bill.status === 'partial') statusColor = 'bg-blue-100 text-blue-800';
+            else if (bill.status === 'overdue') statusColor = 'bg-red-100 text-red-800';
+            else if (bill.status === 'issued') statusColor = 'bg-amber-100 text-amber-800';
+
+            const formatDate = (dateStr) => {
+                if (!dateStr) return '-';
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+            };
+
+            const formatCurrency = (num) => {
+                return 'Rp ' + new Intl.NumberFormat('id-ID').format(num);
+            };
+
+            content.innerHTML = `
+                <div class="bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl p-5 border-2 border-gray-200">
+                    <div class="flex items-start justify-between gap-3 mb-4">
+                        <div>
+                            <h4 class="text-2xl font-bold text-gray-900">${bill.billing_type.name}</h4>
+                            <p class="text-sm text-gray-600 mt-1">No. Tagihan: <span class="font-semibold text-gray-900">${bill.bill_number}</span></p>
+                        </div>
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold ${statusColor}">
+                            ${bill.status_label}
+                        </span>
+                    </div>
+                    ${bill.period_start && bill.period_end ? `
+                    <div class="flex items-center gap-2 text-sm text-gray-700 bg-white rounded-lg px-4 py-2 border border-gray-200">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span class="font-medium">Periode:</span>
+                        <span class="font-bold">${formatDate(bill.period_start)} - ${formatDate(bill.period_end)}</span>
+                    </div>
+                    ` : ''}
+                </div>
+                <div class="space-y-4">
+                    <h5 class="font-bold text-gray-900 text-lg">Rincian Pembayaran</h5>
+                    <div class="bg-gray-50 rounded-xl p-4 space-y-3">
+                        <div class="flex items-center justify-between py-2 border-b border-gray-200">
+                            <span class="text-gray-700">Jumlah Tagihan</span>
+                            <span class="font-bold text-gray-900">${formatCurrency(bill.base_amount)}</span>
+                        </div>
+                        ${bill.discount_amount > 0 ? `
+                        <div class="flex items-center justify-between py-2 border-b border-gray-200">
+                            <span class="text-gray-700">Diskon (${parseFloat(bill.discount_percent)}%)</span>
+                            <span class="font-bold text-green-600">- ${formatCurrency(bill.discount_amount)}</span>
+                        </div>
+                        ` : ''}
+                        <div class="flex items-center justify-between py-2 border-b border-gray-200">
+                            <span class="text-lg font-bold text-gray-900">Total Tagihan</span>
+                            <span class="text-lg font-bold text-blue-600">${formatCurrency(bill.total_amount)}</span>
+                        </div>
+                        <div class="flex items-center justify-between py-2 border-b border-gray-200">
+                            <span class="text-gray-700">Terbayar</span>
+                            <span class="font-bold text-green-600">${formatCurrency(bill.paid_amount)}</span>
+                        </div>
+                        <div class="flex items-center justify-between py-3 bg-white rounded-lg px-4 ${bill.remaining_amount > 0 ? 'border-2 border-red-200' : ''}">
+                            <span class="text-lg font-bold text-gray-900">Sisa</span>
+                            <span class="text-lg font-bold ${bill.remaining_amount > 0 ? 'text-red-600' : 'text-gray-900'}">${formatCurrency(bill.remaining_amount)}</span>
+                        </div>
+                    </div>
+                </div>
+                ${bill.total_amount > 0 ? `
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="font-medium text-gray-700">Progress Pembayaran</span>
+                        <span class="font-bold text-blue-600">${Math.round((bill.paid_amount / bill.total_amount) * 100)}%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                        <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500" style="width: ${(bill.paid_amount / bill.total_amount) * 100}%"></div>
+                    </div>
+                </div>
+                ` : ''}
+                ${bill.notes ? `
+                <div class="bg-amber-50 border-l-4 border-amber-500 rounded-lg p-4">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-amber-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        </svg>
+                        <div class="flex-1">
+                            <h6 class="font-bold text-amber-900 mb-1">Catatan</h6>
+                            <p class="text-sm text-amber-800">${bill.notes}</p>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+                <div class="flex justify-end pt-4 border-t border-gray-200">
+                    <button onclick="closeBillModal()" class="px-6 py-2.5 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors">
+                        Tutup
+                    </button>
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeBillModal(event) {
+            if (event && event.target.id !== 'billModal') return;
+            const modal = document.getElementById('billModal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeBillModal();
+            }
+        });
+    </script>
 </x-app-layout>
