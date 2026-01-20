@@ -130,6 +130,12 @@ class ListResidents extends ListRecords
     public function updatedActiveTab(): void
     {
         $this->deselectAllTableRecords();
+        
+        // Reset filter status saat pindah tab
+        $this->tableFilters['status']['value'] = null;
+        
+        // Refresh halaman untuk update options filter
+        $this->dispatch('$refresh');
     }
 
     protected function getHeaderWidgets(): array
