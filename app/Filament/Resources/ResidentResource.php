@@ -63,7 +63,7 @@ class ResidentResource extends Resource
             return $query;
         }
 
-        // ✅ Branch admin: hanya penghuni di cabangnya (yang masih aktif penempatan kamar)
+        // Branch admin: hanya penghuni di cabangnya (yang masih aktif penempatan kamar)
         if ($user->hasRole('branch_admin')) {
             $dormIds = $user->branchDormIds()->toArray();
 
@@ -73,7 +73,7 @@ class ResidentResource extends Resource
             });
         }
 
-        // ✅ Block admin: hanya penghuni di kompleknya (yang masih aktif penempatan kamar)
+        // Block admin: hanya penghuni di kompleknya (yang masih aktif penempatan kamar)
         if ($user->hasRole('block_admin')) {
             $blockIds = $user->blockIds()->toArray();
 
@@ -163,24 +163,66 @@ class ResidentResource extends Resource
 
                 Tables\Columns\TextColumn::make('residentProfile.phone_number')
                     ->label('No. HP')
-                    ->toggleable(),
+                    ->placeholder('-'),
 
-                Tables\Columns\TextColumn::make('residentProfile.status')
+                // Status berdasarkan kondisi akun dan kamar
+                Tables\Columns\TextColumn::make('account_status')
                     ->label('Status')
                     ->badge()
+                    ->getStateUsing(function (User $record) {
+                        // Jika akun nonaktif, langsung return 'inactive'
+                        if (!$record->is_active) {
+                            return 'inactive';
+                        }
+
+                        // Cek apakah pernah punya kamar
+                        $hasRoomHistory = $record->roomResidents()->exists();
+                        
+                        // Cek apakah punya kamar aktif
+                        $hasActiveRoom = $record->roomResidents()
+                            ->whereNull('check_out_date')
+                            ->exists();
+
+                        if (!$hasRoomHistory) {
+                            return 'registered'; // Terdaftar tapi belum pernah punya kamar
+                        }
+
+                        if ($hasActiveRoom) {
+                            return 'active'; // Punya kamar aktif
+                        }
+
+                        return 'checkout'; // Sudah pernah punya kamar tapi sekarang keluar
+                    })
                     ->color(fn(string $state): string => match ($state) {
-                        'registered' => 'gray',
+                        'registered' => 'warning',
                         'active' => 'success',
+                        'checkout' => 'info',
                         'inactive' => 'danger',
                         default => 'gray',
                     })
                     ->formatStateUsing(fn(string $state): string => match ($state) {
                         'registered' => 'Terdaftar',
                         'active' => 'Aktif',
+                        'checkout' => 'Keluar',
                         'inactive' => 'Nonaktif',
                         default => $state,
                     })
-                    ->sortable(),
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query
+                            ->leftJoin('room_residents', function ($join) {
+                                $join->on('users.id', '=', 'room_residents.user_id')
+                                     ->whereNull('room_residents.check_out_date');
+                            })
+                            ->select('users.*')
+                            ->selectRaw('
+                                CASE
+                                    WHEN NOT EXISTS (SELECT 1 FROM room_residents WHERE room_residents.user_id = users.id) THEN 1
+                                    WHEN room_residents.check_out_date IS NULL THEN 2
+                                    ELSE 3
+                                END as status_order
+                            ')
+                            ->orderBy('status_order', $direction);
+                    }),
 
                 Tables\Columns\TextColumn::make('current_room')
                     ->label('Kamar Aktif')
@@ -195,7 +237,7 @@ class ResidentResource extends Resource
                         $room = $active->room;
                         return ($room->code ?? '-') . ($room->number ? " ({$room->number})" : '');
                     })
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->placeholder('-'),
             ])
             ->filters([
                 SelectFilter::make('gender')
@@ -209,7 +251,7 @@ class ResidentResource extends Resource
                     }),
 
                 /**
-                 * ✅ FILTER CABANG (HANYA PENGHUNI AKTIF, BUKAN HISTORY)
+                 * FILTER CABANG (HANYA PENGHUNI AKTIF, BUKAN HISTORY)
                  */
                 SelectFilter::make('dorm_id')
                     ->label('Cabang')
@@ -311,7 +353,7 @@ class ResidentResource extends Resource
                     }),
 
                 /**
-                 * ✅ FILTER KOMPLEK (HANYA PENGHUNI AKTIF, BUKAN HISTORY)
+                 * FILTER KOMPLEK (HANYA PENGHUNI AKTIF, BUKAN HISTORY)
                  */
                 SelectFilter::make('block_id')
                     ->label('Komplek')
@@ -515,11 +557,16 @@ class ResidentResource extends Resource
                             return true;
                         })
                         ->before(function (Tables\Actions\DeleteAction $action, User $record) {
-                            if ($record->residentProfile?->status === 'active') {
+                            // Cek apakah punya kamar aktif
+                            $hasActiveRoom = $record->roomResidents()
+                                ->whereNull('check_out_date')
+                                ->exists();
+
+                            if ($hasActiveRoom) {
                                 Notification::make()
                                     ->danger()
                                     ->title('Tidak dapat menghapus')
-                                    ->body('Penghuni dengan status aktif tidak dapat dihapus. Nonaktifkan terlebih dahulu.')
+                                    ->body('Penghuni yang masih memiliki kamar aktif tidak dapat dihapus. Keluarkan dari kamar terlebih dahulu.')
                                     ->send();
 
                                 $action->cancel();
