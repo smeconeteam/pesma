@@ -1,11 +1,11 @@
 <section>
     <header>
         <h2 class="text-lg font-medium text-gray-900">
-            {{ __('Perbarui Kata Sandi') }}
+            {{ __('profile.update_password_title') }}
         </h2>
 
         <p class="mt-1 text-sm text-gray-600">
-            {{ __('Pastikan akun Anda menggunakan kata sandi yang panjang dan acak agar tetap aman.') }}
+            {{ __('profile.update_password_desc') }}
         </p>
     </header>
 
@@ -14,7 +14,7 @@
         @method('put')
 
         <div>
-            <x-input-label for="update_password_current_password" :value="__('Kata Sandi Saat Ini')" />
+            <x-input-label for="update_password_current_password" :value="__('profile.current_password')" />
             <x-text-input
                 id="update_password_current_password"
                 name="current_password"
@@ -26,7 +26,7 @@
         </div>
 
         <div>
-            <x-input-label for="update_password_password" :value="__('Kata Sandi Baru')" />
+            <x-input-label for="update_password_password" :value="__('profile.new_password')" />
             <x-text-input
                 id="update_password_password"
                 name="password"
@@ -38,7 +38,7 @@
         </div>
 
         <div>
-            <x-input-label for="update_password_password_confirmation" :value="__('Konfirmasi Kata Sandi Baru')" />
+            <x-input-label for="update_password_password_confirmation" :value="__('profile.confirm_password')" />
             <x-text-input
                 id="update_password_password_confirmation"
                 name="password_confirmation"
@@ -50,7 +50,7 @@
         </div>
 
         <div class="flex items-center gap-4">
-            <x-primary-button>{{ __('Simpan') }}</x-primary-button>
+            <x-primary-button>{{ __('profile.save') }}</x-primary-button>
 
             @if (session('status') === 'password-updated')
                 <p
@@ -60,7 +60,7 @@
                     x-init="setTimeout(() => show = false, 2000)"
                     class="text-sm text-gray-600"
                 >
-                    {{ __('Tersimpan.') }}
+                    {{ __('profile.password_updated') }}
                 </p>
             @endif
         </div>

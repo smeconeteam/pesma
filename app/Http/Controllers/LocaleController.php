@@ -7,24 +7,20 @@ use Illuminate\Support\Facades\Cookie;
 
 class LocaleController extends Controller
 {
-    /**
-     * Switch bahasa aplikasi
-     * Menyimpan preference ke cookie yang akan dibaca oleh localStorage
-     */
     public function switch(Request $request)
     {
         $locale = $request->input('locale');
         
-        // Validasi locale yang diizinkan
         if (!in_array($locale, ['id', 'en'])) {
-            return response()->json(['error' => 'Invalid locale'], 400);
+            return back();
         }
         
-        // Set cookie untuk 1 tahun (persistent)
-        $cookie = Cookie::make('locale', $locale, 525600); // 525600 minutes = 1 year
+        // Set cookie
+        Cookie::queue('locale', $locale, 525600);
         
-        return response()
-            ->json(['success' => true, 'locale' => $locale])
-            ->cookie($cookie);
+        // Juga simpan ke localStorage via session flash
+        session()->flash('locale_changed', $locale);
+        
+        return back();
     }
 }
