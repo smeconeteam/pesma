@@ -16,13 +16,15 @@
                         {{ __('Dasbor') }}
                     </x-nav-link>
 
-                    <x-nav-link :href="route('resident.my-room')" :active="request()->routeIs('resident.my-room')">
-                        {{ __('Kamar Saya') }}
-                    </x-nav-link>
+                    @if(Auth::user()->residentProfile && Auth::user()->residentProfile->status === 'active')
+                        <x-nav-link :href="route('resident.my-room')" :active="request()->routeIs('resident.my-room')">
+                            {{ __('Kamar Saya') }}
+                        </x-nav-link>
 
-                    <x-nav-link :href="route('resident.room-history')" :active="request()->routeIs('resident.room-history')">
-                        {{ __('Riwayat Kamar') }}
-                    </x-nav-link>
+                        <x-nav-link :href="route('resident.room-history')" :active="request()->routeIs('resident.room-history')">
+                            {{ __('Riwayat Kamar') }}
+                        </x-nav-link>
+                    @endif
 
                     <x-nav-link :href="route('resident.bills')" :active="request()->routeIs('resident.bills')">
                         {{ __('Tagihan') }}
@@ -83,13 +85,15 @@
                 {{ __('Dasbor') }}
             </x-responsive-nav-link>
 
-            <x-responsive-nav-link :href="route('resident.my-room')" :active="request()->routeIs('resident.my-room')">
-                {{ __('Kamar Saya') }}
-            </x-responsive-nav-link>
+            @if(Auth::user()->residentProfile && Auth::user()->residentProfile->status === 'active')
+                <x-responsive-nav-link :href="route('resident.my-room')" :active="request()->routeIs('resident.my-room')">
+                    {{ __('Kamar Saya') }}
+                </x-responsive-nav-link>
 
-            <x-responsive-nav-link :href="route('resident.room-history')" :active="request()->routeIs('resident.room-history')">
-                {{ __('Riwayat Kamar') }}
-            </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('resident.room-history')" :active="request()->routeIs('resident.room-history')">
+                    {{ __('Riwayat Kamar') }}
+                </x-responsive-nav-link>
+            @endif
 
             <x-responsive-nav-link :href="route('resident.bills')" :active="request()->routeIs('resident.bills')">
                 {{ __('Tagihan') }}
