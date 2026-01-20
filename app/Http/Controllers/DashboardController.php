@@ -21,8 +21,11 @@ class DashboardController extends Controller
         
         $residentName = $profile?->full_name ?? $user->name ?? 'Penghuni';
         
-        // Data kamar aktif
-        $assignment = $user->activeRoomResident;
+        // Cek status penghuni
+        $isInactive = $profile && $profile->status === 'inactive';
+        
+        // Data kamar aktif - hanya jika status bukan inactive
+        $assignment = !$isInactive ? $user->activeRoomResident : null;
         $room = $assignment?->room;
         $block = $room?->block;
         $dorm = $block?->dorm;
@@ -41,6 +44,21 @@ class DashboardController extends Controller
         $checkInDate = $assignment?->check_in_date 
             ? $assignment->check_in_date->format('d M Y')
             : '-';
+        
+        // Ambil data checkout terakhir untuk penghuni inactive
+        $lastCheckout = null;
+        $checkoutReason = null;
+        if ($isInactive) {
+            $lastHistory = $user->roomHistories()
+                ->whereNotNull('check_out_date')
+                ->orderBy('check_out_date', 'desc')
+                ->first();
+            
+            if ($lastHistory) {
+                $lastCheckout = $lastHistory->check_out_date->format('d M Y');
+                $checkoutReason = $lastHistory->notes;
+            }
+        }
         
         // Data kontak
         $contacts = Contact::where('is_active', true)
@@ -76,7 +94,9 @@ class DashboardController extends Controller
             'statusLabel',
             'checkInDate',
             'contacts',
-            // Data tagihan
+            'isInactive',
+            'lastCheckout',
+            'checkoutReason',
             'totalBills',
             'unpaidBills',
             'totalUnpaid',

@@ -9,23 +9,23 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4 sm:space-y-6">
 
             {{-- CARD PENGHUNI --}}
-            <div class="bg-gradient-to-br from-green-50 to-emerald-50 overflow-hidden shadow-lg sm:rounded-2xl rounded-xl border border-green-100">
+            <div class="bg-gradient-to-br {{ $isInactive ? 'from-gray-50 to-slate-50' : 'from-green-50 to-emerald-50' }} overflow-hidden shadow-lg sm:rounded-2xl rounded-xl border {{ $isInactive ? 'border-gray-200' : 'border-green-100' }}">
                 <div class="p-5 sm:p-7">
                     <div class="flex items-start gap-3 sm:gap-4">
                         <div class="shrink-0">
                             @if (!empty($residentPhotoUrl))
                                 <div class="relative">
-                                    <div class="absolute inset-0 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full blur opacity-40"></div>
+                                    <div class="absolute inset-0 bg-gradient-to-br {{ $isInactive ? 'from-gray-400 to-slate-500' : 'from-green-400 to-emerald-500' }} rounded-full blur opacity-40"></div>
                                     <img
                                         src="{{ $residentPhotoUrl }}"
                                         alt="Foto profil"
-                                        class="relative h-16 w-16 sm:h-20 sm:w-20 rounded-full object-cover border-3 border-white shadow-lg"
+                                        class="relative h-16 w-16 sm:h-20 sm:w-20 rounded-full object-cover border-3 border-white shadow-lg {{ $isInactive ? 'grayscale' : '' }}"
                                     />
                                 </div>
                             @else
                                 <div class="relative">
-                                    <div class="absolute inset-0 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full blur opacity-40"></div>
-                                    <div class="relative h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 border-3 border-white shadow-lg flex items-center justify-center">
+                                    <div class="absolute inset-0 bg-gradient-to-br {{ $isInactive ? 'from-gray-400 to-slate-500' : 'from-green-400 to-emerald-500' }} rounded-full blur opacity-40"></div>
+                                    <div class="relative h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gradient-to-br {{ $isInactive ? 'from-gray-500 to-slate-600' : 'from-green-500 to-emerald-600' }} border-3 border-white shadow-lg flex items-center justify-center">
                                         <span class="text-xl sm:text-2xl font-bold text-white">
                                             {{ mb_substr($residentName ?? 'U', 0, 1) }}
                                         </span>
@@ -40,14 +40,16 @@
                             </div>
 
                             <div class="mt-2.5 flex flex-wrap gap-2">
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white text-green-700 shadow-sm border border-green-200">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-                                    </svg>
-                                    Kamar {{ $roomCode }}
-                                </span>
+                                @if (!$isInactive)
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white text-green-700 shadow-sm border border-green-200">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                                        </svg>
+                                        Kamar {{ $roomCode }}
+                                    </span>
+                                @endif
                                 
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white text-green-700 shadow-sm border border-green-200">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white shadow-sm border {{ $isInactive ? 'text-gray-700 border-gray-200' : 'text-green-700 border-green-200' }}">
                                     <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                                     </svg>
@@ -55,35 +57,79 @@
                                 </span>
                             </div>
 
-                            <div class="mt-3 flex items-center gap-2 text-xs sm:text-sm text-gray-700">
-                                <svg class="w-4 h-4 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                </svg>
-                                <span class="font-medium">Masuk:</span>
-                                <span class="font-bold text-gray-900">{{ $checkInDate }}</span>
-                            </div>
+                            @if (!$isInactive && $checkInDate !== '-')
+                                <div class="mt-3 flex items-center gap-2 text-xs sm:text-sm text-gray-700">
+                                    <svg class="w-4 h-4 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                    <span class="font-medium">Masuk:</span>
+                                    <span class="font-bold text-gray-900">{{ $checkInDate }}</span>
+                                </div>
+                            @endif
+
+                            @if ($isInactive && $lastCheckout)
+                                <div class="mt-3 flex items-center gap-2 text-xs sm:text-sm text-gray-700">
+                                    <svg class="w-4 h-4 text-gray-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                    <span class="font-medium">Keluar:</span>
+                                    <span class="font-bold text-gray-900">{{ $lastCheckout }}</span>
+                                </div>
+                            @endif
                         </div>
                     </div>
 
-                    <div class="mt-6 grid grid-cols-2 gap-3">
-                        <a href="{{ route('resident.my-room') }}"
-                           class="inline-flex items-center justify-center gap-2 px-3 py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl font-bold text-xs text-white uppercase tracking-wide hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all shadow-md hover:shadow-lg active:scale-95">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-                            </svg>
-                            <span>Kamar</span>
-                        </a>
+                    @if (!$isInactive)
+                        <div class="mt-6 grid grid-cols-2 gap-3">
+                            <a href="{{ route('resident.my-room') }}"
+                               class="inline-flex items-center justify-center gap-2 px-3 py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl font-bold text-xs text-white uppercase tracking-wide hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all shadow-md hover:shadow-lg active:scale-95">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                                </svg>
+                                <span>Kamar</span>
+                            </a>
 
-                        <a href="{{ route('resident.room-history') }}"
-                           class="inline-flex items-center justify-center gap-2 px-3 py-3 bg-white border-2 border-green-200 rounded-xl font-bold text-xs text-green-700 uppercase tracking-wide hover:bg-green-50 hover:border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all shadow-md hover:shadow-lg active:scale-95">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <span>Riwayat</span>
-                        </a>
-                    </div>
+                            <a href="{{ route('resident.room-history') }}"
+                               class="inline-flex items-center justify-center gap-2 px-3 py-3 bg-white border-2 border-green-200 rounded-xl font-bold text-xs text-green-700 uppercase tracking-wide hover:bg-green-50 hover:border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all shadow-md hover:shadow-lg active:scale-95">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>Riwayat</span>
+                            </a>
+                        </div>
+                    @else
+                        <div class="mt-6">
+                            <a href="{{ route('resident.room-history') }}"
+                               class="inline-flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-gray-200 rounded-xl font-bold text-xs text-gray-700 uppercase tracking-wide hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all shadow-md hover:shadow-lg active:scale-95 w-full">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>Lihat Riwayat Kamar</span>
+                            </a>
+                        </div>
+                    @endif
 
-                    @if (! $hasRoom)
+                    @if ($isInactive)
+                        <div class="mt-5 rounded-xl border-2 border-red-200 bg-gradient-to-br from-red-50 to-rose-50 p-4 shadow-sm">
+                            <div class="flex gap-3">
+                                <svg class="w-5 h-5 text-red-600 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                </svg>
+                                <div class="flex-1">
+                                    <div class="font-bold text-red-900 mb-1">Status: Dikeluarkan dari Asrama</div>
+                                    @if ($checkoutReason)
+                                        <div class="text-xs text-red-800 leading-relaxed">
+                                            <span class="font-semibold">Alasan:</span> {{ $checkoutReason }}
+                                        </div>
+                                    @else
+                                        <div class="text-xs text-red-800 leading-relaxed">
+                                            Anda telah dikeluarkan dari asrama. Silakan hubungi admin untuk informasi lebih lanjut.
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @elseif (!$hasRoom)
                         <div class="mt-5 rounded-xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 p-4 shadow-sm">
                             <div class="flex gap-3">
                                 <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -111,7 +157,7 @@
                             </div>
                             <div>
                                 <h3 class="text-base sm:text-lg font-bold text-gray-900">Tagihan Terbaru</h3>
-                                <p class="text-xs sm:text-sm text-gray-600 mt-0.5">3 tagihan terakhir Anda</p>
+                                <p class="text-xs sm:text-sm text-gray-600 mt-0.5">Tagihan terakhir Anda</p>
                             </div>
                         </div>
                         <a href="{{ route('resident.bills') }}" 
