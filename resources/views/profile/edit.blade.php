@@ -34,9 +34,17 @@
             default => ucfirst(str_replace('_', ' ', (string) $status)),
         };
 
+        $isInactive = in_array($status, ['inactive', 'nonaktif']);
+
         $checkIn = $assignment?->check_in_date ?? $profile?->check_in_date;
+        $checkOut = $profile?->check_out_date;
+        
         $checkInLabel = $checkIn
             ? (method_exists($checkIn, 'format') ? $checkIn->format('d M Y') : date('d M Y', strtotime((string) $checkIn)))
+            : '-';
+            
+        $checkOutLabel = $checkOut
+            ? (method_exists($checkOut, 'format') ? $checkOut->format('d M Y') : date('d M Y', strtotime((string) $checkOut)))
             : '-';
 
         // PIC kamar
@@ -82,34 +90,44 @@
                             <div class="mt-1 text-sm text-gray-600">
                                 {{ $user->email ?? '-' }}
                                 <span class="mx-2">•</span>
-                                Status: <span class="font-semibold text-gray-900">{{ $statusLabel }}</span>
+                                Status: 
+                                <span class="font-semibold {{ $isInactive ? 'text-red-600' : 'text-gray-900' }}">
+                                    {{ $statusLabel }}
+                                </span>
                             </div>
 
                             <div class="mt-2 flex flex-wrap gap-2">
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 border">
-                                    Kode Kamar: {{ $roomCode }}
-                                </span>
+                                @if (!$isInactive)
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 border">
+                                        Kode Kamar: {{ $roomCode }}
+                                    </span>
 
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 border">
-                                    Masuk: {{ $checkInLabel }}
-                                </span>
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 border">
+                                        Masuk: {{ $checkInLabel }}
+                                    </span>
 
-                                @if ($assignment)
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $assignment->is_pic ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-800 border' }} border">
-                                        {{ $assignment->is_pic ? 'Kamu PIC' : 'Bukan PIC' }}
+                                    @if ($assignment)
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $assignment->is_pic ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-800 border' }} border">
+                                            {{ $assignment->is_pic ? 'Kamu PIC' : 'Bukan PIC' }}
+                                        </span>
+                                    @endif
+                                @else
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border-red-200 border">
+                                        Tanggal Keluar: {{ $checkOutLabel }}
                                     </span>
                                 @endif
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex flex-wrap gap-2">
-                        <a href="{{ url('/riwayat-kamar') }}"
-                           class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition">
-                            Riwayat Kamar
-                        </a>
-                    </div>
-
+                    @if (!$isInactive)
+                        <div class="flex flex-wrap gap-2">
+                            <a href="{{ url('/riwayat-kamar') }}"
+                               class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition">
+                                Riwayat Kamar
+                            </a>
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -169,80 +187,100 @@
                             </dd>
                         </div>
 
-                        <div class="{{ $rowClass }}">
-                            <dt class="{{ $labelClass }}">Tanggal Masuk</dt>
-                            <dd class="{{ $valueClass }}">{{ $checkInLabel }}</dd>
-                        </div>
-                    </dl>
-                </div>
-            </div>
-
-            {{-- INFO ASRAMA (LIST) --}}
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
-                    <div class="text-base font-semibold text-gray-900">Info Asrama</div>
-
-                    <dl class="mt-4 {{ $itemsClass }}">
-                        <div class="{{ $rowClass }}">
-                            <dt class="{{ $labelClass }}">Cabang</dt>
-                            <dd class="{{ $valueClass }}">{{ $dorm?->name ?? '-' }}</dd>
-                        </div>
-
-                        <div class="{{ $rowClass }}">
-                            <dt class="{{ $labelClass }}">Komplek</dt>
-                            <dd class="{{ $valueClass }}">{{ $block?->name ?? '-' }}</dd>
-                        </div>
-
-                        <div class="{{ $rowClass }}">
-                            <dt class="{{ $labelClass }}">Kode Kamar</dt>
-                            <dd class="{{ $valueClass }}">{{ $roomCode }}</dd>
-                        </div>
-
-                        <div class="{{ $rowClass }}">
-                            <dt class="{{ $labelClass }}">Tipe Kamar</dt>
-                            <dd class="{{ $valueClass }}">{{ $roomType?->name ?? '-' }}</dd>
-                        </div>
-
-                        <div class="{{ $rowClass }}">
-                            <dt class="{{ $labelClass }}">PIC Kamar</dt>
-                            <dd class="{{ $valueClass }}">
-                                @if (! $assignment)
-                                    -
-                                @elseif ($picName === '-')
-                                    PIC belum ditetapkan
-                                @else
-                                    {{ $picName }} @if($isYouPic) <span class="text-green-600 font-semibold">(Kamu)</span> @endif
-                                @endif
-                            </dd>
-                        </div>
+                        @if (!$isInactive)
+                            <div class="{{ $rowClass }}">
+                                <dt class="{{ $labelClass }}">Tanggal Masuk</dt>
+                                <dd class="{{ $valueClass }}">{{ $checkInLabel }}</dd>
+                            </div>
+                        @else
+                            <div class="{{ $rowClass }}">
+                                <dt class="{{ $labelClass }}">Tanggal Keluar</dt>
+                                <dd class="{{ $valueClass }}">{{ $checkOutLabel }}</dd>
+                            </div>
+                        @endif
 
                         <div class="{{ $rowClass }}">
                             <dt class="{{ $labelClass }}">Status</dt>
-                            <dd class="{{ $valueClass }}">{{ $statusLabel }}</dd>
+                            <dd class="{{ $valueClass }}">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $isInactive ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200' }} border">
+                                    {{ $statusLabel }}
+                                </span>
+                            </dd>
                         </div>
                     </dl>
                 </div>
             </div>
 
-            {{-- Ubah Profile --}}
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
-                    <div class="text-base font-semibold text-gray-900">Ubah Profil</div>
-                    <div class="mt-4">
-                        @include('profile.partials.update-profile-information-form')
-                    </div>
-                </div>
-            </div>
+            {{-- INFO ASRAMA (LIST) - Hanya untuk user aktif --}}
+            @if (!$isInactive)
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6">
+                        <div class="text-base font-semibold text-gray-900">Info Asrama</div>
 
-            {{-- Ubah Password --}}
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
-                    <div class="text-base font-semibold text-gray-900">Ubah Password</div>
-                    <div class="mt-4">
-                        @include('profile.partials.update-password-form')
+                        <dl class="mt-4 {{ $itemsClass }}">
+                            <div class="{{ $rowClass }}">
+                                <dt class="{{ $labelClass }}">Cabang</dt>
+                                <dd class="{{ $valueClass }}">{{ $dorm?->name ?? '-' }}</dd>
+                            </div>
+
+                            <div class="{{ $rowClass }}">
+                                <dt class="{{ $labelClass }}">Komplek</dt>
+                                <dd class="{{ $valueClass }}">{{ $block?->name ?? '-' }}</dd>
+                            </div>
+
+                            <div class="{{ $rowClass }}">
+                                <dt class="{{ $labelClass }}">Kode Kamar</dt>
+                                <dd class="{{ $valueClass }}">{{ $roomCode }}</dd>
+                            </div>
+
+                            <div class="{{ $rowClass }}">
+                                <dt class="{{ $labelClass }}">Tipe Kamar</dt>
+                                <dd class="{{ $valueClass }}">{{ $roomType?->name ?? '-' }}</dd>
+                            </div>
+
+                            <div class="{{ $rowClass }}">
+                                <dt class="{{ $labelClass }}">PIC Kamar</dt>
+                                <dd class="{{ $valueClass }}">
+                                    @if (! $assignment)
+                                        -
+                                    @elseif ($picName === '-')
+                                        PIC belum ditetapkan
+                                    @else
+                                        {{ $picName }} @if($isYouPic) <span class="text-green-600 font-semibold">(Kamu)</span> @endif
+                                    @endif
+                                </dd>
+                            </div>
+
+                            <div class="{{ $rowClass }}">
+                                <dt class="{{ $labelClass }}">Status</dt>
+                                <dd class="{{ $valueClass }}">{{ $statusLabel }}</dd>
+                            </div>
+                        </dl>
                     </div>
                 </div>
-            </div>
+            @endif
+
+            {{-- Ubah Profile - Hanya untuk user aktif --}}
+            @if (!$isInactive)
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6">
+                        <div class="text-base font-semibold text-gray-900">Ubah Profil</div>
+                        <div class="mt-4">
+                            @include('profile.partials.update-profile-information-form')
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Ubah Password - Hanya untuk user aktif --}}
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6">
+                        <div class="text-base font-semibold text-gray-900">Ubah Password</div>
+                        <div class="mt-4">
+                            @include('profile.partials.update-password-form')
+                        </div>
+                    </div>
+                </div>
+            @endif
 
         </div>
     </div>
