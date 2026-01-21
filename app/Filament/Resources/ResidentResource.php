@@ -208,20 +208,14 @@ class ResidentResource extends Resource
                         default => $state,
                     })
                     ->sortable(query: function (Builder $query, string $direction): Builder {
-                        return $query
-                            ->leftJoin('room_residents', function ($join) {
-                                $join->on('users.id', '=', 'room_residents.user_id')
-                                     ->whereNull('room_residents.check_out_date');
-                            })
-                            ->select('users.*')
-                            ->selectRaw('
-                                CASE
-                                    WHEN NOT EXISTS (SELECT 1 FROM room_residents WHERE room_residents.user_id = users.id) THEN 1
-                                    WHEN room_residents.check_out_date IS NULL THEN 2
-                                    ELSE 3
-                                END as status_order
-                            ')
-                            ->orderBy('status_order', $direction);
+                        return $query->orderByRaw("
+                            CASE
+                                WHEN users.is_active = 0 THEN 4
+                                WHEN EXISTS (SELECT 1 FROM room_residents WHERE room_residents.user_id = users.id AND room_residents.check_out_date IS NULL) THEN 1
+                                WHEN NOT EXISTS (SELECT 1 FROM room_residents WHERE room_residents.user_id = users.id) THEN 2
+                                ELSE 3
+                            END " . $direction
+                        )->orderBy('created_at', 'desc');
                     }),
 
                 Tables\Columns\TextColumn::make('current_room')
@@ -668,7 +662,16 @@ class ResidentResource extends Resource
                         }),
                 ]),
             ])
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort(fn (Builder $query) => 
+                $query->orderByRaw("
+                    CASE
+                        WHEN users.is_active = 0 THEN 4
+                        WHEN EXISTS (SELECT 1 FROM room_residents WHERE room_residents.user_id = users.id AND room_residents.check_out_date IS NULL) THEN 1
+                        WHEN NOT EXISTS (SELECT 1 FROM room_residents WHERE room_residents.user_id = users.id) THEN 2
+                        ELSE 3
+                    END ASC
+                ")->orderBy('created_at', 'desc')
+            );
     }
 
     public static function getRelations(): array
