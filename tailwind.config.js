@@ -3,8 +3,8 @@ import forms from '@tailwindcss/forms';
 
 /** @type {import('tailwindcss').Config} */
 export default {
-    // ✅ Aktifkan dark mode dengan class strategy
-    darkMode: 'class',
+    // PERBAIKAN: Menggunakan 'selector' untuk kontrol manual via class HTML
+    darkMode: 'selector', 
     
     content: [
         './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',

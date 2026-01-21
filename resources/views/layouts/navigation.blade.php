@@ -1,14 +1,26 @@
 <nav x-data="{ 
     open: false,
-    darkMode: localStorage.getItem('darkMode') === 'true'
+    darkMode: localStorage.getItem('darkMode') === 'true',
+    toggleTheme() {
+        this.darkMode = !this.darkMode;
+        localStorage.setItem('darkMode', this.darkMode);
+        if (this.darkMode) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }
 }" 
 x-init="
-    // Sinkronisasi dengan DOM saat load
-    darkMode = document.documentElement.classList.contains('dark');
+    // Sinkronisasi saat load: cek localStorage
+    if (darkMode) {
+        document.documentElement.classList.add('dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+    }
     
-    // Watch perubahan darkMode
+    // Watcher: jaga-jaga jika nilai berubah dari script lain
     $watch('darkMode', val => {
-        localStorage.setItem('darkMode', val ? 'true' : 'false');
         if (val) {
             document.documentElement.classList.add('dark');
         } else {
@@ -17,11 +29,9 @@ x-init="
     });
 "
 class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-colors duration-200">
-    <!-- Menu Navigasi Utama -->
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 justify-between">
             <div class="flex">
-                <!-- Logo -->
                 <div class="flex shrink-0 items-center">
                     @auth
                     @if (\Illuminate\Support\Facades\Route::has('dashboard'))
@@ -34,11 +44,10 @@ class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 t
                                 @endauth
 
                                 @if ($institution?->logo_path)
-                                <img src="{{ \Illuminate\Support\Facades\Storage::url($institution->logo_path) }}"
-                                    alt="Logo {{ $institution->dormitory_name }}"
-                                    class="h-10 w-10 object-contain">
+                                    <img src="{{ \Illuminate\Support\Facades\Storage::url($institution->logo_path) }}" 
+                                         alt="Logo {{ $institution->dormitory_name }}" 
+                                         class="h-10 w-10 object-contain">
                                 @else
-                                    <!-- Fallback ke SVG default jika tidak ada logo -->
                                     <x-application-logo class="block h-9 w-auto fill-current text-gray-800 dark:text-gray-200" />
                                 @endif
                                 
@@ -78,30 +87,25 @@ class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 t
                 <x-locale-switcher :short="true" />
 
                 @auth
-                <!-- Modern User Dropdown -->
                 @if (\Illuminate\Support\Facades\Route::has('profile.edit'))
                 <div x-data="{ dropdownOpen: false }" 
                      @click.away="dropdownOpen = false" 
                      class="relative">
                     
-                    <!-- Trigger Button -->
                     <button @click="dropdownOpen = !dropdownOpen"
                             class="flex items-center gap-3 rounded-lg px-3 py-2 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800">
-                        <!-- User Info -->
                         <div class="text-right">
                             <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">
                                 {{ auth()->user()->name }}
                             </div>
                         </div>
                         
-                        <!-- Chevron -->
                         <svg class="h-4 w-4 text-gray-500 dark:text-gray-400 transition-transform duration-200"
                              :class="{ 'rotate-180': dropdownOpen }"
                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                         </svg>
                         
-                        <!-- Avatar -->
                         <div class="relative">
                             <div class="h-9 w-9 rounded-full bg-black flex items-center justify-center text-white font-bold text-sm shadow-md">
                                 {{ mb_substr(auth()->user()->name, 0, 1) }}
@@ -110,7 +114,6 @@ class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 t
                         </div>
                     </button>
 
-                    <!-- Dropdown Menu -->
                     <div x-show="dropdownOpen"
                          x-transition:enter="transition ease-out duration-200"
                          x-transition:enter-start="opacity-0 scale-95"
@@ -123,7 +126,6 @@ class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 t
                         
                         <div class="rounded-xl bg-white dark:bg-gray-800 shadow-xl ring-1 ring-black ring-opacity-5 dark:ring-gray-700 overflow-hidden">
                             
-                            <!-- User Info Section -->
                             <div class="px-4 py-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700">
                                 <div class="flex items-center gap-3">
                                     <div class="h-12 w-12 rounded-full bg-black flex items-center justify-center text-white font-bold text-lg shadow-md">
@@ -143,9 +145,7 @@ class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 t
                                 </div>
                             </div>
 
-                            <!-- Menu Items -->
                             <div class="py-2">
-                                <!-- Profile Link -->
                                 <a href="{{ route('profile.edit') }}"
                                    class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150">
                                     <svg class="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -154,8 +154,7 @@ class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 t
                                     <span class="font-medium">Profil Saya</span>
                                 </a>
 
-                                <!-- Dark Mode Toggle -->
-                                <button @click="darkMode = !darkMode"
+                                <button @click="toggleTheme()"
                                         class="w-full flex items-center justify-between gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150">
                                     <div class="flex items-center gap-3">
                                         <svg x-show="!darkMode" class="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -166,7 +165,6 @@ class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 t
                                         </svg>
                                         <span class="font-medium">Tema Gelap</span>
                                     </div>
-                                    <!-- Toggle Switch -->
                                     <div class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200"
                                          :class="darkMode ? 'bg-green-600' : 'bg-gray-300'">
                                         <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200"
@@ -175,10 +173,8 @@ class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 t
                                 </button>
                             </div>
 
-                            <!-- Divider -->
                             <div class="border-t border-gray-200 dark:border-gray-700"></div>
 
-                            <!-- Logout -->
                             <div class="py-2">
                                 @if (\Illuminate\Support\Facades\Route::has('logout'))
                                 <form method="POST" action="{{ route('logout') }}">
@@ -247,9 +243,8 @@ class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 t
                 {{ __('navigation.room_history') }}
             </x-responsive-nav-link>
 
-            <!-- Dark Mode Toggle (Mobile) -->
             <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
-                <button @click="darkMode = !darkMode"
+                <button @click="toggleTheme()"
                         class="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150">
                     <div class="flex items-center gap-3">
                         <svg x-show="!darkMode" class="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -260,7 +255,6 @@ class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 t
                         </svg>
                         <span class="font-medium">Tema Gelap</span>
                     </div>
-                    <!-- Toggle Switch -->
                     <div class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200"
                          :class="darkMode ? 'bg-green-600' : 'bg-gray-300'">
                         <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200"

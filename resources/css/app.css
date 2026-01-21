@@ -1,12 +1,38 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+@plugin "@tailwindcss/forms";
 
-* {
-    font-family: 'Inter', sans-serif !important;
+@theme {
+    --font-sans: 'Inter', sans-serif;
 }
 
-input,
-textarea,
-select {
-    @apply border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500;
+/* --- PERBAIKAN DARK MODE GLOBAL --- */
+
+/* 1. Atur warna default Input Form */
+input, textarea, select {
+    @apply border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500;
+    @apply dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200;
+}
+
+/* 2. MAGIC FIX: Paksa semua elemen 'bg-white' berubah jadi gelap saat dark mode */
+.dark .bg-white {
+    background-color: #1f2937 !important; /* gray-800 */
+    color: #e5e7eb !important;           /* gray-200 */
+    border-color: #374151 !important;    /* gray-700 */
+}
+
+/* 3. Perbaikan teks agar kontras */
+.dark .text-gray-900 {
+    color: #f3f4f6 !important; /* gray-100 */
+}
+
+.dark .text-gray-700, 
+.dark .text-gray-600, 
+.dark .text-gray-500 {
+    color: #9ca3af !important; /* gray-400 */
+}
+
+/* 4. Perbaikan Table (jika ada) */
+.dark tr:hover {
+    background-color: #374151 !important; /* gray-700 */
 }
