@@ -12,14 +12,14 @@
     }
 }" 
 x-init="
-    // Sinkronisasi saat load: cek localStorage
+    // Sync darkMode dengan DOM saat load
     if (darkMode) {
         document.documentElement.classList.add('dark');
     } else {
         document.documentElement.classList.remove('dark');
     }
     
-    // Watcher: jaga-jaga jika nilai berubah dari script lain
+    // Watch perubahan darkMode
     $watch('darkMode', val => {
         if (val) {
             document.documentElement.classList.add('dark');
@@ -28,7 +28,7 @@ x-init="
         }
     });
 "
-class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-colors duration-200">
+class="border-b bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 transition-colors duration-200">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 justify-between">
             <div class="flex">
@@ -51,7 +51,7 @@ class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 t
                                     <x-application-logo class="block h-9 w-auto fill-current text-gray-800 dark:text-gray-200" />
                                 @endif
                                 
-                                <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                                <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100 transition-colors duration-200">
                                     {{ $institution?->dormitory_name ?? config('app.name') }}
                                 </h1>
                             </a>
@@ -107,10 +107,10 @@ class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 t
                         </svg>
                         
                         <div class="relative">
-                            <div class="h-9 w-9 rounded-full bg-black flex items-center justify-center text-white font-bold text-sm shadow-md">
+                            <div class="h-9 w-9 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md bg-green-600 dark:bg-green-500">
                                 {{ mb_substr(auth()->user()->name, 0, 1) }}
                             </div>
-                            <div class="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white dark:border-gray-900"></div>
+                            <div class="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 dark:bg-green-400 border-2 border-white dark:border-gray-900"></div>
                         </div>
                     </button>
 
@@ -124,23 +124,29 @@ class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 t
                          class="absolute right-0 mt-2 w-72 origin-top-right z-50"
                          style="display: none;">
                         
-                        <div class="rounded-xl bg-white dark:bg-gray-800 shadow-xl ring-1 ring-black ring-opacity-5 dark:ring-gray-700 overflow-hidden">
+                        <div class="rounded-xl shadow-xl ring-1 overflow-hidden bg-white dark:bg-gray-800 ring-black ring-opacity-5 dark:ring-gray-700">
                             
-                            <div class="px-4 py-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700">
+                            <div class="px-4 py-3 border-b bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700">
                                 <div class="flex items-center gap-3">
-                                    <div class="h-12 w-12 rounded-full bg-black flex items-center justify-center text-white font-bold text-lg shadow-md">
+                                    <div class="h-12 w-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md bg-green-600 dark:bg-green-500">
                                         {{ mb_substr(auth()->user()->name, 0, 1) }}
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <div class="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
+                                        <div class="font-bold text-sm text-gray-900 dark:text-gray-100 truncate">
                                             {{ auth()->user()->name }}
                                         </div>
-                                        <div class="flex items-center gap-1.5 mt-0.5">
-                                            <svg class="h-3.5 w-3.5 text-green-600 dark:text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-                                            </svg>
-                                            <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Penghuni</span>
-                                        </div>
+                                        @php
+                                            $residentProfile = auth()->user()->residentProfile;
+                                            $residentCategory = $residentProfile?->residentCategory;
+                                        @endphp
+                                        @if ($residentCategory)
+                                            <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100">
+                                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
+                                                </svg>
+                                                {{ $residentCategory->name }}
+                                            </span>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
@@ -151,11 +157,16 @@ class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 t
                                     <svg class="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                     </svg>
-                                    <span class="font-medium">Profil Saya</span>
+                                    <span class="font-semibold">Profil Saya</span>
                                 </a>
+                            </div>
 
+                            <div class="border-t border-gray-200 dark:border-gray-700"></div>
+
+                            <div class="py-2 px-4">
                                 <button @click="toggleTheme()"
-                                        class="w-full flex items-center justify-between gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150">
+                                        type="button"
+                                        class="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150">
                                     <div class="flex items-center gap-3">
                                         <svg x-show="!darkMode" class="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
@@ -198,14 +209,14 @@ class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 t
                 @guest
                 <div class="flex items-center gap-3">
                     @if (\Illuminate\Support\Facades\Route::has('login'))
-                    <a href="{{ route('login') }}" class="text-sm text-gray-700 dark:text-gray-300 hover:underline">
+                    <a href="{{ route('login') }}" class="text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
                         {{ __('navigation.login') }}
                     </a>
                     @endif
 
                     @if (\Illuminate\Support\Facades\Route::has('public.registration.create'))
                     <a href="{{ route('public.registration.create') }}"
-                        class="inline-flex items-center rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700">
+                        class="inline-flex items-center rounded-md bg-green-600 dark:bg-green-500 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 dark:hover:bg-green-600 transition-colors">
                         {{ __('navigation.register') }}
                     </a>
                     @endif
@@ -226,9 +237,11 @@ class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 t
         </div>
     </div>
 
-    <!-- Responsive Navigation Menu -->
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
-        <div class="pt-2 pb-3 space-y-1">
+    <!-- Mobile menu -->
+    <div :class="{ 'block': open, 'hidden': ! open }" class="hidden sm:hidden bg-white dark:bg-gray-900 transition-colors duration-200">
+        <div class="space-y-1 pb-3 pt-2">
+            @auth
+            @if (\Illuminate\Support\Facades\Route::has('dashboard'))
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('navigation.dashboard') }}
             </x-responsive-nav-link>
@@ -245,6 +258,7 @@ class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 t
 
             <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
                 <button @click="toggleTheme()"
+                        type="button"
                         class="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150">
                     <div class="flex items-center gap-3">
                         <svg x-show="!darkMode" class="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -263,7 +277,6 @@ class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 t
                 </button>
             </div>
 
-            {{-- Link Profil tetap ada --}}
             @if (\Illuminate\Support\Facades\Route::has('profile.edit'))
             <x-responsive-nav-link :href="route('profile.edit')" :active="request()->routeIs('profile.edit')">
                 {{ __('navigation.profile') }}

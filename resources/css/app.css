@@ -6,33 +6,230 @@
     --font-sans: 'Inter', sans-serif;
 }
 
-/* --- PERBAIKAN DARK MODE GLOBAL --- */
+/* === DARK MODE GLOBAL CONFIGURATION === */
 
-/* 1. Atur warna default Input Form */
-input, textarea, select {
-    @apply border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500;
-    @apply dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200;
+/* Root HTML & Body */
+body {
+    @apply bg-gray-50 text-gray-900 transition-colors duration-200;
 }
 
-/* 2. MAGIC FIX: Paksa semua elemen 'bg-white' berubah jadi gelap saat dark mode */
-.dark .bg-white {
-    background-color: #1f2937 !important; /* gray-800 */
-    color: #e5e7eb !important;           /* gray-200 */
-    border-color: #374151 !important;    /* gray-700 */
+.dark body {
+    @apply bg-gray-950 text-gray-100;
 }
 
-/* 3. Perbaikan teks agar kontras */
-.dark .text-gray-900 {
-    color: #f3f4f6 !important; /* gray-100 */
+/* Input & Form Elements */
+input:not([type="checkbox"]):not([type="radio"]), 
+textarea, 
+select {
+    @apply border-gray-300 bg-white text-gray-900 rounded-md px-3 py-2 shadow-sm;
+    @apply focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500;
 }
 
-.dark .text-gray-700, 
-.dark .text-gray-600, 
-.dark .text-gray-500 {
-    color: #9ca3af !important; /* gray-400 */
+.dark input:not([type="checkbox"]):not([type="radio"]), 
+.dark textarea, 
+.dark select {
+    @apply border-gray-600 bg-gray-800 text-gray-100;
+    @apply focus:ring-green-500 focus:border-green-500;
 }
 
-/* 4. Perbaikan Table (jika ada) */
-.dark tr:hover {
-    background-color: #374151 !important; /* gray-700 */
+/* Placeholder Text */
+input::placeholder,
+textarea::placeholder {
+    @apply text-gray-400;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+    @apply text-gray-500;
+}
+
+/* Disabled State */
+input:disabled,
+textarea:disabled,
+select:disabled {
+    @apply bg-gray-100 text-gray-500 cursor-not-allowed;
+}
+
+.dark input:disabled,
+.dark textarea:disabled,
+.dark select:disabled {
+    @apply bg-gray-900 text-gray-600;
+}
+
+/* Buttons */
+button:not(.no-dark) {
+    @apply transition-colors duration-200;
+}
+
+/* Tables */
+.dark table {
+    @apply bg-gray-800 text-gray-100;
+}
+
+.dark thead {
+    @apply bg-gray-900 text-gray-100;
+}
+
+.dark tbody tr {
+    @apply border-gray-700;
+}
+
+.dark tbody tr:hover {
+    @apply bg-gray-700;
+}
+
+.dark th {
+    @apply bg-gray-900 text-gray-100 border-gray-700;
+}
+
+.dark td {
+    @apply border-gray-700 text-gray-300;
+}
+
+/* Links */
+.dark a:not(.btn):not(.button):not([class*="bg-"]):not([class*="hover:bg-"]) {
+    @apply text-green-400 hover:text-green-300;
+}
+
+/* Borders */
+.dark .border-gray-200 {
+    @apply border-gray-700;
+}
+
+.dark .border-gray-300 {
+    @apply border-gray-600;
+}
+
+.dark .border-gray-100 {
+    @apply border-gray-800;
+}
+
+/* Dividers */
+.dark hr {
+    @apply border-gray-700;
+}
+
+/* Shadows - More subtle in dark mode */
+.dark .shadow,
+.dark .shadow-sm {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+}
+
+.dark .shadow-md {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+}
+
+.dark .shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+}
+
+.dark .shadow-xl {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+.dark .shadow-2xl {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+}
+
+/* Ring Focus */
+.dark .ring-gray-200 {
+    @apply ring-gray-700;
+}
+
+.dark .ring-gray-300 {
+    @apply ring-gray-600;
+}
+
+/* Dark mode scrollbar */
+.dark {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(55 65 81) rgb(17 24 39);
+}
+
+.dark ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.dark ::-webkit-scrollbar-track {
+    background: rgb(17 24 39);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+    background: rgb(55 65 81);
+    border-radius: 5px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: rgb(75 85 99);
+}
+
+/* Dropdown & Modal Backdrops */
+.dark .backdrop-blur {
+    backdrop-filter: blur(8px);
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Alert & Notification Boxes */
+.dark .bg-blue-50 {
+    @apply bg-blue-900/20;
+}
+
+.dark .bg-red-50 {
+    @apply bg-red-900/20;
+}
+
+.dark .bg-yellow-50 {
+    @apply bg-yellow-900/20;
+}
+
+.dark .bg-green-50 {
+    @apply bg-green-900/20;
+}
+
+.dark .border-blue-200 {
+    @apply border-blue-800;
+}
+
+.dark .border-red-200 {
+    @apply border-red-800;
+}
+
+.dark .border-yellow-200 {
+    @apply border-yellow-800;
+}
+
+.dark .border-green-200 {
+    @apply border-green-800;
+}
+
+.dark .text-blue-800 {
+    @apply text-blue-200;
+}
+
+.dark .text-red-800 {
+    @apply text-red-200;
+}
+
+.dark .text-yellow-800 {
+    @apply text-yellow-200;
+}
+
+.dark .text-green-800 {
+    @apply text-green-200;
+}
+
+/* Code Blocks */
+.dark pre {
+    @apply bg-gray-900 text-gray-100;
+}
+
+.dark code {
+    @apply bg-gray-800 text-gray-100;
+}
+
+/* Selection */
+.dark ::selection {
+    background-color: rgb(34 197 94 / 0.3);
+    color: rgb(243 244 246);
 }
