@@ -246,22 +246,12 @@ class ResidentResource extends Resource
 
                 SelectFilter::make('status')
                     ->label('Status')
-                    ->options(function () {
-                        $activeTab = request()->query('activeTab');
-                        
-                        $baseOptions = [
-                            'registered' => 'Terdaftar',
-                            'active' => 'Aktif',
-                            'inactive' => 'Nonaktif',
-                        ];
-
-                        // Tambahkan option "Keluar" hanya di tab keluar
-                        if ($activeTab === 'keluar') {
-                            $baseOptions['checkout'] = 'Keluar';
-                        }
-
-                        return $baseOptions;
-                    })
+                    ->options([
+                        'registered' => 'Terdaftar',
+                        'active' => 'Aktif',
+                        'checkout' => 'Keluar',
+                        'inactive' => 'Nonaktif',
+                    ])
                     ->native(false)
                     ->query(function (Builder $query, array $data) {
                         $status = $data['value'] ?? null;
@@ -277,22 +267,22 @@ class ResidentResource extends Resource
                             } elseif ($status === 'registered') {
                                 // Status Terdaftar: akun aktif DAN belum pernah punya kamar
                                 $q->where('is_active', true)
-                                  ->whereDoesntHave('roomResidents');
+                                ->whereDoesntHave('roomResidents');
                             } elseif ($status === 'active') {
                                 // Status Aktif: akun aktif DAN punya kamar aktif
                                 $q->where('is_active', true)
-                                  ->whereHas('roomResidents', function (Builder $rr) {
-                                      $rr->whereNull('check_out_date');
-                                  });
+                                ->whereHas('roomResidents', function (Builder $rr) {
+                                    $rr->whereNull('check_out_date');
+                                });
                             } elseif ($status === 'checkout') {
                                 // Status Keluar: akun aktif DAN pernah punya kamar tapi sekarang sudah checkout
                                 $q->where('is_active', true)
-                                  ->whereHas('roomResidents', function (Builder $rr) {
-                                      $rr->whereNotNull('check_out_date');
-                                  })
-                                  ->whereDoesntHave('roomResidents', function (Builder $rr) {
-                                      $rr->whereNull('check_out_date');
-                                  });
+                                ->whereHas('roomResidents', function (Builder $rr) {
+                                    $rr->whereNotNull('check_out_date');
+                                })
+                                ->whereDoesntHave('roomResidents', function (Builder $rr) {
+                                    $rr->whereNull('check_out_date');
+                                });
                             }
                         });
                     }),
