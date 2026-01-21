@@ -14,17 +14,15 @@
                             @else
                             <a href="{{ url('/') }}" class="flex items-center gap-3">
                                 @endauth
-                                
+
                                 @if ($institution?->logo_path)
-                                    <!-- Logo dari Database -->
-                                    <img src="{{ \Illuminate\Support\Facades\Storage::url($institution->logo_path) }}" 
-                                         alt="Logo {{ $institution->dormitory_name }}" 
-                                         class="h-10 w-10 object-contain">
+                                <img src="{{ \Illuminate\Support\Facades\Storage::url($institution->logo_path) }}"
+                                    alt="Logo {{ $institution->dormitory_name }}"
+                                    class="h-10 w-10 object-contain">
                                 @else
-                                    <!-- Fallback ke SVG default jika tidak ada logo -->
-                                    <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
+                                <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
                                 @endif
-                                
+
                                 <h1 class="text-xl font-semibold">
                                     {{ $institution?->dormitory_name ?? config('app.name') }}
                                 </h1>
@@ -36,21 +34,19 @@
                     @auth
                     @if (\Illuminate\Support\Facades\Route::has('dashboard'))
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        {{ __('Dasbor') }}
+                        {{ __('navigation.dashboard') }}
                     </x-nav-link>
                     @endif
 
-                    {{-- Menu Kamar Saya --}}
                     @if (\Illuminate\Support\Facades\Route::has('resident.my-room'))
                     <x-nav-link :href="route('resident.my-room')" :active="request()->routeIs('resident.my-room')">
-                        {{ __('Kamar Saya') }}
+                        {{ __('navigation.my_room') }}
                     </x-nav-link>
                     @endif
 
-                    {{-- Menu Riwayat Kamar --}}
                     @if (\Illuminate\Support\Facades\Route::has('resident.room-history'))
                     <x-nav-link :href="route('resident.room-history')" :active="request()->routeIs('resident.room-history')">
-                        {{ __('Riwayat Kamar') }}
+                        {{ __('navigation.room_history') }}
                     </x-nav-link>
                     @endif
                     @endauth
@@ -58,7 +54,7 @@
                     @guest
                     @if (\Illuminate\Support\Facades\Route::has('public.registration.create'))
                     <x-nav-link :href="route('public.registration.create')" :active="request()->routeIs('public.registration.*')">
-                        {{ __('Pendaftaran') }}
+                        {{ __('navigation.registration') }}
                     </x-nav-link>
                     @endif
                     @endguest
@@ -66,9 +62,11 @@
             </div>
 
             <!-- Area kanan (Desktop) -->
-            <div class="hidden sm:ms-6 sm:flex sm:items-center">
+            <div class="hidden sm:ms-6 sm:flex sm:items-center gap-4">
+                {{-- Language Switcher dengan localStorage --}}
+                <x-locale-switcher :short="true" />
+
                 @auth
-                <!-- Dropdown Pengaturan -->
                 @if (\Illuminate\Support\Facades\Route::has('profile.edit'))
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
@@ -85,7 +83,7 @@
 
                     <x-slot name="content">
                         <x-dropdown-link :href="route('profile.edit')">
-                            {{ __('Profil') }}
+                            {{ __('navigation.profile') }}
                         </x-dropdown-link>
 
                         @if (\Illuminate\Support\Facades\Route::has('logout'))
@@ -93,7 +91,7 @@
                             @csrf
                             <x-dropdown-link :href="route('logout')"
                                 onclick="event.preventDefault(); this.closest('form').submit();">
-                                {{ __('Keluar') }}
+                                {{ __('navigation.logout') }}
                             </x-dropdown-link>
                         </form>
                         @endif
@@ -106,14 +104,14 @@
                 <div class="flex items-center gap-3">
                     @if (\Illuminate\Support\Facades\Route::has('login'))
                     <a href="{{ route('login') }}" class="text-sm text-gray-700 hover:underline">
-                        {{ __('Login') }}
+                        {{ __('navigation.login') }}
                     </a>
                     @endif
 
                     @if (\Illuminate\Support\Facades\Route::has('public.registration.create'))
                     <a href="{{ route('public.registration.create') }}"
                         class="inline-flex items-center rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700">
-                        {{ __('Daftar') }}
+                        {{ __('navigation.register') }}
                     </a>
                     @endif
                 </div>
@@ -143,38 +141,42 @@
             @auth
             @if (\Illuminate\Support\Facades\Route::has('dashboard'))
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                {{ __('Dasbor') }}
+                {{ __('navigation.dashboard') }}
             </x-responsive-nav-link>
             @endif
 
-            {{-- Menu Kamar Saya (mobile) --}}
             @if (\Illuminate\Support\Facades\Route::has('resident.my-room'))
             <x-responsive-nav-link :href="route('resident.my-room')" :active="request()->routeIs('resident.my-room')">
-                {{ __('Kamar Saya') }}
+                {{ __('navigation.my_room') }}
             </x-responsive-nav-link>
             @endif
 
-            {{-- Menu Riwayat Kamar (mobile) --}}
             @if (\Illuminate\Support\Facades\Route::has('resident.room-history'))
             <x-responsive-nav-link :href="route('resident.room-history')" :active="request()->routeIs('resident.room-history')">
-                {{ __('Riwayat Kamar') }}
+                {{ __('navigation.room_history') }}
             </x-responsive-nav-link>
             @endif
 
-            {{-- Link Profil tetap ada --}}
             @if (\Illuminate\Support\Facades\Route::has('profile.edit'))
             <x-responsive-nav-link :href="route('profile.edit')" :active="request()->routeIs('profile.edit')">
-                {{ __('Profil') }}
+                {{ __('navigation.profile') }}
             </x-responsive-nav-link>
             @endif
 
-            {{-- Logout tetap tersedia di mobile --}}
+            {{-- Language Switcher Mobile --}}
+            <div class="px-4 py-2 border-t border-gray-200">
+                <label class="block text-xs font-medium text-gray-700 mb-2">{{ __('navigation.language') ?? 'Language' }}</label>
+                <x-locale-switcher
+                    :short="false"
+                    select-class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-green-500 focus:ring-green-500" />
+            </div>
+
             @if (\Illuminate\Support\Facades\Route::has('logout'))
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <x-responsive-nav-link :href="route('logout')"
                     onclick="event.preventDefault(); this.closest('form').submit();">
-                    {{ __('Keluar') }}
+                    {{ __('navigation.logout') }}
                 </x-responsive-nav-link>
             </form>
             @endif
@@ -183,13 +185,13 @@
             @guest
             @if (\Illuminate\Support\Facades\Route::has('login'))
             <x-responsive-nav-link :href="route('login')" :active="request()->routeIs('login')">
-                {{ __('Login') }}
+                {{ __('navigation.login') }}
             </x-responsive-nav-link>
             @endif
 
             @if (\Illuminate\Support\Facades\Route::has('public.registration.create'))
             <x-responsive-nav-link :href="route('public.registration.create')" :active="request()->routeIs('public.registration.*')">
-                {{ __('Daftar') }}
+                {{ __('navigation.registration') }}
             </x-responsive-nav-link>
             @endif
             @endguest

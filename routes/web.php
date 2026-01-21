@@ -5,6 +5,7 @@ use App\Http\Controllers\PublicRegistrationController;
 use App\Http\Controllers\Resident\DashboardController;
 use App\Http\Controllers\Resident\MyRoomController;
 use App\Http\Controllers\Resident\RoomHistoryController;
+use App\Http\Controllers\LocaleController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -65,6 +66,8 @@ Route::delete('/profile/hapus-foto', [ProfileController::class, 'deletePhoto'])
     ->name('profile.delete-photo')
     ->middleware('auth');
 
+// Route untuk switch bahasa
+Route::post('/locale/switch', [LocaleController::class, 'switch'])->name('locale.switch');
 // =====================
 // Auth Routes
 // =====================
