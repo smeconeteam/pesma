@@ -191,7 +191,7 @@ class CreateBill extends CreateRecord
                                             ->label('Pilih Pendaftaran')
                                             ->options(function () {
                                                 return Registration::query()
-                                                    ->whereIn('status', ['pending', 'approved'])
+                                                    ->whereIn('status', ['approved'])
                                                     ->whereDoesntHave('bills', function ($q) {
                                                         $q->whereHas('billingType', function ($q2) {
                                                             $q2->where('name', 'Biaya Pendaftaran');
