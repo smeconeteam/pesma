@@ -7,3 +7,4 @@
         <x-primary-button>{{ __('Keluar') }}</x-primary-button>
     </form>
 </x-guest-layout>
+

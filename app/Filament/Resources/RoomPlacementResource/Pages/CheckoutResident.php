@@ -22,7 +22,6 @@ class CheckoutResident extends Page
 
     protected static ?string $title = 'Keluarkan Penghuni';
 
-
     public ?array $data = [];
     public User $record;
 
@@ -48,7 +47,6 @@ class CheckoutResident extends Page
     {
         $currentRoom = $this->record->activeRoomResident;
 
-        // Ambil tanggal masuk untuk validasi
         $minCheckOutDate = $currentRoom?->check_in_date
             ? Carbon::parse($currentRoom->check_in_date)->toDateString()
             : null;
@@ -89,14 +87,12 @@ class CheckoutResident extends Page
 
                                 if (!$checkIn) return '-';
 
-                                // Jika belum melewati tanggal masuk, tampilkan "Belum masuk"
                                 if (now()->lt(Carbon::parse($checkIn)->startOfDay())) {
                                     return 'Belum melewati tanggal masuk';
                                 }
 
                                 $days = now()->diffInDays($checkIn);
 
-                                // Minimal 0 hari
                                 if ($days === 0) {
                                     return '0 hari (hari ini)';
                                 }
@@ -121,7 +117,6 @@ class CheckoutResident extends Page
                             ->required()
                             ->default(now()->toDateString())
                             ->native(false)
-                            // Validasi: tanggal keluar harus >= tanggal masuk
                             ->minDate($minCheckOutDate)
                             ->helperText(
                                 $minCheckOutDate
@@ -141,7 +136,7 @@ class CheckoutResident extends Page
                                 <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                                     <p class="text-sm text-yellow-800">
                                         <strong>Perhatian:</strong> Setelah keluar, status penghuni akan menjadi <strong>Nonaktif</strong>. 
-                                        Penghuni tidak akan bisa login ke sistem dan tidak akan muncul di daftar penghuni aktif.
+                                        User tetap dapat login ke sistem dan bisa ditempatkan kembali di kamar lain.
                                     </p>
                                 </div>
                             '))
@@ -171,7 +166,7 @@ class CheckoutResident extends Page
             $wasPic = $currentRoomResident->is_pic;
             $roomId = $currentRoomResident->room_id;
 
-            // 1) Update RoomResident (TANPA events untuk menghindari auto-assign PIC dua kali)
+            // 1) Update RoomResident - set check_out_date
             $currentRoomResident->withoutEvents(function () use ($currentRoomResident, $checkOutDate) {
                 $currentRoomResident->update([
                     'check_out_date' => $checkOutDate->toDateString(),
@@ -187,31 +182,30 @@ class CheckoutResident extends Page
                     'notes' => $data['notes'] ?? 'Keluar dari asrama',
                 ]);
 
-            // 3) Update status resident menjadi inactive
-            $this->record->residentProfile->update([
-                'status' => 'inactive',
-            ]);
+            // 3) ✅ Update status resident menjadi inactive (tapi user tetap aktif)
+            if ($this->record->residentProfile) {
+                $this->record->residentProfile->update([
+                    'status' => 'inactive',
+                    'check_out_date' => $checkOutDate->toDateString(),
+                ]);
+            }
 
-            // 4) Nonaktifkan user
-            $this->record->update([
-                'is_active' => false,
-            ]);
+            // 4) ✅ User TETAP AKTIF (bisa login, tapi tidak punya kamar)
+            // Tidak perlu mengubah is_active
+            // $this->record->update(['is_active' => false]);
 
             // 5) ASSIGN PIC BARU jika yang keluar adalah PIC
             if ($wasPic) {
-                // Cari penghuni tertua yang masih aktif di kamar
                 $newPic = \App\Models\RoomResident::where('room_id', $roomId)
                     ->whereNull('check_out_date')
                     ->orderBy('check_in_date', 'asc')
                     ->first();
 
                 if ($newPic) {
-                    // Update sebagai PIC tanpa trigger event
                     \App\Models\RoomResident::withoutEvents(function () use ($newPic) {
                         $newPic->update(['is_pic' => true]);
                     });
 
-                    // Update history juga
                     RoomHistory::where('room_resident_id', $newPic->id)
                         ->whereNull('check_out_date')
                         ->update([
@@ -224,7 +218,7 @@ class CheckoutResident extends Page
 
         Notification::make()
             ->title('Penghuni berhasil keluar')
-            ->body('Status penghuni: Nonaktif')
+            ->body('Status penghuni: Nonaktif. User tetap dapat login.')
             ->success()
             ->send();
 
@@ -239,7 +233,7 @@ class CheckoutResident extends Page
                 ->color('danger')
                 ->requiresConfirmation()
                 ->modalHeading('Konfirmasi Keluar')
-                ->modalDescription('Apakah Anda yakin ingin mengeluarkan penghuni ini? Status akan menjadi Nonaktif.')
+                ->modalDescription('Apakah Anda yakin ingin mengeluarkan penghuni ini? Status akan menjadi Nonaktif, tapi user tetap dapat login ke sistem.')
                 ->action('checkout'),
 
             \Filament\Actions\Action::make('cancel')

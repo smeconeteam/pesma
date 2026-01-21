@@ -22,7 +22,7 @@ class LoginRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, \Illuminate\Contracts\Validation\Rule|array|string>
      */
     public function rules(): array
     {
@@ -41,8 +41,24 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        // Tambahkan kondisi is_active = 1 pada credentials
+        if (! Auth::attempt(
+            array_merge(
+                $this->only('email', 'password'),
+                ['is_active' => 1]
+            ),
+            $this->boolean('remember')
+        )) {
             RateLimiter::hit($this->throttleKey());
+
+            // Cek apakah user ada tapi tidak aktif
+            $user = \App\Models\User::where('email', $this->email)->first();
+            
+            if ($user && !$user->is_active) {
+                throw ValidationException::withMessages([
+                    'email' => 'Akun Anda tidak aktif. Silakan hubungi administrator.',
+                ]);
+            }
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
