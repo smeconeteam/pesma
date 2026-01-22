@@ -29,7 +29,6 @@ class PlaceResident extends Page implements HasActions
 
     protected static ?string $title = 'Tempatkan Penghuni';
 
-
     public ?array $data = [];
     public User $record;
 
@@ -50,10 +49,36 @@ class PlaceResident extends Page implements HasActions
             return;
         }
 
-        $this->form->fill([
+        // ✅ Cek kamar terakhir (untuk pre-fill)
+        $lastRoom = RoomResident::where('user_id', $record->id)
+            ->whereNotNull('check_out_date')
+            ->latest('check_out_date')
+            ->first();
+
+        // ✅ Ambil preferensi dari registrasi
+        $registration = $record->residentProfile?->user->registrations()
+            ->where('status', 'approved')
+            ->where('user_id', $record->id)
+            ->first();
+
+        $initialData = [
             'check_in_date' => now()->toDateString(),
             'is_pic' => false,
-        ]);
+        ];
+
+        // ✅ Jika pernah punya kamar, pre-fill dengan kamar terakhir
+        if ($lastRoom && $lastRoom->room) {
+            $room = $lastRoom->room;
+            $initialData['dorm_id'] = $room->block->dorm_id;
+            $initialData['block_id'] = $room->block_id;
+            $initialData['room_id'] = $room->id;
+        }
+        // ✅ Jika belum pernah punya kamar, gunakan preferensi pendaftaran
+        elseif ($registration && $registration->preferred_dorm_id) {
+            $initialData['dorm_id'] = $registration->preferred_dorm_id;
+        }
+
+        $this->form->fill($initialData);
     }
 
     protected function getFormActions(): array
@@ -86,6 +111,10 @@ class PlaceResident extends Page implements HasActions
                             ->label('Jenis Kelamin')
                             ->content(fn () => ($this->record->residentProfile?->gender === 'M') ? 'Laki-laki' : 'Perempuan'),
 
+                        Forms\Components\Placeholder::make('resident_category')
+                            ->label('Kategori Penghuni')
+                            ->content($this->record->residentProfile?->residentCategory?->name ?? '-'),
+
                         Forms\Components\Placeholder::make('status')
                             ->label('Status Saat Ini')
                             ->content(fn () => $this->record->residentProfile?->status ?? '-'),
@@ -97,7 +126,7 @@ class PlaceResident extends Page implements HasActions
                         Forms\Components\Select::make('dorm_id')
                             ->label('Cabang')
                             ->options(fn () => Dorm::query()
-                                ->where('is_active', true) // ✅ hanya dorm aktif
+                                ->where('is_active', true)
                                 ->orderBy('name')
                                 ->pluck('name', 'id'))
                             ->searchable()
@@ -113,7 +142,7 @@ class PlaceResident extends Page implements HasActions
                         Forms\Components\Select::make('block_id')
                             ->label('Komplek')
                             ->options(fn (Forms\Get $get) => Block::query()
-                                ->where('is_active', true) // ✅ hanya block aktif
+                                ->where('is_active', true)
                                 ->when($get('dorm_id'), fn (Builder $q, $dormId) => $q->where('dorm_id', $dormId))
                                 ->orderBy('name')
                                 ->pluck('name', 'id'))
@@ -138,6 +167,7 @@ class PlaceResident extends Page implements HasActions
                             ->options(function (Forms\Get $get) {
                                 $blockId = $get('block_id');
                                 $gender  = $this->record->residentProfile?->gender;
+                                $residentCategoryId = $this->record->residentProfile?->resident_category_id;
 
                                 if (blank($blockId) || blank($gender)) return [];
 
@@ -150,14 +180,37 @@ class PlaceResident extends Page implements HasActions
                                 $options = [];
 
                                 foreach ($rooms as $room) {
+                                    // ✅ VALIDASI 1: Cek kategori kamar
+                                    // Jika kamar punya kategori khusus, harus cocok dengan kategori penghuni
+                                    if ($room->resident_category_id && $room->resident_category_id != $residentCategoryId) {
+                                        continue;
+                                    }
+
+                                    // ✅ VALIDASI 2: Cek gender penghuni yang sudah ada
                                     $activeGender = RoomResident::query()
                                         ->where('room_residents.room_id', $room->id)
                                         ->whereNull('room_residents.check_out_date')
                                         ->join('resident_profiles', 'resident_profiles.user_id', '=', 'room_residents.user_id')
                                         ->value('resident_profiles.gender');
 
-                                    if ($activeGender && $activeGender !== $gender) continue;
+                                    // Skip jika gender berbeda
+                                    if ($activeGender && $activeGender !== $gender) {
+                                        continue;
+                                    }
 
+                                    // ✅ VALIDASI 3: Cek kategori penghuni yang sudah ada
+                                    $activeCategoryId = RoomResident::query()
+                                        ->where('room_residents.room_id', $room->id)
+                                        ->whereNull('room_residents.check_out_date')
+                                        ->join('resident_profiles', 'resident_profiles.user_id', '=', 'room_residents.user_id')
+                                        ->value('resident_profiles.resident_category_id');
+
+                                    // Skip jika kategori berbeda
+                                    if ($activeCategoryId && $activeCategoryId != $residentCategoryId) {
+                                        continue;
+                                    }
+
+                                    // ✅ VALIDASI 4: Hitung kapasitas tersedia
                                     $activeCount = RoomResident::query()
                                         ->where('room_id', $room->id)
                                         ->whereNull('check_out_date')
@@ -166,11 +219,23 @@ class PlaceResident extends Page implements HasActions
                                     $capacity  = (int) ($room->capacity ?? 0);
                                     $available = $capacity - $activeCount;
 
+                                    // Skip jika kamar penuh
+                                    if ($available <= 0) {
+                                        continue;
+                                    }
+
+                                    // ✅ Label untuk dropdown
                                     $labelGender = $activeGender
                                         ? ($activeGender === 'M' ? 'Laki-laki' : 'Perempuan')
                                         : 'Kosong';
 
-                                    $options[$room->id] = "{$room->code} — {$labelGender} (Tersisa: {$available})";
+                                    $categoryName = $activeCategoryId 
+                                        ? \App\Models\ResidentCategory::find($activeCategoryId)?->name 
+                                        : ($room->resident_category_id 
+                                            ? \App\Models\ResidentCategory::find($room->resident_category_id)?->name 
+                                            : 'Semua Kategori');
+
+                                    $options[$room->id] = "{$room->code} — {$labelGender} — {$categoryName} (Tersisa: {$available})";
                                 }
 
                                 return $options;
@@ -228,15 +293,16 @@ class PlaceResident extends Page implements HasActions
             $checkIn = $data['check_in_date'];
             $isPic   = (bool) ($data['is_pic'] ?? false);
             $gender  = $this->record->residentProfile?->gender;
+            $residentCategoryId = $this->record->residentProfile?->resident_category_id;
 
-            // lock penghuni aktif di kamar tujuan
+            // ✅ Lock penghuni aktif di kamar tujuan
             RoomResident::query()
                 ->where('room_id', $roomId)
                 ->whereNull('check_out_date')
                 ->lockForUpdate()
                 ->get();
 
-            // validasi gender kamar
+            // ✅ Validasi gender kamar
             $activeGender = RoomResident::query()
                 ->where('room_residents.room_id', $roomId)
                 ->whereNull('room_residents.check_out_date')
@@ -249,12 +315,33 @@ class PlaceResident extends Page implements HasActions
                 ]);
             }
 
-            // validasi PIC
+            // ✅ Validasi kategori penghuni
+            $activeCategoryId = RoomResident::query()
+                ->where('room_residents.room_id', $roomId)
+                ->whereNull('room_residents.check_out_date')
+                ->join('resident_profiles', 'resident_profiles.user_id', '=', 'room_residents.user_id')
+                ->value('resident_profiles.resident_category_id');
+
+            if ($activeCategoryId && $activeCategoryId != $residentCategoryId) {
+                throw ValidationException::withMessages([
+                    'room_id' => 'Kamar ini sudah khusus untuk kategori penghuni lain.',
+                ]);
+            }
+
+            // ✅ Validasi kapasitas kamar
             $activeCount = RoomResident::query()
                 ->where('room_id', $roomId)
                 ->whereNull('check_out_date')
                 ->count();
 
+            $room = Room::find($roomId);
+            if ($activeCount >= $room->capacity) {
+                throw ValidationException::withMessages([
+                    'room_id' => 'Kamar ini sudah penuh.',
+                ]);
+            }
+
+            // ✅ Validasi PIC
             $hasPic = RoomResident::query()
                 ->where('room_id', $roomId)
                 ->whereNull('check_out_date')
@@ -269,7 +356,7 @@ class PlaceResident extends Page implements HasActions
                 ]);
             }
 
-            // buat room_resident (history akan auto dibuat oleh sistem kamu)
+            // ✅ Buat room_resident (history akan auto dibuat oleh observer)
             RoomResident::create([
                 'user_id'        => $this->record->id,
                 'room_id'        => $roomId,
@@ -279,12 +366,9 @@ class PlaceResident extends Page implements HasActions
                 'notes'          => $data['notes'] ?? null,
             ]);
 
-            // Pastikan status penghuni aktif
+            // ✅ Pastikan status penghuni aktif
             $this->record->update(['is_active' => true]);
             $this->record->residentProfile()?->update(['status' => 'active']);
-
-            // ✅ movement_type TIDAK perlu diubah manual.
-            // Auto history boleh tetap 'new' (nanti di tampilan kita labelkan sebagai "Masuk").
         });
 
         Notification::make()

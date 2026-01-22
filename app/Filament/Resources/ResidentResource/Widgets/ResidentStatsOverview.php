@@ -21,32 +21,45 @@ class ResidentStatsOverview extends BaseWidget
         // Apply role-based filtering
         if ($user->hasRole('branch_admin')) {
             $dormIds = $user->branchDormIds()->toArray();
-            $baseQuery->whereHas('roomResidents', function (Builder $q) use ($dormIds) {
-                $q->whereNull('check_out_date')
-                    ->whereHas('room.block', fn(Builder $b) => $b->whereIn('dorm_id', $dormIds));
+            $baseQuery->where(function (Builder $q) use ($dormIds) {
+                // Penghuni yang belum punya kamar ATAU punya kamar aktif di cabang ini
+                $q->whereDoesntHave('roomResidents')
+                  ->orWhereHas('roomResidents', function (Builder $rr) use ($dormIds) {
+                      $rr->whereNull('check_out_date')
+                         ->whereHas('room.block', fn(Builder $b) => $b->whereIn('dorm_id', $dormIds));
+                  });
             });
         } elseif ($user->hasRole('block_admin')) {
             $blockIds = $user->blockIds()->toArray();
-            $baseQuery->whereHas('roomResidents', function (Builder $q) use ($blockIds) {
-                $q->whereNull('check_out_date')
-                    ->whereHas('room', fn(Builder $room) => $room->whereIn('block_id', $blockIds));
+            $baseQuery->where(function (Builder $q) use ($blockIds) {
+                // Penghuni yang belum punya kamar ATAU punya kamar aktif di komplek ini
+                $q->whereDoesntHave('roomResidents')
+                  ->orWhereHas('roomResidents', function (Builder $rr) use ($blockIds) {
+                      $rr->whereNull('check_out_date')
+                         ->whereHas('room', fn(Builder $room) => $room->whereIn('block_id', $blockIds));
+                  });
             });
         }
 
-        // Total Penghuni Aktif
+        // Total Penghuni Aktif (akun aktif + belum checkout)
         $totalActive = (clone $baseQuery)
             ->where('is_active', true)
+            ->where(function (Builder $q) {
+                $q->whereDoesntHave('roomResidents')
+                  ->orWhereHas('roomResidents', fn(Builder $rr) => $rr->whereNull('check_out_date'));
+            })
             ->count();
 
-        // Penghuni dengan Kamar
+        // Penghuni dengan Kamar Aktif
         $withRoom = (clone $baseQuery)
+            ->where('is_active', true)
             ->whereHas('roomResidents', fn(Builder $q) => $q->whereNull('check_out_date'))
             ->count();
 
-        // Penghuni Baru 30 hari
+        // ✅ PERBAIKAN: Penghuni Baru 30 hari berdasarkan created_at di users table
         $newInLast30 = (clone $baseQuery)
             ->where('is_active', true)
-            ->whereHas('residentProfile', fn(Builder $q) => $q->where('check_in_date', '>=', now()->subDays(30)->startOfDay()))
+            ->where('users.created_at', '>=', now()->subDays(30)->startOfDay())
             ->count();
 
         return [
@@ -75,14 +88,23 @@ class ResidentStatsOverview extends BaseWidget
         for ($i = 6; $i >= 0; $i--) {
             $date = now()->subMonths($i);
 
+            // Hitung penghuni yang:
+            // 1. Akun dibuat sebelum atau pada akhir bulan ini
+            // 2. Akun aktif
+            // 3. Belum checkout atau checkout setelah awal bulan ini
             $count = (clone $baseQuery)
                 ->where('is_active', true)
-                ->whereHas('residentProfile', function (Builder $q) use ($date) {
-                    $q->where('check_in_date', '<=', $date->endOfMonth());
-                })
-                ->whereDoesntHave('residentProfile', function (Builder $q) use ($date) {
-                    $q->whereNotNull('check_out_date')
-                        ->where('check_out_date', '<', $date->startOfMonth());
+                ->where('users.created_at', '<=', $date->copy()->endOfMonth())
+                ->where(function (Builder $q) use ($date) {
+                    // Belum pernah punya kamar ATAU
+                    $q->whereDoesntHave('roomResidents')
+                      // Punya kamar dan belum checkout sampai akhir bulan ini
+                      ->orWhereHas('roomResidents', function (Builder $rr) use ($date) {
+                          $rr->where(function (Builder $checkout) use ($date) {
+                              $checkout->whereNull('check_out_date')
+                                       ->orWhere('check_out_date', '>', $date->copy()->endOfMonth());
+                          });
+                      });
                 })
                 ->count();
 
