@@ -1,11 +1,11 @@
 <section>
     <header>
         <h2 class="text-lg font-medium text-gray-900">
-            {{ __('Informasi Profil') }}
+            {{ __('profile.profile_info') }}
         </h2>
 
         <p class="mt-1 text-sm text-gray-600">
-            {{ __('Perbarui informasi profil, foto, dan alamat email akun Anda.') }}
+            {{ __('profile.profile_desc') }}
         </p>
     </header>
 
@@ -15,7 +15,7 @@
 
         {{-- Photo Upload Section --}}
         <div>
-            <x-input-label for="photo" :value="__('Foto Profil')" />
+            <x-input-label for="photo" :value="__('profile.photo')" />
             
             <div class="mt-2 flex items-center gap-4">
                 {{-- Current Photo Preview --}}
@@ -59,7 +59,7 @@
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
-                                <span id="file-label">Pilih Gambar</span>
+                                <span id="file-label">{{ __('profile.choose_image') }}</span>
                             </label>
                         </div>
 
@@ -73,12 +73,12 @@
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
-                                Hapus Foto
+                                {{ __('profile.delete_photo') }}
                             </button>
                         @endif
                     </div>
                     <p class="mt-2 text-xs text-gray-500">
-                        Format: JPG, PNG, atau GIF. Maksimal 2MB.
+                        {{ __('profile.photo_format') }}
                     </p>
                     <x-input-error class="mt-2" :messages="$errors->get('photo')" />
                 </div>
@@ -87,7 +87,7 @@
 
         {{-- Nickname Field --}}
         <div>
-            <x-input-label for="name" :value="__('Nama Panggilan')" />
+            <x-input-label for="name" :value="__('profile.nickname')" />
             <x-text-input
                 id="name"
                 name="name"
@@ -97,17 +97,17 @@
                 required
                 autofocus
                 autocomplete="name"
-                placeholder="Nama yang digunakan untuk panggilan sehari-hari"
+                placeholder="{{ __('profile.nickname_placeholder') }}"
             />
             <p class="mt-1 text-xs text-gray-500">
-                Nama ini akan digunakan untuk panggilan di sistem.
+                {{ __('profile.nickname_help') }}
             </p>
             <x-input-error class="mt-2" :messages="$errors->get('name')" />
         </div>
 
         {{-- Email Field --}}
         <div>
-            <x-input-label for="email" :value="__('Alamat Email')" />
+            <x-input-label for="email" :value="__('profile.email_address')" />
             <x-text-input
                 id="email"
                 name="email"
@@ -143,21 +143,21 @@
 
         {{-- Phone Number --}}
         <div>
-            <x-input-label for="phone_number" :value="__('No. HP')" />
+            <x-input-label for="phone_number" :value="__('profile.phone_number')" />
             <x-text-input
                 id="phone_number"
                 name="phone_number"
                 type="text"
                 class="mt-1 block w-full"
                 :value="old('phone_number', $profile?->phone_number)"
-                placeholder="08xxxxxxxxxx"
+                placeholder="{{ __('profile.phone_placeholder') }}"
             />
             <x-input-error class="mt-2" :messages="$errors->get('phone_number')" />
         </div>
 
         {{-- Submit Button --}}
         <div class="flex items-center gap-4">
-            <x-primary-button>{{ __('Simpan') }}</x-primary-button>
+            <x-primary-button>{{ __('profile.save') }}</x-primary-button>
 
             @if (session('status') === 'profile-updated')
                 <p
@@ -167,7 +167,7 @@
                     x-init="setTimeout(() => show = false, 2000)"
                     class="text-sm text-gray-600"
                 >
-                    {{ __('Tersimpan.') }}
+                    {{ __('profile.saved') }}
                 </p>
             @endif
         </div>
@@ -189,7 +189,7 @@
             if (file) {
                 // Check file size (2MB = 2097152 bytes)
                 if (file.size > 2097152) {
-                    alert('Ukuran file terlalu besar. Maksimal 2MB.');
+                    alert("{{ __('profile.file_too_large') }}");
                     event.target.value = '';
                     fileLabel.textContent = 'Pilih Gambar';
                     return;
@@ -197,7 +197,7 @@
 
                 // Check file type
                 if (!file.type.match('image.*')) {
-                    alert('File harus berupa gambar (JPG, PNG, atau GIF).');
+                    alert("{{ __('profile.invalid_file_type') }}");
                     event.target.value = '';
                     fileLabel.textContent = 'Pilih Gambar';
                     return;
@@ -214,12 +214,12 @@
                 
                 reader.readAsDataURL(file);
             } else {
-                fileLabel.textContent = 'Pilih Gambar';
+                fileLabel.textContent = "{{ __('profile.choose_image') }}";
             }
         }
 
         function confirmDeletePhoto() {
-            if (confirm('Apakah Anda yakin ingin menghapus foto profil? Tindakan ini tidak dapat dibatalkan.')) {
+            if (confirm("{{ __('profile.confirm_delete_photo') }}")) {
                 document.getElementById('delete-photo-form').submit();
             }
         }

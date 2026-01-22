@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Dashboard Penghuni') }}
+            {{ __('dashboard.title') }}
         </h2>
     </x-slot>
 
@@ -45,7 +45,7 @@
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
                                         </svg>
-                                        Kamar {{ $roomCode }}
+                                        {{ __('dashboard.room', ['code' => $roomCode]) }}
                                     </span>
                                 @endif
                                 
@@ -62,7 +62,7 @@
                                     <svg class="w-4 h-4 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                     </svg>
-                                    <span class="font-medium">Masuk:</span>
+                                    <span class="font-medium">{{ __('dashboard.check_in') }}:</span>
                                     <span class="font-bold text-gray-900">{{ $checkInDate }}</span>
                                 </div>
                             @endif
@@ -86,7 +86,7 @@
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
                                 </svg>
-                                <span>Kamar</span>
+                                <span>{{ __('dashboard.my_room') }}</span>
                             </a>
 
                             <a href="{{ route('resident.room-history') }}"
@@ -94,7 +94,7 @@
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
-                                <span>Riwayat</span>
+                                <span>{{ __('dashboard.room_history') }}</span>
                             </a>
                         </div>
                     @endif
@@ -126,8 +126,8 @@
                                     <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                                 </svg>
                                 <div class="flex-1">
-                                    <div class="font-bold text-amber-900 mb-1">Belum Ada Kamar</div>
-                                    <div class="text-xs text-amber-800 leading-relaxed">Kamu belum memiliki penempatan kamar. Silakan hubungi admin asrama jika ini tidak sesuai.</div>
+                                    <div class="font-bold text-amber-900 mb-1">{{ __('dashboard.no_room_title') }}</div>
+                                    <div class="text-xs text-amber-800 leading-relaxed">{{ __('dashboard.no_room_message') }}</div>
                                 </div>
                             </div>
                         </div>

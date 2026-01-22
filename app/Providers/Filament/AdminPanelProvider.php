@@ -8,6 +8,8 @@ use Filament\Widgets;
 use App\Models\Institution;
 use Filament\PanelProvider;
 use Filament\Enums\ThemeMode;
+use Filament\Navigation\MenuItem;
+use Filament\Navigation\NavigationGroup;
 use Filament\Support\Colors\Color;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Storage;
@@ -49,16 +51,36 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Green,
             ])
             ->navigationGroups([
-                'Asrama',
-                'Penghuni',
-                'Keuangan',
-                'Pengaturan',
+                NavigationGroup::make('Asrama')
+                    ->icon('heroicon-o-building-office-2')
+                    ->collapsed(true),
+                
+                NavigationGroup::make('Penghuni')
+                    ->icon('heroicon-o-user-group')
+                    ->collapsed(true),
+                
+                NavigationGroup::make('Keuangan')
+                    ->icon('heroicon-o-banknotes')
+                    ->collapsed(true),
+                
+                NavigationGroup::make('Pengaturan')
+                    ->icon('heroicon-o-cog-6-tooth')
+                    ->collapsed(true),
             ])
             ->authGuard('web')
             ->defaultThemeMode(ThemeMode::Light)
             
             // Set favicon dinamis
             ->favicon($faviconUrl)
+            
+            // User menu items
+            ->userMenuItems([
+                'profile' => MenuItem::make()
+                    ->label('Profile Saya')
+                    ->url(fn (): string => route('filament.admin.resources.profile-saya.index'))
+                    ->icon('heroicon-o-user-circle')
+                    ->visible(fn (): bool => auth()->user()?->hasRole('main_admin') ?? false),
+            ])
             
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
@@ -163,9 +185,21 @@ class AdminPanelProvider extends PanelProvider
                     </div>
                 HTML)
             )
-        ->renderHook(
-            'panels::head.end',
-            fn() => view('filament.components.favicon')
-        );    
+            ->renderHook(
+                'panels::head.end',
+                fn() => view('filament.components.favicon')
+            )
+            ->renderHook(
+                'panels::head.end',
+                fn() => view('filament.components.clear-navigation-state')
+            )
+            ->renderHook(
+                'panels::styles.before',
+                fn() => view('filament.components.navigation-group-styles')
+            )
+            ->renderHook(
+                'panels::body.end',
+                fn() => view('filament.components.accordion-navigation')
+            );
     }
 }

@@ -77,7 +77,7 @@ class ListResidents extends ListRecords
                             $q->whereNotNull('check_out_date');
                         })
                         ->whereDoesntHave('roomResidents', function (Builder $q) {
-                            // Tidak punya kamar aktif saat ini
+                            // ✅ Tidak punya kamar aktif saat ini
                             $q->whereNull('check_out_date');
                         });
                 })
