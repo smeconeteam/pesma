@@ -65,21 +65,28 @@ class="border-b bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 t
                         <x-nav-link :href="route('resident.my-room')" :active="request()->routeIs('resident.my-room')">
                             {{ __('navigation.my_room') }}
                         </x-nav-link>
-                    @endif  {{-- <--- DITAMBAHKAN --}}
+                    @endif
 
                     @if (\Illuminate\Support\Facades\Route::has('resident.room-history'))
                         <x-nav-link :href="route('resident.room-history')" :active="request()->routeIs('resident.room-history')">
                             {{ __('navigation.room_history') }}
                         </x-nav-link>
-                    @endif {{-- <--- DITAMBAHKAN --}}
+                    @endif
+
+                    {{-- MENU TAGIHAN (DITAMBAHKAN DI SINI) --}}
+                    @if (\Illuminate\Support\Facades\Route::has('resident.bills'))
+                        <x-nav-link :href="route('resident.bills')" :active="request()->routeIs('resident.bills')">
+                            {{ __('Tagihan') }}
+                        </x-nav-link>
+                    @endif
 
                     @guest
                         @if (\Illuminate\Support\Facades\Route::has('public.registration.create'))
                             <x-nav-link :href="route('public.registration.create')" :active="request()->routeIs('public.registration.*')">
                                 {{ __('navigation.registration') }}
                             </x-nav-link>
-                        @endif {{-- <--- DITAMBAHKAN --}}
-                    @endguest {{-- <--- DITAMBAHKAN --}}
+                        @endif
+                    @endguest
                 </div>
             </div>
 
@@ -244,19 +251,26 @@ class="border-b bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 t
                     <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('navigation.dashboard') }}
                     </x-responsive-nav-link>
-                @endif {{-- <--- DITAMBAHKAN --}}
+                @endif
 
                 @if (\Illuminate\Support\Facades\Route::has('resident.my-room'))
                     <x-responsive-nav-link :href="route('resident.my-room')" :active="request()->routeIs('resident.my-room')">
                         {{ __('navigation.my_room') }}
                     </x-responsive-nav-link>
-                @endif {{-- <--- DITAMBAHKAN --}}
+                @endif
 
                 @if (\Illuminate\Support\Facades\Route::has('resident.room-history'))
                     <x-responsive-nav-link :href="route('resident.room-history')" :active="request()->routeIs('resident.room-history')">
                         {{ __('navigation.room_history') }}
                     </x-responsive-nav-link>
-                @endif {{-- <--- DITAMBAHKAN --}}
+                @endif
+                
+                {{-- MENU TAGIHAN (DITAMBAHKAN DI SINI UNTUK MOBILE) --}}
+                @if (\Illuminate\Support\Facades\Route::has('resident.bills'))
+                    <x-responsive-nav-link :href="route('resident.bills')" :active="request()->routeIs('resident.bills')">
+                        {{ __('Tagihan') }}
+                    </x-responsive-nav-link>
+                @endif
 
                 <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
                     <button @click="toggleTheme()"
