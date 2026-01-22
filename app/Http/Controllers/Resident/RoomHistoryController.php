@@ -18,6 +18,11 @@ class RoomHistoryController extends Controller
             abort(404, 'Profil penghuni tidak ditemukan');
         }
 
+        // Cek status penghuni - tolak akses jika inactive
+        if ($residentProfile->status === 'inactive') {
+            abort(403, 'Akses ditolak. Akun Anda sudah tidak aktif.');
+        }
+
         // Ambil kamar saat ini (room_resident yang masih aktif)
         $currentRoom = RoomResident::with([
             'room.block.dorm',

@@ -63,7 +63,7 @@ class ResidentResource extends Resource
             return $query;
         }
 
-        // ✅ Branch admin: hanya penghuni di cabangnya (yang masih aktif penempatan kamar)
+        // Branch admin: hanya penghuni di cabangnya (yang masih aktif penempatan kamar)
         if ($user->hasRole('branch_admin')) {
             $dormIds = $user->branchDormIds()->toArray();
 
@@ -73,7 +73,7 @@ class ResidentResource extends Resource
             });
         }
 
-        // ✅ Block admin: hanya penghuni di kompleknya (yang masih aktif penempatan kamar)
+        // Block admin: hanya penghuni di kompleknya (yang masih aktif penempatan kamar)
         if ($user->hasRole('block_admin')) {
             $blockIds = $user->blockIds()->toArray();
 
@@ -163,24 +163,60 @@ class ResidentResource extends Resource
 
                 Tables\Columns\TextColumn::make('residentProfile.phone_number')
                     ->label('No. HP')
-                    ->toggleable(),
+                    ->placeholder('-'),
 
-                Tables\Columns\TextColumn::make('residentProfile.status')
+                // Status berdasarkan kondisi akun dan kamar
+                Tables\Columns\TextColumn::make('account_status')
                     ->label('Status')
                     ->badge()
+                    ->getStateUsing(function (User $record) {
+                        // Jika akun nonaktif, langsung return 'inactive'
+                        if (!$record->is_active) {
+                            return 'inactive';
+                        }
+
+                        // Cek apakah pernah punya kamar
+                        $hasRoomHistory = $record->roomResidents()->exists();
+                        
+                        // Cek apakah punya kamar aktif
+                        $hasActiveRoom = $record->roomResidents()
+                            ->whereNull('check_out_date')
+                            ->exists();
+
+                        if (!$hasRoomHistory) {
+                            return 'registered'; // Terdaftar tapi belum pernah punya kamar
+                        }
+
+                        if ($hasActiveRoom) {
+                            return 'active'; // Punya kamar aktif
+                        }
+
+                        return 'checkout'; // Sudah pernah punya kamar tapi sekarang keluar
+                    })
                     ->color(fn(string $state): string => match ($state) {
-                        'registered' => 'gray',
+                        'registered' => 'warning',
                         'active' => 'success',
+                        'checkout' => 'info',
                         'inactive' => 'danger',
                         default => 'gray',
                     })
                     ->formatStateUsing(fn(string $state): string => match ($state) {
                         'registered' => 'Terdaftar',
                         'active' => 'Aktif',
+                        'checkout' => 'Keluar',
                         'inactive' => 'Nonaktif',
                         default => $state,
                     })
-                    ->sortable(),
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderByRaw("
+                            CASE
+                                WHEN users.is_active = 0 THEN 4
+                                WHEN EXISTS (SELECT 1 FROM room_residents WHERE room_residents.user_id = users.id AND room_residents.check_out_date IS NULL) THEN 1
+                                WHEN NOT EXISTS (SELECT 1 FROM room_residents WHERE room_residents.user_id = users.id) THEN 2
+                                ELSE 3
+                            END " . $direction
+                        )->orderBy('created_at', 'desc');
+                    }),
 
                 Tables\Columns\TextColumn::make('current_room')
                     ->label('Kamar Aktif')
@@ -195,7 +231,7 @@ class ResidentResource extends Resource
                         $room = $active->room;
                         return ($room->code ?? '-') . ($room->number ? " ({$room->number})" : '');
                     })
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->placeholder('-'),
             ])
             ->filters([
                 SelectFilter::make('gender')
@@ -208,8 +244,51 @@ class ResidentResource extends Resource
                         });
                     }),
 
+                SelectFilter::make('status')
+                    ->label('Status')
+                    ->options([
+                        'registered' => 'Terdaftar',
+                        'active' => 'Aktif',
+                        'checkout' => 'Keluar',
+                        'inactive' => 'Nonaktif',
+                    ])
+                    ->native(false)
+                    ->query(function (Builder $query, array $data) {
+                        $status = $data['value'] ?? null;
+                        
+                        if (!$status) {
+                            return $query;
+                        }
+
+                        return $query->where(function (Builder $q) use ($status) {
+                            if ($status === 'inactive') {
+                                // Status Nonaktif: is_active = false
+                                $q->where('is_active', false);
+                            } elseif ($status === 'registered') {
+                                // Status Terdaftar: akun aktif DAN belum pernah punya kamar
+                                $q->where('is_active', true)
+                                ->whereDoesntHave('roomResidents');
+                            } elseif ($status === 'active') {
+                                // Status Aktif: akun aktif DAN punya kamar aktif
+                                $q->where('is_active', true)
+                                ->whereHas('roomResidents', function (Builder $rr) {
+                                    $rr->whereNull('check_out_date');
+                                });
+                            } elseif ($status === 'checkout') {
+                                // Status Keluar: akun aktif DAN pernah punya kamar tapi sekarang sudah checkout
+                                $q->where('is_active', true)
+                                ->whereHas('roomResidents', function (Builder $rr) {
+                                    $rr->whereNotNull('check_out_date');
+                                })
+                                ->whereDoesntHave('roomResidents', function (Builder $rr) {
+                                    $rr->whereNull('check_out_date');
+                                });
+                            }
+                        });
+                    }),
+
                 /**
-                 * ✅ FILTER CABANG (HANYA PENGHUNI AKTIF, BUKAN HISTORY)
+                 * FILTER CABANG (HANYA PENGHUNI AKTIF, BUKAN HISTORY)
                  */
                 SelectFilter::make('dorm_id')
                     ->label('Cabang')
@@ -311,7 +390,7 @@ class ResidentResource extends Resource
                     }),
 
                 /**
-                 * ✅ FILTER KOMPLEK (HANYA PENGHUNI AKTIF, BUKAN HISTORY)
+                 * FILTER KOMPLEK (HANYA PENGHUNI AKTIF, BUKAN HISTORY)
                  */
                 SelectFilter::make('block_id')
                     ->label('Komplek')
@@ -508,6 +587,7 @@ class ResidentResource extends Resource
                                 return false;
                             }
 
+                            // Hanya tampil di tab selain terhapus
                             if (method_exists($record, 'trashed') && $record->trashed()) {
                                 return false;
                             }
@@ -515,11 +595,30 @@ class ResidentResource extends Resource
                             return true;
                         })
                         ->before(function (Tables\Actions\DeleteAction $action, User $record) {
-                            if ($record->residentProfile?->status === 'active') {
+                            // Cek status akun
+                            if ($record->is_active) {
+                                // Tentukan status penghuni untuk pesan yang lebih spesifik
+                                $hasRoomHistory = $record->roomResidents()->exists();
+                                $hasActiveRoom = $record->roomResidents()
+                                    ->whereNull('check_out_date')
+                                    ->exists();
+
+                                // Tentukan status dan pesan
+                                if (!$hasRoomHistory) {
+                                    // Status Terdaftar
+                                    $message = "Penghuni dengan status Terdaftar tidak dapat dihapus. Nonaktifkan terlebih dahulu.";
+                                } elseif ($hasActiveRoom) {
+                                    // Status Aktif
+                                    $message = "Penghuni dengan status Aktif tidak dapat dihapus. Nonaktifkan terlebih dahulu.";
+                                } else {
+                                    // Status Keluar
+                                    $message = "Penghuni dengan status Keluar tidak dapat dihapus. Nonaktifkan terlebih dahulu.";
+                                }
+
                                 Notification::make()
                                     ->danger()
                                     ->title('Tidak dapat menghapus')
-                                    ->body('Penghuni dengan status aktif tidak dapat dihapus. Nonaktifkan terlebih dahulu.')
+                                    ->body($message)
                                     ->send();
 
                                 $action->cancel();
@@ -528,14 +627,41 @@ class ResidentResource extends Resource
 
                     Tables\Actions\ForceDeleteAction::make()
                         ->label('Hapus Permanen')
-                        ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin']) ?? false),
+                        ->visible(function (User $record) {
+                            $user = auth()->user();
+                            // Hanya super_admin yang bisa hapus permanen
+                            if (! $user?->hasRole('super_admin')) {
+                                return false;
+                            }
+
+                            // Hanya tampil di tab terhapus
+                            return method_exists($record, 'trashed') && $record->trashed();
+                        }),
 
                     Tables\Actions\RestoreAction::make()
                         ->label('Pulihkan')
-                        ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin']) ?? false),
+                        ->visible(function (User $record) {
+                            $user = auth()->user();
+                            // Hanya super_admin yang bisa pulihkan
+                            if (! $user?->hasRole('super_admin')) {
+                                return false;
+                            }
+
+                            // Hanya tampil di tab terhapus
+                            return method_exists($record, 'trashed') && $record->trashed();
+                        }),
                 ]),
             ])
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort(fn (Builder $query) => 
+                $query->orderByRaw("
+                    CASE
+                        WHEN users.is_active = 0 THEN 4
+                        WHEN EXISTS (SELECT 1 FROM room_residents WHERE room_residents.user_id = users.id AND room_residents.check_out_date IS NULL) THEN 1
+                        WHEN NOT EXISTS (SELECT 1 FROM room_residents WHERE room_residents.user_id = users.id) THEN 2
+                        ELSE 3
+                    END ASC
+                ")->orderBy('created_at', 'desc')
+            );
     }
 
     public static function getRelations(): array

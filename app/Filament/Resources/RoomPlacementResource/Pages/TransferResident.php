@@ -48,8 +48,13 @@ class TransferResident extends Page implements HasActions
             return;
         }
 
+        // ✅ Pre-fill dengan data kamar aktif saat ini
+        $currentRoom = $record->activeRoomResident->room;
+        
         $this->form->fill([
             'transfer_date' => now()->toDateString(),
+            'new_dorm_id' => $currentRoom->block->dorm_id,
+            'new_block_id' => $currentRoom->block_id,
         ]);
     }
 
@@ -78,6 +83,23 @@ class TransferResident extends Page implements HasActions
 
         return $form
             ->schema([
+                Forms\Components\Section::make('Informasi Kamar Saat Ini')
+                    ->columns(2)
+                    ->schema([
+                        Forms\Components\Placeholder::make('current_room_info')
+                            ->label('Kamar Saat Ini')
+                            ->content(function () use ($currentRoomResident) {
+                                if (!$currentRoomResident) return '-';
+                                
+                                $room = $currentRoomResident->room;
+                                $block = $room->block;
+                                $dorm = $block->dorm;
+                                
+                                return "{$dorm->name} - {$block->name} - {$room->code}";
+                            })
+                            ->columnSpanFull(),
+                    ]),
+
                 Forms\Components\Section::make('Kamar Tujuan')
                     ->columns(2)
                     ->schema([
@@ -121,6 +143,7 @@ class TransferResident extends Page implements HasActions
                             ->options(function (Forms\Get $get) use ($currentRoomResident) {
                                 $blockId = $get('new_block_id');
                                 $gender  = $this->record->residentProfile?->gender;
+                                $residentCategoryId = $this->record->residentProfile?->resident_category_id;
 
                                 if (blank($blockId) || blank($gender)) return [];
 
@@ -134,14 +157,37 @@ class TransferResident extends Page implements HasActions
                                 $options = [];
 
                                 foreach ($rooms as $room) {
+                                    // ✅ VALIDASI 1: Cek kategori kamar
+                                    // Jika kamar punya kategori khusus, harus cocok dengan kategori penghuni
+                                    if ($room->resident_category_id && $room->resident_category_id != $residentCategoryId) {
+                                        continue;
+                                    }
+
+                                    // ✅ VALIDASI 2: Cek gender penghuni yang sudah ada
                                     $activeGender = RoomResident::query()
                                         ->where('room_residents.room_id', $room->id)
                                         ->whereNull('room_residents.check_out_date')
                                         ->join('resident_profiles', 'resident_profiles.user_id', '=', 'room_residents.user_id')
                                         ->value('resident_profiles.gender');
 
-                                    if ($activeGender && $activeGender !== $gender) continue;
+                                    // Skip jika gender berbeda
+                                    if ($activeGender && $activeGender !== $gender) {
+                                        continue;
+                                    }
 
+                                    // ✅ VALIDASI 3: Cek kategori penghuni yang sudah ada
+                                    $activeCategoryId = RoomResident::query()
+                                        ->where('room_residents.room_id', $room->id)
+                                        ->whereNull('room_residents.check_out_date')
+                                        ->join('resident_profiles', 'resident_profiles.user_id', '=', 'room_residents.user_id')
+                                        ->value('resident_profiles.resident_category_id');
+
+                                    // Skip jika kategori berbeda
+                                    if ($activeCategoryId && $activeCategoryId != $residentCategoryId) {
+                                        continue;
+                                    }
+
+                                    // ✅ VALIDASI 4: Hitung kapasitas tersedia
                                     $activeCount = RoomResident::query()
                                         ->where('room_id', $room->id)
                                         ->whereNull('check_out_date')
@@ -150,13 +196,23 @@ class TransferResident extends Page implements HasActions
                                     $capacity  = (int) ($room->capacity ?? 0);
                                     $available = $capacity - $activeCount;
 
-                                    if ($available <= 0) continue;
+                                    // Skip jika kamar penuh
+                                    if ($available <= 0) {
+                                        continue;
+                                    }
 
+                                    // ✅ Label untuk dropdown
                                     $labelGender = $activeGender
                                         ? ($activeGender === 'M' ? 'Laki-laki' : 'Perempuan')
                                         : 'Kosong';
 
-                                    $options[$room->id] = "{$room->code} — {$labelGender} (Tersisa: {$available})";
+                                    $categoryName = $activeCategoryId 
+                                        ? \App\Models\ResidentCategory::find($activeCategoryId)?->name 
+                                        : ($room->resident_category_id 
+                                            ? \App\Models\ResidentCategory::find($room->resident_category_id)?->name 
+                                            : 'Semua Kategori');
+
+                                    $options[$room->id] = "{$room->code} — {$labelGender} — {$categoryName} (Tersisa: {$available})";
                                 }
 
                                 return $options;
@@ -205,6 +261,7 @@ class TransferResident extends Page implements HasActions
             $transferDate = Carbon::parse($data['transfer_date'] ?? now()->toDateString())->startOfDay();
             $isPic        = (bool) ($data['is_pic'] ?? false);
             $gender       = $this->record->residentProfile?->gender;
+            $residentCategoryId = $this->record->residentProfile?->resident_category_id;
 
             if (! $currentRoomResident) {
                 throw ValidationException::withMessages([
@@ -212,7 +269,7 @@ class TransferResident extends Page implements HasActions
                 ]);
             }
 
-            // VALIDASI: tanggal pindah harus >= tanggal masuk kamar aktif
+            // ✅ VALIDASI: tanggal pindah harus >= tanggal masuk kamar aktif
             $currentCheckIn = $currentRoomResident->check_in_date
                 ? Carbon::parse($currentRoomResident->check_in_date)->startOfDay()
                 : null;
@@ -227,14 +284,13 @@ class TransferResident extends Page implements HasActions
             $wasPic = $currentRoomResident->is_pic;
             $oldRoomId = $currentRoomResident->room_id;
 
-            // TUTUP KAMAR LAMA (tanpa memicu event yang bikin user jadi nonaktif)
+            // ✅ TUTUP KAMAR LAMA
             RoomResident::withoutEvents(function () use ($currentRoomResident, $transferDate) {
                 $currentRoomResident->update([
                     'check_out_date' => $transferDate->toDateString(),
                 ]);
             });
 
-            // history kamar lama: status = transfer
             RoomHistory::query()
                 ->where('room_resident_id', $currentRoomResident->id)
                 ->whereNull('check_out_date')
@@ -244,7 +300,7 @@ class TransferResident extends Page implements HasActions
                     'notes' => $data['notes'] ?? 'Pindah kamar',
                 ]);
 
-            // VALIDASI & LOCK KAMAR TUJUAN
+            // ✅ VALIDASI & LOCK KAMAR TUJUAN
             RoomResident::query()
                 ->where('room_id', $newRoomId)
                 ->whereNull('check_out_date')
@@ -263,10 +319,29 @@ class TransferResident extends Page implements HasActions
                 ]);
             }
 
+            $activeCategoryId = RoomResident::query()
+                ->where('room_residents.room_id', $newRoomId)
+                ->whereNull('room_residents.check_out_date')
+                ->join('resident_profiles', 'resident_profiles.user_id', '=', 'room_residents.user_id')
+                ->value('resident_profiles.resident_category_id');
+
+            if ($activeCategoryId && $activeCategoryId != $residentCategoryId) {
+                throw ValidationException::withMessages([
+                    'new_room_id' => 'Kamar tujuan sudah khusus untuk kategori penghuni lain.',
+                ]);
+            }
+
             $activeCount = RoomResident::query()
                 ->where('room_id', $newRoomId)
                 ->whereNull('check_out_date')
                 ->count();
+
+            $room = Room::find($newRoomId);
+            if ($activeCount >= $room->capacity) {
+                throw ValidationException::withMessages([
+                    'new_room_id' => 'Kamar tujuan sudah penuh.',
+                ]);
+            }
 
             $hasPic = RoomResident::query()
                 ->where('room_id', $newRoomId)
@@ -284,8 +359,7 @@ class TransferResident extends Page implements HasActions
 
             $transferDateStr = $transferDate->toDateString();
 
-            // Kalau user pernah masuk kamar ini di tanggal yang sama, jangan insert baru.
-            // Cukup "aktifkan lagi" record lama (karena constraint uniknya memang melarang duplikasi).
+            // ✅ Cek apakah pernah masuk kamar yang sama di tanggal yang sama
             $existingSameDay = RoomResident::query()
                 ->where('user_id', $this->record->id)
                 ->where('room_id', $newRoomId)
@@ -293,7 +367,7 @@ class TransferResident extends Page implements HasActions
                 ->first();
 
             if ($existingSameDay) {
-                // Re-activate
+                // Re-activate record lama
                 $newRoomResident = RoomResident::withoutEvents(function () use ($existingSameDay, $isPic) {
                     $existingSameDay->update([
                         'check_out_date' => null,
@@ -303,114 +377,62 @@ class TransferResident extends Page implements HasActions
                     return $existingSameDay;
                 });
 
-                // Re-open history (kalau sebelumnya sudah ditutup karena transfer)
-                RoomHistory::query()
-                    ->where('room_resident_id', $newRoomResident->id)
-                    ->orderByDesc('id')
-                    ->first()?->update([
+                // Buat history baru
+                RoomHistory::create([
+                    'user_id'          => $this->record->id,
+                    'room_id'          => $newRoomId,
+                    'room_resident_id' => $newRoomResident->id,
+                    'check_in_date'    => $transferDateStr,
+                    'check_out_date'   => null,
+                    'is_pic'           => $isPic,
+                    'movement_type'    => 'new',
+                    'notes'            => $data['notes'] ?? 'Kembali ke kamar sebelumnya',
+                    'recorded_by'      => auth()->id(),
+                ]);
+            } else {
+                // Buat record baru
+                $newRoomResident = RoomResident::withoutEvents(function () use ($newRoomId, $transferDateStr, $isPic) {
+                    return RoomResident::create([
+                        'user_id'        => $this->record->id,
+                        'room_id'        => $newRoomId,
+                        'check_in_date'  => $transferDateStr,
                         'check_out_date' => null,
                         'is_pic'         => $isPic,
-                        'movement_type'  => 'new',
-                        'notes'          => $data['notes'] ?? 'Kembali ke kamar yang sama di tanggal yang sama',
                     ]);
-            } else {
-                // Normal: buat record baru
-                $transferDateStr = $transferDate->toDateString();
+                });
 
-                /**
-                 * Kalau user pernah masuk kamar yg sama di tanggal yg sama,
-                 * unique index (room_id,user_id,check_in_date) bakal menolak INSERT.
-                 * Solusinya: "hidupkan lagi" record lama (update check_out_date jadi null),
-                 * tapi TETAP buat RoomHistory BARU biar riwayat naik ke atas.
-                 */
-                $existingSameDay = RoomResident::query()
-                    ->where('user_id', $this->record->id)
-                    ->where('room_id', $newRoomId)
-                    ->whereDate('check_in_date', $transferDateStr)
-                    ->first();
-
-                if ($existingSameDay) {
-                    // Pastikan tidak ada history "open" nyangkut untuk record ini (jaga-jaga)
-                    RoomHistory::query()
-                        ->where('room_resident_id', $existingSameDay->id)
-                        ->whereNull('check_out_date')
-                        ->update([
-                            'check_out_date' => $transferDateStr,
-                            'movement_type'  => 'transfer',
-                            'notes'          => 'Auto-close (data tidak konsisten)',
-                        ]);
-
-                    // Re-activate room_resident lama (tanpa insert baru)
-                    $newRoomResident = RoomResident::withoutEvents(function () use ($existingSameDay, $isPic) {
-                        $existingSameDay->update([
-                            'check_out_date' => null,
-                            'is_pic'         => $isPic,
-                        ]);
-
-                        return $existingSameDay;
-                    });
-
-                    // ✅ Tetap buat history BARU agar "balik kamar" muncul paling atas
-                    RoomHistory::create([
-                        'user_id'          => $this->record->id,
-                        'room_id'          => $newRoomId,
-                        'room_resident_id' => $newRoomResident->id,
-                        'check_in_date'    => $transferDateStr,
-                        'check_out_date'   => null,
-                        'is_pic'           => $isPic,
-                        'movement_type'    => 'new',
-                        'notes'            => $data['notes'] ?? 'Kembali ke kamar sebelumnya',
-                        'recorded_by'      => auth()->id(),
-                    ]);
-                } else {
-                    // Normal: buat record baru
-                    $newRoomResident = RoomResident::withoutEvents(function () use ($newRoomId, $transferDateStr, $isPic) {
-                        return RoomResident::create([
-                            'user_id'        => $this->record->id,
-                            'room_id'        => $newRoomId,
-                            'check_in_date'  => $transferDateStr,
-                            'check_out_date' => null,
-                            'is_pic'         => $isPic,
-                        ]);
-                    });
-
-                    RoomHistory::create([
-                        'user_id'          => $this->record->id,
-                        'room_id'          => $newRoomId,
-                        'room_resident_id' => $newRoomResident->id,
-                        'check_in_date'    => $transferDateStr,
-                        'check_out_date'   => null,
-                        'is_pic'           => $isPic,
-                        'movement_type'    => 'new',
-                        'notes'            => $data['notes'] ?? 'Pindah dari kamar lain',
-                        'recorded_by'      => auth()->id(),
-                    ]);
-                }
+                RoomHistory::create([
+                    'user_id'          => $this->record->id,
+                    'room_id'          => $newRoomId,
+                    'room_resident_id' => $newRoomResident->id,
+                    'check_in_date'    => $transferDateStr,
+                    'check_out_date'   => null,
+                    'is_pic'           => $isPic,
+                    'movement_type'    => 'new',
+                    'notes'            => $data['notes'] ?? 'Pindah dari kamar lain',
+                    'recorded_by'      => auth()->id(),
+                ]);
             }
 
-
-            // PASTIKAN PENGHUNI TETAP AKTIF
+            // ✅ PASTIKAN PENGHUNI TETAP AKTIF
             $this->record->forceFill(['is_active' => true])->save();
 
             if ($this->record->residentProfile) {
                 $this->record->residentProfile->forceFill(['status' => 'active'])->save();
             }
 
-            // ASSIGN PIC BARU DI KAMAR LAMA (jika yang pindah adalah PIC)
+            // ✅ ASSIGN PIC BARU DI KAMAR LAMA
             if ($wasPic) {
-                // Cari penghuni tertua yang masih aktif di kamar lama
                 $newPicForOldRoom = RoomResident::where('room_id', $oldRoomId)
                     ->whereNull('check_out_date')
                     ->orderBy('check_in_date', 'asc')
                     ->first();
 
                 if ($newPicForOldRoom) {
-                    // Update sebagai PIC tanpa trigger event
                     RoomResident::withoutEvents(function () use ($newPicForOldRoom) {
                         $newPicForOldRoom->update(['is_pic' => true]);
                     });
 
-                    // Update history juga
                     RoomHistory::where('room_resident_id', $newPicForOldRoom->id)
                         ->whereNull('check_out_date')
                         ->update([

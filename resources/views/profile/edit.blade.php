@@ -82,34 +82,44 @@
                             <div class="mt-1 text-sm text-gray-600">
                                 {{ $user->email ?? '-' }}
                                 <span class="mx-2">•</span>
-                                Status: <span class="font-semibold text-gray-900">{{ $statusLabel }}</span>
+                                Status: 
+                                <span class="font-semibold {{ $isInactive ? 'text-red-600' : 'text-gray-900' }}">
+                                    {{ $statusLabel }}
+                                </span>
                             </div>
 
                             <div class="mt-2 flex flex-wrap gap-2">
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 border">
-                                    {{ __('profile.room_code') }}: {{ $roomCode }}
-                                </span>
+                                @if (!$isInactive)
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 border">
+                                        {{ __('profile.room_code') }}: {{ $roomCode }}
+                                    </span>
 
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 border">
-                                    {{ __('profile.check_in') }}: {{ $checkInLabel }}
-                                </span>
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 border">
+                                        {{ __('profile.check_in') }}: {{ $checkInLabel }}
+                                    </span>
 
-                                @if ($assignment)
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $assignment->is_pic ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-800 border' }} border">
-                                    {{ $assignment->is_pic ? __('profile.you_pic') : __('profile.not_pic') }}
-                                </span>
+                                    @if ($assignment)
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $assignment->is_pic ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-800 border' }} border">
+                                            {{ $assignment->is_pic ? __('profile.you_pic') : __('profile.not_pic') }}
+                                        </span>
+                                    @endif
+                                @else
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border-red-200 border">
+                                        Tanggal Keluar: {{ $checkOutLabel }}
+                                    </span>
                                 @endif
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex flex-wrap gap-2">
-                        <a href="{{ url('/riwayat-kamar') }}"
-                            class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition">
-                            {{ __('profile.room_history_button') }}
-                        </a>
-                    </div>
-
+                    @if (!$isInactive)
+                        <div class="flex flex-wrap gap-2">
+                            <a href="{{ url('/riwayat-kamar') }}"
+                               class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition">
+                                {{ __('profile.room_history_button') }}
+                            </a>
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -168,6 +178,18 @@
                                 @endphp
                             </dd>
                         </div>
+
+                        @if (!$isInactive)
+                            <div class="{{ $rowClass }}">
+                                <dt class="{{ $labelClass }}">Tanggal Masuk</dt>
+                                <dd class="{{ $valueClass }}">{{ $checkInLabel }}</dd>
+                            </div>
+                        @else
+                            <div class="{{ $rowClass }}">
+                                <dt class="{{ $labelClass }}">Tanggal Keluar</dt>
+                                <dd class="{{ $valueClass }}">{{ $checkOutLabel }}</dd>
+                            </div>
+                        @endif
 
                         <div class="{{ $rowClass }}">
                             <dt class="{{ $labelClass }}">{{ __('profile.check_in_date') }}</dt>
@@ -232,17 +254,17 @@
                         @include('profile.partials.update-profile-information-form')
                     </div>
                 </div>
-            </div>
 
-            {{-- Ubah Password --}}
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
-                    <div class="text-base font-semibold text-gray-900">Ubah Password</div>
-                    <div class="mt-4">
-                        @include('profile.partials.update-password-form')
+                {{-- Ubah Password - Hanya untuk user aktif --}}
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6">
+                        <div class="text-base font-semibold text-gray-900">Ubah Password</div>
+                        <div class="mt-4">
+                            @include('profile.partials.update-password-form')
+                        </div>
                     </div>
                 </div>
-            </div>
+            @endif
 
         </div>
     </div>

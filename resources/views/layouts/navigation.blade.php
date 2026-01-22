@@ -143,7 +143,14 @@
             <x-responsive-nav-link :href="route('profile.edit')" :active="request()->routeIs('profile.edit')">
                 {{ __('navigation.profile') }}
             </x-responsive-nav-link>
-            @endif
+        </div>
+
+        <!-- Responsive Settings Options -->
+        <div class="pt-4 pb-1 border-t border-gray-200">
+            <div class="px-4">
+                <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
+                <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
+            </div>
 
             {{-- Language Switcher Mobile --}}
             <div class="px-4 py-2 border-t border-gray-200">
@@ -160,9 +167,6 @@
                     onclick="event.preventDefault(); this.closest('form').submit();">
                     {{ __('navigation.logout') }}
                 </x-responsive-nav-link>
-            </form>
-            @endif
-            @endauth
 
             @guest
             @if (\Illuminate\Support\Facades\Route::has('login'))
