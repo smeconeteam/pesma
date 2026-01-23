@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class BillPayment extends Model
 {
@@ -58,6 +59,11 @@ class BillPayment extends Model
         return $this->belongsTo(PaymentMethodBankAccount::class, 'bank_account_id');
     }
 
+    public function transaction(): HasOne
+    {
+        return $this->hasOne(Transaction::class);
+    }
+
     // METHODS
 
     public function verify(int $verifiedById): void
@@ -109,6 +115,9 @@ class BillPayment extends Model
 
                 $bill->save();
             }
+
+            // ✅ AUTO CREATE TRANSACTION (Pemasukan dari Billing)
+            $this->createTransaction($verifiedById);
         });
     }
 
@@ -123,9 +132,41 @@ class BillPayment extends Model
                 'verified_at' => now(),
             ]);
 
-            // Jika sebelumnya sudah update tagihan (misal admin salah klik verify lalu reject),
-            // rollback update tagihan
+            // Delete transaction if exists
+            $this->transaction()->delete();
         });
+    }
+
+    /**
+     * Create transaction entry for verified payment
+     */
+    protected function createTransaction(int $createdById): void
+    {
+        // Skip if transaction already exists
+        if ($this->transaction()->exists()) {
+            return;
+        }
+
+        $bill = $this->bill;
+        $room = $bill->room;
+        
+        // Determine payment method
+        $paymentMethodType = $this->paymentMethod?->kind === 'cash' ? 'cash' : 'credit';
+
+        Transaction::create([
+            'type' => 'income',
+            'name' => "Pembayaran {$bill->billingType->name} - {$this->paid_by_name}",
+            'amount' => $this->amount,
+            'payment_method' => $paymentMethodType,
+            'transaction_date' => $this->payment_date,
+            'notes' => $this->is_pic_payment 
+                ? "Pembayaran PIC (Gabungan)\n{$this->notes}" 
+                : "Pembayaran Bill #{$bill->bill_number}",
+            'dorm_id' => $room?->block?->dorm_id,
+            'block_id' => $room?->block_id,
+            'bill_payment_id' => $this->id,
+            'created_by' => $createdById,
+        ]);
     }
 
     /**
