@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight transition-colors">
             {{ __('myroom.title') }}
         </h2>
     </x-slot>
@@ -24,28 +24,29 @@
 
         $capacity = $room?->capacity ?? $room?->default_capacity ?? null;
 
-        $itemsClass = "divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white overflow-hidden";
+        // UPDATED CLASS: Added dark mode utilities
+        $itemsClass = "divide-y divide-gray-100 dark:divide-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden";
         $rowClass = "px-3 py-3 sm:px-4 sm:py-3 flex flex-col sm:grid sm:grid-cols-3 sm:gap-4 gap-1";
-        $labelClass = "text-xs sm:text-sm font-medium text-gray-500";
-        $valueClass = "text-sm sm:text-sm text-gray-900 font-medium";
+        $labelClass = "text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400";
+        $valueClass = "text-sm sm:text-sm text-gray-900 dark:text-gray-100 font-medium";
     @endphp
 
-    <div class="py-4 sm:py-10">
+    <div class="py-4 sm:py-10 bg-gray-50 dark:bg-gray-950 min-h-screen transition-colors">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4 sm:space-y-6">
 
             @if (! $assignment)
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-4 sm:p-6">
-                        <div class="rounded-md border border-yellow-200 bg-yellow-50 p-3 sm:p-4 text-xs sm:text-sm text-yellow-800">
+                        <div class="rounded-md border border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800 p-3 sm:p-4 text-xs sm:text-sm text-yellow-800 dark:text-yellow-200">
                             {{ __('myroom.no_assignment') }}
                         </div>
                     </div>
                 </div>
             @else
                 {{-- Informasi Kamar --}}
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg border border-gray-100 dark:border-gray-700">
                     <div class="p-4 sm:p-6">
-                        <div class="text-sm sm:text-base font-semibold text-gray-900 mb-3 sm:mb-4">{{ __('myroom.room_info') }}</div>
+                        <div class="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">{{ __('myroom.room_info') }}</div>
 
                         <dl class="{{ $itemsClass }}">
                             <div class="{{ $rowClass }}">
@@ -88,16 +89,16 @@
                             </div>
                         </dl>
 
-                        <div class="mt-3 sm:mt-4 text-xs text-gray-500">
+                        <div class="mt-3 sm:mt-4 text-xs text-gray-500 dark:text-gray-400">
                             {{ __('myroom.data_note') }}
                         </div>
                     </div>
                 </div>
 
                 {{-- Penghuni Sekamar --}}
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg border border-gray-100 dark:border-gray-700">
                     <div class="p-4 sm:p-6">
-                        <div class="text-sm sm:text-base font-semibold text-gray-900 mb-3 sm:mb-4">{{ __('myroom.roommates') }}</div>
+                        <div class="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">{{ __('myroom.roommates') }}</div>
 
                         <div class="space-y-2 sm:space-y-3">
                             @foreach ($roommates as $rr)
@@ -114,14 +115,14 @@
                                     $isMe = $u?->id && $u->id === auth()->id();
                                 @endphp
 
-                                <div class="p-3 sm:p-4 rounded-lg border border-gray-200 bg-gray-50">
+                                <div class="p-3 sm:p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
                                     <div class="flex items-center gap-2.5 sm:gap-3">
                                         @if ($photoUrl)
                                             <img src="{{ $photoUrl }}" alt="Foto"
-                                                 class="h-10 w-10 rounded-full object-cover border-2 border-white shadow-sm shrink-0" />
+                                                 class="h-10 w-10 rounded-full object-cover border-2 border-white dark:border-gray-600 shadow-sm shrink-0" />
                                         @else
-                                            <div class="h-10 w-10 rounded-full bg-gray-200 border-2 border-white shadow-sm flex items-center justify-center shrink-0">
-                                                <span class="text-sm font-semibold text-gray-600">
+                                            <div class="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 border-2 border-white dark:border-gray-500 shadow-sm flex items-center justify-center shrink-0">
+                                                <span class="text-sm font-semibold text-gray-600 dark:text-gray-200">
                                                     {{ mb_substr($name ?? '-', 0, 1) }}
                                                 </span>
                                             </div>
@@ -130,24 +131,24 @@
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center justify-between gap-2">
                                                 <div class="flex items-center gap-1.5 flex-wrap min-w-0">
-                                                    <span class="text-sm font-semibold text-gray-900 truncate">
+                                                    <span class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                                                         {{ $name }}
                                                     </span>
                                                     
                                                     @if ($isMe)
-                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 shrink-0">
+                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800 shrink-0">
                                                             {{ __('myroom.me') }}
                                                         </span>
                                                     @endif
                                                     
                                                     @if ($rr->is_pic)
-                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200 shrink-0">
+                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800 shrink-0">
                                                             {{ __('myroom.pic') }}
                                                         </span>
                                                     @endif
                                                 </div>
 
-                                                {{-- Tombol WhatsApp satu baris dengan nama --}}
+                                                {{-- Tombol WhatsApp --}}
                                                 @if (!$isMe && !empty($phoneNumber))
                                                     @php
                                                         $cleanPhone = preg_replace('/[^0-9]/', '', $phoneNumber);
@@ -171,8 +172,8 @@
                                             </div>
 
                                             @if (!empty($phoneNumber))
-                                                <div class="mt-1 flex items-center gap-1.5 text-xs sm:text-sm text-gray-600">
-                                                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                <div class="mt-1 flex items-center gap-1.5 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500 dark:text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                                         <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path>
                                                     </svg>
                                                     <span class="font-medium truncate">{{ $phoneNumber }}</span>
@@ -184,13 +185,13 @@
                             @endforeach
 
                             @if ($roommates->isEmpty())
-                                <div class="p-3 sm:p-4 rounded-lg border border-gray-200 bg-gray-50 text-xs sm:text-sm text-gray-600">
+                                <div class="p-3 sm:p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                                     {{ __('myroom.no_roommates') }}
                                 </div>
                             @endif
                         </div>
 
-                        <div class="mt-3 sm:mt-4 text-xs text-gray-500">
+                        <div class="mt-3 sm:mt-4 text-xs text-gray-500 dark:text-gray-400">
                             {{ __('myroom.roommates_note') }}
                         </div>
                     </div>

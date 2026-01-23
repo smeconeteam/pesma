@@ -2,6 +2,9 @@
 @plugin "@tailwindcss/typography";
 @plugin "@tailwindcss/forms";
 
+/* Force dark mode class strategy for Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
     --font-sans: 'Inter', sans-serif;
 }
@@ -28,7 +31,9 @@ select {
 .dark input:not([type="checkbox"]):not([type="radio"]), 
 .dark textarea, 
 .dark select {
-    @apply border-gray-600 bg-gray-800 text-gray-100;
+    @apply border-gray-600 outline-none ring-0;
+    background-color: #1f2937 !important; /* bg-gray-800 */
+    color: #f3f4f6 !important; /* text-gray-100 */
     @apply focus:ring-green-500 focus:border-green-500;
 }
 

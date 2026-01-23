@@ -312,7 +312,7 @@ class BillResource extends Resource
             return $query;
         }
 
-        if ($user->hasRole('branch_admin')) {
+    if ($user->hasRole('branch_admin')) {
             $dormIds = $user->branchDormIds();
             return $query->where(function ($q) use ($dormIds) {
                 $q->whereHas('room.block.dorm', function ($subQ) use ($dormIds) {
