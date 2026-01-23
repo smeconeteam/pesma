@@ -90,14 +90,14 @@
                                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
                             </div>
                             <div>
-                                <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">Tagihan Terbaru</h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Status pembayaran terkini Anda</p>
+                                <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ __('bills.title') }}</h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('bills.subtitle') }}</p>
                             </div>
                         </div>
                         
                         @if(\Illuminate\Support\Facades\Route::has('resident.bills'))
                         <a href="{{ route('resident.bills') }}" class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm">
-                            Lihat Semua >
+                            {{ __('bills.view_all') }} >
                         </a>
                         @endif
                     </div>
@@ -116,16 +116,16 @@
                                         </h4>
                                         
                                         @if($bill->status == 'paid')
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">Lunas</span>
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">{{ __('bills.status_paid') }}</span>
                                         @else
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800">Tertagih</span>
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800">{{ __('bills.status_issued') }}</span>
                                         @endif
                                     </div>
 
                                     <div class="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                                        <p>No. Tagihan: <span class="font-mono text-gray-700 dark:text-gray-300">{{ $bill->invoice_number ?? '-' }}</span></p>
+                                        <p>{{ __('bills.bill_number') }}: <span class="font-mono text-gray-700 dark:text-gray-300">{{ $bill->invoice_number ?? '-' }}</span></p>
                                         @if($bill->start_date && $bill->end_date)
-                                        <p>Periode: {{ \Carbon\Carbon::parse($bill->start_date)->format('d M Y') }} - {{ \Carbon\Carbon::parse($bill->end_date)->format('d M Y') }}</p>
+                                        <p>{{ __('bills.period') }}: {{ \Carbon\Carbon::parse($bill->start_date)->format('d M Y') }} - {{ \Carbon\Carbon::parse($bill->end_date)->format('d M Y') }}</p>
                                         @endif
                                     </div>
                                 </div>
@@ -133,14 +133,14 @@
                                 {{-- Kanan: Harga --}}
                                 <div class="flex flex-row sm:flex-col justify-between items-center sm:items-end sm:text-right pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-200 dark:border-gray-700">
                                     <div class="text-xs text-gray-500 dark:text-gray-400">
-                                        Total: <span class="font-bold text-gray-900 dark:text-gray-100">Rp {{ number_format($bill->total_amount, 0, ',', '.') }}</span>
+                                        {{ __('bills.total') }}: <span class="font-bold text-gray-900 dark:text-gray-100">Rp {{ number_format($bill->total_amount, 0, ',', '.') }}</span>
                                     </div>
                                     @if($bill->remaining_amount > 0)
                                     <div class="text-xs font-bold text-red-600 dark:text-red-400 mt-1">
-                                        Sisa: Rp {{ number_format($bill->remaining_amount, 0, ',', '.') }}
+                                        {{ __('bills.remaining') }}: Rp {{ number_format($bill->remaining_amount, 0, ',', '.') }}
                                     </div>
                                     @else
-                                    <div class="text-xs font-bold text-green-600 dark:text-green-400 mt-1">Lunas</div>
+                                    <div class="text-xs font-bold text-green-600 dark:text-green-400 mt-1">{{ __('bills.paid_status') }}</div>
                                     @endif
                                 </div>
                             </div>
@@ -153,8 +153,8 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
                             </div>
-                            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Belum ada tagihan</h3>
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Saat ini Anda tidak memiliki riwayat tagihan terbaru.</p>
+                            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ __('bills.empty_title') }}</h3>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('bills.empty_message') }}</p>
                         </div>
                         @endforelse
                     </div>

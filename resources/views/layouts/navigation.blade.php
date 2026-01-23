@@ -76,7 +76,7 @@ class="border-b bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 t
                     {{-- MENU TAGIHAN (DITAMBAHKAN DI SINI) --}}
                     @if (\Illuminate\Support\Facades\Route::has('resident.bills'))
                         <x-nav-link :href="route('resident.bills')" :active="request()->routeIs('resident.bills')">
-                            {{ __('Tagihan') }}
+                            {{ __('navigation.bills') }}
                         </x-nav-link>
                     @endif
 
@@ -265,10 +265,10 @@ class="border-b bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 t
                     </x-responsive-nav-link>
                 @endif
                 
-                {{-- MENU TAGIHAN (DITAMBAHKAN DI SINI UNTUK MOBILE) --}}
+                    {{-- MENU TAGIHAN (DITAMBAHKAN DI SINI UNTUK MOBILE) --}}
                 @if (\Illuminate\Support\Facades\Route::has('resident.bills'))
                     <x-responsive-nav-link :href="route('resident.bills')" :active="request()->routeIs('resident.bills')">
-                        {{ __('Tagihan') }}
+                        {{ __('navigation.bills') }}
                     </x-responsive-nav-link>
                 @endif
 
