@@ -115,7 +115,7 @@
                                 @endphp
 
                                 <div class="p-3 sm:p-4 rounded-lg border border-gray-200 bg-gray-50">
-                                    <div class="flex items-center gap-2.5 sm:gap-3">
+                                    <div class="flex items-center gap-2">
                                         @if ($photoUrl)
                                             <img src="{{ $photoUrl }}" alt="Foto"
                                                  class="h-10 w-10 rounded-full object-cover border-2 border-white shadow-sm shrink-0" />
@@ -128,26 +128,37 @@
                                         @endif
 
                                         <div class="flex-1 min-w-0">
-                                            <div class="flex items-center justify-between gap-2">
-                                                <div class="flex items-center gap-1.5 flex-wrap min-w-0">
-                                                    <span class="text-sm font-semibold text-gray-900 truncate">
-                                                        {{ $name }}
-                                                    </span>
-                                                    
-                                                    @if ($isMe)
-                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 shrink-0">
-                                                            {{ __('myroom.me') }}
+                                            <div class="flex items-start justify-between gap-2">
+                                                <div class="min-w-0 flex-1">
+                                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                                        <span class="text-sm font-semibold text-gray-900 truncate">
+                                                            {{ $name }}
                                                         </span>
-                                                    @endif
-                                                    
-                                                    @if ($rr->is_pic)
-                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200 shrink-0">
-                                                            {{ __('myroom.pic') }}
-                                                        </span>
+                                                        
+                                                        @if ($isMe)
+                                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 shrink-0">
+                                                                {{ __('myroom.me') }}
+                                                            </span>
+                                                        @endif
+                                                        
+                                                        @if ($rr->is_pic)
+                                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200 shrink-0">
+                                                                {{ __('myroom.pic') }}
+                                                            </span>
+                                                        @endif
+                                                    </div>
+
+                                                    @if (!empty($phoneNumber))
+                                                        <div class="mt-0.5 flex items-center gap-1.5 text-xs sm:text-sm text-gray-600">
+                                                            <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path>
+                                                            </svg>
+                                                            <span class="font-medium truncate">{{ $phoneNumber }}</span>
+                                                        </div>
                                                     @endif
                                                 </div>
 
-                                                {{-- Tombol WhatsApp satu baris dengan nama --}}
+                                                {{-- Tombol WhatsApp --}}
                                                 @if (!$isMe && !empty($phoneNumber))
                                                     @php
                                                         $cleanPhone = preg_replace('/[^0-9]/', '', $phoneNumber);
@@ -169,15 +180,6 @@
                                                     </a>
                                                 @endif
                                             </div>
-
-                                            @if (!empty($phoneNumber))
-                                                <div class="mt-1 flex items-center gap-1.5 text-xs sm:text-sm text-gray-600">
-                                                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path>
-                                                    </svg>
-                                                    <span class="font-medium truncate">{{ $phoneNumber }}</span>
-                                                </div>
-                                            @endif
                                         </div>
                                     </div>
                                 </div>

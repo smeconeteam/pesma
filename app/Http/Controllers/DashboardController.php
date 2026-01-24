@@ -45,6 +45,23 @@ class DashboardController extends Controller
             ? $assignment->check_in_date->format('d M Y')
             : '-';
         
+        // Cari Ketua Kamar (PIC)
+        $roomPicName = null;
+        $roomPicPhone = null;
+        if ($room) {
+            $picAssignment = $room->roomResidents()
+                ->whereNull('check_out_date')
+                ->where('is_pic', true)
+                ->with('user.residentProfile')
+                ->first();
+                
+            if ($picAssignment) {
+                $profile = $picAssignment->user->residentProfile;
+                $roomPicName = $profile->full_name ?? $picAssignment->user->name;
+                $roomPicPhone = $profile->phone_number ?? null;
+            }
+        }
+        
         // Ambil data checkout terakhir untuk penghuni inactive
         $lastCheckout = null;
         $checkoutReason = null;
@@ -119,7 +136,10 @@ class DashboardController extends Controller
             'unpaidBills',
             'totalUnpaid',
             'totalPaid',
-            'recentBills'
+            'totalPaid',
+            'recentBills',
+            'roomPicName',
+            'roomPicPhone'
         ));
     }
 }
