@@ -278,9 +278,45 @@ class Bill extends Model
             return 'Tak Terbatas';
         }
 
-        return $this->period_end->format('d M Y');
-    }
+        $now = now();
+        $periodEnd = $this->period_end;
 
+        // Hitung selisih hari
+        $diffInDays = $periodEnd->diffInDays($now, false);
+
+        // Jika sudah lewat
+        if ($diffInDays < 0) {
+            $daysOverdue = abs($diffInDays);
+
+            if ($daysOverdue < 1) {
+                return 'Lewat kurang dari sehari';
+            }
+
+            if ($daysOverdue == 1) {
+                return 'Lewat 1 hari';
+            }
+
+            return "Lewat {$daysOverdue} hari";
+        }
+
+        // Jika hari ini
+        if ($diffInDays == 0) {
+            return 'Hari ini';
+        }
+
+        // Jika besok
+        if ($diffInDays == 1) {
+            return 'Besok';
+        }
+
+        // Jika kurang dari sehari (tapi belum lewat)
+        if ($diffInDays < 1) {
+            return 'Kurang dari sehari lagi';
+        }
+
+        // Jika masih beberapa hari lagi
+        return "{$diffInDays} hari lagi";
+    }
     public function updateOverdueStatus(): void
     {
         if (

@@ -64,7 +64,7 @@ class CreateBill extends CreateRecord
                 $q->whereHas('activeRoomResident.room.block.dorm', function ($subQ) use ($dormIds) {
                     $subQ->whereIn('dorms.id', $dormIds);
                 })
-                ->orWhereDoesntHave('activeRoomResident');
+                    ->orWhereDoesntHave('activeRoomResident');
             });
         }
 
@@ -83,7 +83,7 @@ class CreateBill extends CreateRecord
                 $q->whereHas('activeRoomResident.room.block.dorm', function ($subQ) use ($searchDormId) {
                     $subQ->where('dorms.id', $searchDormId);
                 })
-                ->orWhereDoesntHave('activeRoomResident');
+                    ->orWhereDoesntHave('activeRoomResident');
             });
         }
 
@@ -214,7 +214,7 @@ class CreateBill extends CreateRecord
                                             })
                                             ->searchable()
                                             ->native(false)
-                                            ->required(fn (Forms\Get $get) => $get('tab') === 'registration')
+                                            ->required(fn(Forms\Get $get) => $get('tab') === 'registration')
                                             ->live()
                                             ->afterStateUpdated(function ($state, Forms\Set $set) {
                                                 if ($state) {
@@ -234,19 +234,19 @@ class CreateBill extends CreateRecord
                                             ->helperText('Hanya pendaftaran yang belum memiliki tagihan biaya pendaftaran yang muncul di sini'),
 
                                         Forms\Components\Grid::make(3)
-                                            ->visible(fn (Forms\Get $get) => !blank($get('registration_id')))
+                                            ->visible(fn(Forms\Get $get) => !blank($get('registration_id')))
                                             ->schema([
                                                 Forms\Components\Placeholder::make('registration_full_name')
                                                     ->label('Nama Lengkap')
-                                                    ->content(fn (Forms\Get $get) => $get('registration_full_name') ?? '-'),
+                                                    ->content(fn(Forms\Get $get) => $get('registration_full_name') ?? '-'),
 
                                                 Forms\Components\Placeholder::make('registration_email')
                                                     ->label('Email')
-                                                    ->content(fn (Forms\Get $get) => $get('registration_email') ?? '-'),
+                                                    ->content(fn(Forms\Get $get) => $get('registration_email') ?? '-'),
 
                                                 Forms\Components\Placeholder::make('registration_category')
                                                     ->label('Kategori')
-                                                    ->content(fn (Forms\Get $get) => $get('registration_category') ?? '-'),
+                                                    ->content(fn(Forms\Get $get) => $get('registration_category') ?? '-'),
                                             ]),
                                     ]),
 
@@ -258,14 +258,14 @@ class CreateBill extends CreateRecord
                                         }
                                         return 'Jenis tagihan otomatis: "Biaya Pendaftaran" (tidak ada nominal default)';
                                     })
-                                    ->visible(fn (Forms\Get $get) => !blank($get('registration_id')))
+                                    ->visible(fn(Forms\Get $get) => !blank($get('registration_id')))
                                     ->columns(3)
                                     ->schema([
                                         Forms\Components\TextInput::make('registration_fee_amount')
                                             ->label('Nominal Biaya')
                                             ->numeric()
                                             ->prefix('Rp')
-                                            ->required(fn (Forms\Get $get) => $get('tab') === 'registration')
+                                            ->required(fn(Forms\Get $get) => $get('tab') === 'registration')
                                             ->minValue(0)
                                             ->live(debounce: 500)
                                             ->helperText('Masukkan nominal biaya pendaftaran'),
@@ -284,15 +284,15 @@ class CreateBill extends CreateRecord
                                             ->native(false)
                                             ->displayFormat('d/m/Y')
                                             ->format('Y-m-d')
-                                            ->minDate(now())
+                                            ->minDate(now()->addDay())
                                             ->nullable()
-                                            ->helperText('Batas waktu pembayaran (opsional)'),
+                                            ->helperText('Batas waktu pembayaran (minimal besok)'),
 
                                         Forms\Components\Placeholder::make('registration_total')
                                             ->label('Total Tagihan')
                                             ->content(function (Forms\Get $get) {
-                                                $amount = $get('registration_fee_amount') ?? 0;
-                                                $discount = $get('registration_fee_discount') ?? 0;
+                                                $amount = (float) ($get('registration_fee_amount') ?? 0);
+                                                $discount = (float) ($get('registration_fee_discount') ?? 0);
                                                 $total = $amount - (($amount * $discount) / 100);
 
                                                 return 'Rp ' . number_format($total, 0, ',', '.');
@@ -301,7 +301,7 @@ class CreateBill extends CreateRecord
                                     ]),
 
                                 Forms\Components\Section::make('Catatan')
-                                    ->visible(fn (Forms\Get $get) => !blank($get('registration_id')))
+                                    ->visible(fn(Forms\Get $get) => !blank($get('registration_id')))
                                     ->schema([
                                         Forms\Components\Textarea::make('notes')
                                             ->label('Catatan (Opsional)')
@@ -358,7 +358,7 @@ class CreateBill extends CreateRecord
                                             ->searchable()
                                             ->preload()
                                             ->optionsLimit(50)
-                                            ->required(fn (Forms\Get $get) => $get('tab') === 'individual')
+                                            ->required(fn(Forms\Get $get) => $get('tab') === 'individual')
                                             ->live()
                                             ->options(function (Forms\Get $get) {
                                                 $users = $this->residentsQuery($get)
@@ -454,10 +454,13 @@ class CreateBill extends CreateRecord
                                                     ->pluck('name', 'id')
                                                     ->toArray();
                                             })
-                                            ->required(fn (Forms\Get $get) => $get('tab') === 'individual')
+                                            ->required(fn(Forms\Get $get) => $get('tab') === 'individual')
                                             ->searchable()
                                             ->native(false)
-                                            ->live(),
+                                            ->live()
+                                            ->validationMessages([
+                                                'required' => 'Jenis tagihan harus dipilih',
+                                            ]),
                                     ]),
 
                                 Forms\Components\Section::make('Periode')
@@ -465,7 +468,7 @@ class CreateBill extends CreateRecord
                                     ->schema([
                                         Forms\Components\DatePicker::make('period_start')
                                             ->label('Periode Mulai')
-                                            ->required(fn (Forms\Get $get) => $get('tab') === 'individual')
+                                            ->required(fn(Forms\Get $get) => $get('tab') === 'individual')
                                             ->default(now()->startOfMonth()->toDateString())
                                             ->native(false),
 
@@ -478,7 +481,7 @@ class CreateBill extends CreateRecord
 
                                 Forms\Components\Section::make('Daftar Penghuni & Nominal')
                                     ->description('Set nominal dan diskon untuk setiap penghuni.')
-                                    ->visible(fn (Forms\Get $get) => !empty($get('residents')))
+                                    ->visible(fn(Forms\Get $get) => !empty($get('residents')))
                                     ->schema([
                                         Forms\Components\Repeater::make('residents')
                                             ->label('')
@@ -492,7 +495,7 @@ class CreateBill extends CreateRecord
 
                                                         Forms\Components\TextInput::make('amount')
                                                             ->label('Nominal')
-                                                            ->required(fn (Forms\Get $get) => $get('tab') === 'individual')
+                                                            ->required(fn(Forms\Get $get) => $get('tab') === 'individual')
                                                             ->numeric()
                                                             ->prefix('Rp')
                                                             ->live(onBlur: true),
@@ -557,7 +560,7 @@ class CreateBill extends CreateRecord
                                             ->searchable()
                                             ->native(false)
                                             ->live()
-                                            ->required(fn (Forms\Get $get) => $get('tab') === 'room')
+                                            ->required(fn(Forms\Get $get) => $get('tab') === 'room')
                                             ->disabled(!$isSuperOrMainAdmin && !$isBranchAdmin)
                                             ->afterStateUpdated(function (Forms\Set $set) {
                                                 $set('block_id', null);
@@ -567,16 +570,16 @@ class CreateBill extends CreateRecord
 
                                         Forms\Components\Select::make('block_id')
                                             ->label('Komplek')
-                                            ->options(fn (Forms\Get $get) => Block::query()
-                                                ->when($get('dorm_id'), fn (Builder $q, $dormId) => $q->where('dorm_id', $dormId))
+                                            ->options(fn(Forms\Get $get) => Block::query()
+                                                ->when($get('dorm_id'), fn(Builder $q, $dormId) => $q->where('dorm_id', $dormId))
                                                 ->where('is_active', true)
                                                 ->pluck('name', 'id')
                                                 ->toArray())
                                             ->searchable()
                                             ->native(false)
                                             ->live()
-                                            ->required(fn (Forms\Get $get) => $get('tab') === 'room')
-                                            ->disabled(fn (Forms\Get $get) => blank($get('dorm_id')))
+                                            ->required(fn(Forms\Get $get) => $get('tab') === 'room')
+                                            ->disabled(fn(Forms\Get $get) => blank($get('dorm_id')))
                                             ->afterStateUpdated(function (Forms\Set $set) {
                                                 $set('room_id', null);
                                                 $set('residents', []);
@@ -593,7 +596,7 @@ class CreateBill extends CreateRecord
                                                     ->whereHas('activeResidents')
                                                     ->with(['block.dorm', 'activeResidents'])
                                                     ->get()
-                                                    ->mapWithKeys(fn ($room) => [
+                                                    ->mapWithKeys(fn($room) => [
                                                         $room->id => "{$room->code} ({$room->activeResidents->count()} penghuni) - Rp " . number_format($room->monthly_rate ?? 0, 0, ',', '.')
                                                     ])
                                                     ->toArray();
@@ -601,8 +604,8 @@ class CreateBill extends CreateRecord
                                             ->searchable()
                                             ->native(false)
                                             ->live()
-                                            ->required(fn (Forms\Get $get) => $get('tab') === 'room')
-                                            ->disabled(fn (Forms\Get $get) => blank($get('block_id')))
+                                            ->required(fn(Forms\Get $get) => $get('tab') === 'room')
+                                            ->disabled(fn(Forms\Get $get) => blank($get('block_id')))
                                             ->afterStateUpdated(function ($state, Forms\Set $set) {
                                                 if ($state) {
                                                     $room = Room::with(['activeResidents.user.residentProfile'])->find($state);
@@ -664,7 +667,7 @@ class CreateBill extends CreateRecord
                                     ]),
 
                                 Forms\Components\Section::make('Peringatan Penghuni')
-                                    ->visible(fn (Forms\Get $get) => !blank($get('room_id')) && empty($get('residents')))
+                                    ->visible(fn(Forms\Get $get) => !blank($get('room_id')) && empty($get('residents')))
                                     ->schema([
                                         Forms\Components\Placeholder::make('no_residents_in_room_warning')
                                             ->label('')
@@ -687,13 +690,13 @@ class CreateBill extends CreateRecord
 
                                 Forms\Components\Section::make('Periode')
                                     ->columns(2)
-                                    ->visible(fn (Forms\Get $get) => !empty($get('residents')))
+                                    ->visible(fn(Forms\Get $get) => !empty($get('residents')))
                                     ->schema([
                                         Forms\Components\Grid::make(2)
                                             ->schema([
                                                 Forms\Components\DatePicker::make('period_start')
                                                     ->label('Periode Mulai')
-                                                    ->required(fn (Forms\Get $get) => $get('tab') === 'room')
+                                                    ->required(fn(Forms\Get $get) => $get('tab') === 'room')
                                                     ->default(now()->startOfMonth()->toDateString())
                                                     ->native(false)
                                                     ->live(debounce: 500)
@@ -709,7 +712,7 @@ class CreateBill extends CreateRecord
 
                                                 Forms\Components\TextInput::make('total_months')
                                                     ->label('Jumlah Bulan')
-                                                    ->required(fn (Forms\Get $get) => $get('tab') === 'room')
+                                                    ->required(fn(Forms\Get $get) => $get('tab') === 'room')
                                                     ->numeric()
                                                     ->minValue(1)
                                                     ->maxValue(60)
@@ -726,6 +729,12 @@ class CreateBill extends CreateRecord
                                                             $set('period_end', $endDate->toDateString());
                                                         }
                                                     })
+                                                    ->validationMessages([
+                                                        'required' => 'Jumlah bulan harus diisi',
+                                                        'numeric' => 'Jumlah bulan harus berupa angka',
+                                                        'min' => 'Jumlah bulan minimal 1 bulan',
+                                                        'max' => 'Jumlah bulan maksimal 60 bulan (5 tahun)',
+                                                    ])
                                                     ->helperText('Max 60 bulan (5 tahun)'),
                                             ]),
 
@@ -754,7 +763,7 @@ class CreateBill extends CreateRecord
                                     ]),
 
                                 Forms\Components\Section::make('Info Tarif Kamar')
-                                    ->visible(fn (Forms\Get $get) => !blank($get('room_id')) && !empty($get('residents')))
+                                    ->visible(fn(Forms\Get $get) => !blank($get('room_id')) && !empty($get('residents')))
                                     ->schema([
                                         Forms\Components\Placeholder::make('room_rate_info')
                                             ->label('')
@@ -789,7 +798,7 @@ class CreateBill extends CreateRecord
 
                                 Forms\Components\Section::make('Daftar Penghuni & Diskon')
                                     ->description('Set diskon per penghuni. Diskon dihitung dari total periode.')
-                                    ->visible(fn (Forms\Get $get) => !empty($get('residents')))
+                                    ->visible(fn(Forms\Get $get) => !empty($get('residents')))
                                     ->schema([
                                         Forms\Components\Repeater::make('residents')
                                             ->label('')
@@ -840,7 +849,7 @@ class CreateBill extends CreateRecord
                                     ]),
 
                                 Forms\Components\Section::make('Catatan')
-                                    ->visible(fn (Forms\Get $get) => !empty($get('residents')))
+                                    ->visible(fn(Forms\Get $get) => !empty($get('residents')))
                                     ->schema([
                                         Forms\Components\Textarea::make('notes')
                                             ->label('Catatan (Opsional)')
@@ -861,32 +870,52 @@ class CreateBill extends CreateRecord
                                         Forms\Components\Select::make('category_dorm_id')
                                             ->label('Cabang')
                                             ->options(function () use ($user, $isSuperOrMainAdmin) {
-                                                if ($isSuperOrMainAdmin) {
-                                                    return Dorm::where('is_active', true)->pluck('name', 'id')->toArray();
+                                                // Filter hanya cabang yang punya penghuni aktif
+                                                $query = Dorm::where('is_active', true)
+                                                    ->whereHas('rooms.activeResidents');
+
+                                                if (!$isSuperOrMainAdmin) {
+                                                    $query->whereIn('id', $user->branchDormIds());
                                                 }
-                                                return Dorm::whereIn('id', $user->branchDormIds())
-                                                    ->where('is_active', true)
+
+                                                return $query->pluck('name', 'id')->toArray();
+                                            })
+                                            ->searchable()
+                                            ->native(false)
+                                            ->live()
+                                            ->required(fn(Forms\Get $get) => $get('tab') === 'category')
+                                            ->disabled(!$isSuperOrMainAdmin && !$isBranchAdmin)
+                                            ->afterStateUpdated(function (Forms\Set $set) {
+                                                $set('resident_category_id', null);
+                                                $set('residents', []);
+                                            })
+                                            ->helperText('Hanya menampilkan cabang yang memiliki penghuni aktif'),
+
+                                        Forms\Components\Select::make('resident_category_id')
+                                            ->label('Kategori Penghuni')
+                                            ->options(function (Forms\Get $get) {
+                                                $dormId = $get('category_dorm_id');
+
+                                                if (!$dormId) {
+                                                    return ResidentCategory::query()->orderBy('name')->pluck('name', 'id')->toArray();
+                                                }
+
+                                                // Filter hanya kategori yang ada penghuninya di cabang ini
+                                                return ResidentCategory::query()
+                                                    ->whereHas('residentProfiles', function ($q) use ($dormId) {
+                                                        $q->whereHas('user.activeRoomResident.room.block.dorm', function ($subQ) use ($dormId) {
+                                                            $subQ->where('dorms.id', $dormId);
+                                                        });
+                                                    })
+                                                    ->orderBy('name')
                                                     ->pluck('name', 'id')
                                                     ->toArray();
                                             })
                                             ->searchable()
                                             ->native(false)
                                             ->live()
-                                            ->required(fn (Forms\Get $get) => $get('tab') === 'category')
-                                            ->disabled(!$isSuperOrMainAdmin && !$isBranchAdmin)
-                                            ->afterStateUpdated(function (Forms\Set $set) {
-                                                $set('resident_category_id', null);
-                                                $set('residents', []);
-                                            }),
-
-                                        Forms\Components\Select::make('resident_category_id')
-                                            ->label('Kategori Penghuni')
-                                            ->options(fn () => ResidentCategory::query()->orderBy('name')->pluck('name', 'id')->toArray())
-                                            ->searchable()
-                                            ->native(false)
-                                            ->live()
-                                            ->required(fn (Forms\Get $get) => $get('tab') === 'category')
-                                            ->disabled(fn (Forms\Get $get) => blank($get('category_dorm_id')))
+                                            ->required(fn(Forms\Get $get) => $get('tab') === 'category')
+                                            ->disabled(fn(Forms\Get $get) => blank($get('category_dorm_id')))
                                             ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                                                 if (!$state) {
                                                     $set('residents', []);
@@ -919,11 +948,11 @@ class CreateBill extends CreateRecord
 
                                                 $set('residents', $residents);
                                             })
-                                            ->helperText('Pilih kategori untuk melihat semua penghuni'),
+                                            ->helperText('Hanya menampilkan kategori yang memiliki penghuni di cabang ini'),
                                     ]),
 
                                 Forms\Components\Section::make('Peringatan')
-                                    ->visible(fn (Forms\Get $get) => !blank($get('resident_category_id')) && !blank($get('category_dorm_id')) && empty($get('residents')))
+                                    ->visible(fn(Forms\Get $get) => !blank($get('resident_category_id')) && !blank($get('category_dorm_id')) && empty($get('residents')))
                                     ->schema([
                                         Forms\Components\Placeholder::make('no_residents_warning')
                                             ->label('')
@@ -946,7 +975,7 @@ class CreateBill extends CreateRecord
 
                                 Forms\Components\Section::make('Informasi Tagihan')
                                     ->columns(1)
-                                    ->visible(fn (Forms\Get $get) => !empty($get('residents')))
+                                    ->visible(fn(Forms\Get $get) => !empty($get('residents')))
                                     ->schema([
                                         Forms\Components\Select::make('billing_type_id')
                                             ->label('Jenis Tagihan')
@@ -970,7 +999,7 @@ class CreateBill extends CreateRecord
                                                     ->pluck('name', 'id')
                                                     ->toArray();
                                             })
-                                            ->required(fn (Forms\Get $get) => $get('tab') === 'category')
+                                            ->required(fn(Forms\Get $get) => $get('tab') === 'category')
                                             ->searchable()
                                             ->native(false)
                                             ->live(),
@@ -978,11 +1007,11 @@ class CreateBill extends CreateRecord
 
                                 Forms\Components\Section::make('Periode')
                                     ->columns(2)
-                                    ->visible(fn (Forms\Get $get) => !empty($get('residents')))
+                                    ->visible(fn(Forms\Get $get) => !empty($get('residents')))
                                     ->schema([
                                         Forms\Components\DatePicker::make('period_start')
                                             ->label('Periode Mulai')
-                                            ->required(fn (Forms\Get $get) => $get('tab') === 'category')
+                                            ->required(fn(Forms\Get $get) => $get('tab') === 'category')
                                             ->default(now()->startOfMonth()->toDateString())
                                             ->native(false),
 
@@ -990,12 +1019,13 @@ class CreateBill extends CreateRecord
                                             ->label('Periode Selesai (Jatuh Tempo)')
                                             ->nullable()
                                             ->native(false)
-                                            ->helperText('Kosongkan jika tidak ada batas waktu (tak terbatas)'),
+                                            ->minDate(now()->addDay())
+                                            ->helperText('Kosongkan jika tidak ada batas waktu (minimal besok jika diisi)'),
                                     ]),
 
                                 Forms\Components\Section::make('Daftar Penghuni & Nominal')
                                     ->description('Centang penghuni yang mau dikasih tagihan. Bisa custom nominal & diskon per penghuni.')
-                                    ->visible(fn (Forms\Get $get) => !empty($get('residents')))
+                                    ->visible(fn(Forms\Get $get) => !empty($get('residents')))
                                     ->schema([
                                         Forms\Components\Repeater::make('residents')
                                             ->label('')
@@ -1020,11 +1050,11 @@ class CreateBill extends CreateRecord
 
                                                         Forms\Components\TextInput::make('amount')
                                                             ->label('Nominal')
-                                                            ->required(fn (Forms\Get $get) => $get('selected'))
+                                                            ->required(fn(Forms\Get $get) => $get('selected'))
                                                             ->numeric()
                                                             ->prefix('Rp')
                                                             ->live(onBlur: true)
-                                                            ->disabled(fn (Forms\Get $get) => !$get('selected')),
+                                                            ->disabled(fn(Forms\Get $get) => !$get('selected')),
 
                                                         Forms\Components\TextInput::make('discount_percent')
                                                             ->label('Diskon (%)')
@@ -1034,7 +1064,7 @@ class CreateBill extends CreateRecord
                                                             ->maxValue(100)
                                                             ->suffix('%')
                                                             ->live(onBlur: true)
-                                                            ->disabled(fn (Forms\Get $get) => !$get('selected')),
+                                                            ->disabled(fn(Forms\Get $get) => !$get('selected')),
 
                                                         Forms\Components\Placeholder::make('total')
                                                             ->label('Total')
@@ -1056,7 +1086,7 @@ class CreateBill extends CreateRecord
                                     ]),
 
                                 Forms\Components\Section::make('Catatan')
-                                    ->visible(fn (Forms\Get $get) => !empty($get('residents')))
+                                    ->visible(fn(Forms\Get $get) => !empty($get('residents')))
                                     ->schema([
                                         Forms\Components\Textarea::make('notes')
                                             ->label('Catatan (Opsional)')
@@ -1162,9 +1192,10 @@ class CreateBill extends CreateRecord
 
                 DB::commit();
 
+                // PERBAIKAN: Hanya satu notifikasi
                 Notification::make()
                     ->success()
-                    ->title('Berhasil membuat tagihan')
+                    ->title('Berhasil')
                     ->body("Tagihan biaya pendaftaran untuk {$registration->full_name} berhasil dibuat")
                     ->send();
 
@@ -1174,7 +1205,7 @@ class CreateBill extends CreateRecord
 
                 Notification::make()
                     ->danger()
-                    ->title('Gagal membuat tagihan')
+                    ->title('Gagal')
                     ->body($e->getMessage())
                     ->send();
 
@@ -1182,15 +1213,49 @@ class CreateBill extends CreateRecord
             }
         }
 
-        // Tab lain
-        if ($tab === 'room' && empty($data['residents'])) {
-            Notification::make()
-                ->warning()
-                ->title('Tidak Ada Penghuni')
-                ->body('Kamar yang dipilih tidak memiliki penghuni aktif. Silakan pilih kamar lain.')
-                ->send();
+        // Validasi untuk tab lain dengan warning, bukan error
+        if ($tab === 'individual') {
+            if (empty($data['search_user_ids'])) {
+                Notification::make()
+                    ->warning()
+                    ->title('Belum Memilih Penghuni')
+                    ->body('Silakan pilih minimal 1 penghuni.')
+                    ->send();
 
-            $this->halt();
+                $this->halt();
+            }
+
+            if (empty($data['billing_type_id'])) {
+                Notification::make()
+                    ->warning()
+                    ->title('Jenis Tagihan Belum Dipilih')
+                    ->body('Silakan pilih jenis tagihan terlebih dahulu.')
+                    ->send();
+
+                $this->halt();
+            }
+        }
+
+        if ($tab === 'room') {
+            if (empty($data['total_months']) || $data['total_months'] < 1) {
+                Notification::make()
+                    ->warning()
+                    ->title('Jumlah Bulan Belum Diisi')
+                    ->body('Silakan isi jumlah bulan minimal 1 bulan.')
+                    ->send();
+
+                $this->halt();
+            }
+
+            if (empty($data['residents'])) {
+                Notification::make()
+                    ->warning()
+                    ->title('Tidak Ada Penghuni')
+                    ->body('Kamar yang dipilih tidak memiliki penghuni aktif. Silakan pilih kamar lain.')
+                    ->send();
+
+                $this->halt();
+            }
         }
 
         if ($tab === 'category' && empty($data['residents'])) {
@@ -1198,16 +1263,6 @@ class CreateBill extends CreateRecord
                 ->warning()
                 ->title('Tidak Ada Penghuni')
                 ->body('Tidak ditemukan penghuni yang cocok dengan kategori dan cabang yang dipilih.')
-                ->send();
-
-            $this->halt();
-        }
-
-        if ($tab === 'individual' && empty($data['residents'])) {
-            Notification::make()
-                ->warning()
-                ->title('Belum Memilih Penghuni')
-                ->body('Silakan pilih minimal 1 penghuni.')
                 ->send();
 
             $this->halt();
@@ -1226,9 +1281,11 @@ class CreateBill extends CreateRecord
             DB::commit();
 
             $count = $bills->count();
+
+            // PERBAIKAN: Hanya satu notifikasi
             Notification::make()
                 ->success()
-                ->title('Berhasil membuat tagihan')
+                ->title('Berhasil')
                 ->body("Berhasil membuat {$count} tagihan")
                 ->send();
 
@@ -1238,7 +1295,7 @@ class CreateBill extends CreateRecord
 
             Notification::make()
                 ->danger()
-                ->title('Gagal membuat tagihan')
+                ->title('Gagal')
                 ->body($e->getMessage())
                 ->send();
 

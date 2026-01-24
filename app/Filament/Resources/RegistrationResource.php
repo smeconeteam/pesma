@@ -125,7 +125,7 @@ class RegistrationResource extends Resource
                             ->searchable()
                             ->native(false)
                             ->required()
-                            ->live() // ✅ PENTING: Buat reactive
+                            ->live()
                             ->afterStateUpdated(function (Forms\Set $set) {
                                 // Reset preferensi saat kategori berubah
                                 $set('preferred_dorm_id', null);
@@ -485,7 +485,7 @@ class RegistrationResource extends Resource
                         ->label('Buat Tagihan')
                         ->icon('heroicon-o-banknotes')
                         ->color('info')
-                        ->visible(fn(Registration $record) => !$record->hasRegistrationBill())
+                        ->visible(fn(Registration $record) => !$record->hasRegistrationBill() && $canApproveReject && $record->status === 'approved')
                         ->url(fn(Registration $record) => route('filament.admin.resources.tagihan.create', [
                             'registration_id' => $record->id,
                             'auto_fill' => true,
