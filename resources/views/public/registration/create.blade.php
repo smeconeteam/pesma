@@ -1,13 +1,13 @@
 <x-guest-layout>
     <div class="mx-auto w-full px-4 py-10">
         <div class="mb-6">
-            <h1 class="text-2xl font-semibold">Pendaftaran Penghuni</h1>
-            <p class="mt-1 text-gray-600">Isi data berikut. Setelah dikirim, admin akan meninjau dan menyetujui pendaftaran.</p>
+            <h1 class="text-2xl font-semibold">{{ __('Pendaftaran Penghuni') }}</h1>
+            <p class="mt-1 text-gray-600">{{ __('Isi data berikut. Setelah dikirim, admin akan meninjau dan menyetujui pendaftaran.') }}</p>
         </div>
 
         @if ($errors->any())
             <div class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
-                <div class="mb-2 font-semibold">Ada kesalahan:</div>
+                <div class="mb-2 font-semibold">{{ __('Ada kesalahan:') }}</div>
                 <ul class="list-disc space-y-1 pl-5">
                     @foreach ($errors->all() as $e)
                         <li>{{ $e }}</li>
@@ -21,21 +21,21 @@
 
             {{-- AKUN --}}
             <section class="rounded-xl border bg-white p-6">
-                <h2 class="text-lg font-semibold">Akun</h2>
+                <h2 class="text-lg font-semibold">{{ __('Akun') }}</h2>
 
                 <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                        <label class="block text-sm font-medium">Email <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium">{{ __('Email') }} <span class="text-red-500">*</span></label>
                         <input name="email" type="email" value="{{ old('email') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Nama Panggilan <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium">{{ __('Nama Panggilan') }} <span class="text-red-500">*</span></label>
                         <input name="name" type="text" value="{{ old('name') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
                     </div>
 
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-medium">Password</label>
+                        <label class="block text-sm font-medium">{{ __('Password') }}</label>
                         <div class="relative">
                             <input 
                                 id="password"
@@ -60,20 +60,20 @@
                                 </svg>
                             </button>
                         </div>
-                        <p class="mt-1 text-xs text-gray-500">Default password: 123456789 (dapat diubah setelah login)</p>
+                        <p class="mt-1 text-xs text-gray-500">{{ __('Default password: 123456789 (dapat diubah setelah login)') }}</p>
                     </div>
                 </div>
             </section>
 
             {{-- PROFIL --}}
             <section class="rounded-xl border bg-white p-6">
-                <h2 class="text-lg font-semibold">Profil Calon Penghuni</h2>
+                <h2 class="text-lg font-semibold">{{ __('Profil Calon Penghuni') }}</h2>
 
                 <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                        <label class="block text-sm font-medium">Kategori Penghuni <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium">{{ __('Kategori Penghuni') }} <span class="text-red-500">*</span></label>
                         <select id="resident_category_id" name="resident_category_id" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
-                            <option value="">-- pilih --</option>
+                            <option value="">{{ __('-- pilih --') }}</option>
                             @foreach ($residentCategories as $cat)
                                 <option value="{{ $cat->id }}" @selected(old('resident_category_id') == $cat->id)>
                                     {{ $cat->name }}
@@ -83,47 +83,47 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Nama Lengkap <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium">{{ __('Nama Lengkap') }} <span class="text-red-500">*</span></label>
                         <input name="full_name" type="text" value="{{ old('full_name') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Jenis Kelamin <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium">{{ __('Jenis Kelamin') }} <span class="text-red-500">*</span></label>
                         <select name="gender" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
-                            <option value="">-- pilih --</option>
-                            <option value="M" @selected(old('gender') === 'M')>Laki-laki</option>
-                            <option value="F" @selected(old('gender') === 'F')>Perempuan</option>
+                            <option value="">{{ __('-- pilih --') }}</option>
+                            <option value="M" @selected(old('gender') === 'M')>{{ __('Laki-laki') }}</option>
+                            <option value="F" @selected(old('gender') === 'F')>{{ __('Perempuan') }}</option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">NIK <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium">{{ __('NIK') }} <span class="text-red-500">*</span></label>
                         <input name="national_id" inputmode="numeric" pattern="[0-9]*" value="{{ old('national_id') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">NIM/NIS <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium">{{ __('NIM/NIS') }} <span class="text-red-500">*</span></label>
                         <input name="student_id" type="text" value="{{ old('student_id') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Tempat Lahir <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium">{{ __('Tempat Lahir') }} <span class="text-red-500">*</span></label>
                         <input name="birth_place" type="text" value="{{ old('birth_place') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Tanggal Lahir <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium">{{ __('Tanggal Lahir') }} <span class="text-red-500">*</span></label>
                         <input name="birth_date" type="date" value="{{ old('birth_date') }}" max="{{ now()->subYears(6)->format('Y-m-d') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
-                        <p class="mt-1 text-xs text-gray-500">Minimal usia 6 tahun</p>
+                        <p class="mt-1 text-xs text-gray-500">{{ __('Minimal usia 6 tahun') }}</p>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Universitas/Sekolah <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium">{{ __('Universitas/Sekolah') }} <span class="text-red-500">*</span></label>
                         <input name="university_school" type="text" value="{{ old('university_school') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
                     </div>
 
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-medium">Foto (Opsional)</label>
+                        <label class="block text-sm font-medium">{{ __('Foto (Opsional)') }}</label>
                         <input name="photo" type="file" accept="image/*" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500">
                     </div>
                 </div>
@@ -131,11 +131,11 @@
 
             {{-- KEWARGANEGARAAN --}}
             <section class="rounded-xl border bg-white p-6">
-                <h2 class="text-lg font-semibold">Kewarganegaraan & Kontak</h2>
+                <h2 class="text-lg font-semibold">{{ __('Kewarganegaraan & Kontak') }}</h2>
 
                 <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                        <label class="block text-sm font-medium">Kewarganegaraan <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium">{{ __('Kewarganegaraan') }} <span class="text-red-500">*</span></label>
                         <select id="citizenship_status" name="citizenship_status" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
                             <option value="WNI" @selected(old('citizenship_status', 'WNI') === 'WNI')>WNI</option>
                             <option value="WNA" @selected(old('citizenship_status') === 'WNA')>WNA</option>
@@ -143,9 +143,9 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Asal Negara <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium">{{ __('Asal Negara') }} <span class="text-red-500">*</span></label>
                         <select id="country_id" name="country_id" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
-                            <option value="">-- pilih --</option>
+                            <option value="">{{ __('-- pilih --') }}</option>
                             @foreach ($countries as $c)
                                 <option value="{{ $c->id }}" @selected(old('country_id', $indoCountryId) == $c->id)>
                                     {{ $c->name }}
@@ -155,17 +155,17 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">No. HP <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium">{{ __('No. HP') }} <span class="text-red-500">*</span></label>
                         <input name="phone_number" inputmode="numeric" pattern="[0-9]*" value="{{ old('phone_number') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Nama Wali (Opsional)</label>
+                        <label class="block text-sm font-medium">{{ __('Nama Wali (Opsional)') }}</label>
                         <input name="guardian_name" type="text" value="{{ old('guardian_name') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500">
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">No. HP Wali (Opsional)</label>
+                        <label class="block text-sm font-medium">{{ __('No. HP Wali (Opsional)') }}</label>
                         <input name="guardian_phone_number" inputmode="numeric" pattern="[0-9]*" value="{{ old('guardian_phone_number') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500">
                     </div>
                 </div>
@@ -173,14 +173,14 @@
 
             {{-- PREFERENSI --}}
             <section class="rounded-xl border bg-white p-6">
-                <h2 class="text-lg font-semibold">Preferensi Kamar (Opsional)</h2>
-                <p class="mt-1 text-sm text-gray-600">Anda dapat mengisi preferensi kamar atau membiarkan admin menentukan kamar yang sesuai untuk Anda.</p>
+                <h2 class="text-lg font-semibold">{{ __('Preferensi Kamar (Opsional)') }}</h2>
+                <p class="mt-1 text-sm text-gray-600">{{ __('Anda dapat mengisi preferensi kamar atau membiarkan admin menentukan kamar yang sesuai untuk Anda.') }}</p>
 
                 <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                        <label class="block text-sm font-medium">Cabang</label>
+                        <label class="block text-sm font-medium">{{ __('Cabang') }}</label>
                         <select id="preferred_dorm_id" name="preferred_dorm_id" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500">
-                            <option value="">-- pilih cabang --</option>
+                            <option value="">{{ __('-- pilih cabang --') }}</option>
                             @foreach ($dorms as $d)
                                 <option value="{{ $d->id }}" @selected(old('preferred_dorm_id') == $d->id)>{{ $d->name }}</option>
                             @endforeach
@@ -189,9 +189,9 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Tipe Kamar</label>
+                        <label class="block text-sm font-medium">{{ __('Tipe Kamar') }}</label>
                         <select id="preferred_room_type_id" name="preferred_room_type_id" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500">
-                            <option value="">-- pilih tipe kamar --</option>
+                            <option value="">{{ __('-- pilih tipe kamar --') }}</option>
                             @foreach ($roomTypes as $rt)
                                 <option value="{{ $rt->id }}" @selected(old('preferred_room_type_id') == $rt->id)>{{ $rt->name }}</option>
                             @endforeach
@@ -200,9 +200,9 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Rencana Tanggal Masuk</label>
+                        <label class="block text-sm font-medium">{{ __('Rencana Tanggal Masuk') }}</label>
                         <input name="planned_check_in_date" type="date" value="{{ old('planned_check_in_date', now()->addDays(7)->format('Y-m-d')) }}" min="{{ now()->format('Y-m-d') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500">
-                        <p class="mt-1 text-xs text-gray-500">Minimal hari ini</p>
+                        <p class="mt-1 text-xs text-gray-500">{{ __('Minimal hari ini') }}</p>
                     </div>
                 </div>
             </section>
@@ -220,15 +220,15 @@
                         required
                     >
                     <label for="agreed_to_policy" class="text-sm text-gray-700">
-                        Saya telah membaca dan menyetujui 
+                        {{ __('Saya telah membaca dan menyetujui') }}
                         <a 
                             href="{{ route('public.policy') }}" 
                             target="_blank"
                             class="text-green-600 hover:text-green-700 font-semibold underline"
                         >
-                            Kebijakan & Ketentuan
+                            {{ __('Kebijakan & Ketentuan') }}
                         </a>
-                        yang berlaku
+                        {{ __('yang berlaku') }}
                         <span class="text-red-600">*</span>
                     </label>
                 </div>
@@ -239,7 +239,7 @@
             @else
                 <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <p class="text-sm text-yellow-800">
-                        ⚠️ Kebijakan belum tersedia. Silakan hubungi administrator.
+                        ⚠️ {{ __('Kebijakan belum tersedia. Silakan hubungi administrator.') }}
                     </p>
                 </div>
             @endif
@@ -250,14 +250,14 @@
                     href="{{ url('/') }}" 
                     class="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition font-medium"
                 >
-                    Batal
+                    {{ __('Batal') }}
                 </a>
                 <button 
                     type="submit" 
                     class="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                    @if(!$policy) disabled title="Kebijakan belum tersedia" @endif
+                    @if(!$policy) disabled title="{{ __('Kebijakan belum tersedia') }}" @endif
                 >
-                    Kirim Pendaftaran
+                    {{ __('Kirim Pendaftaran') }}
                 </button>
             </div>
         </form>
@@ -339,12 +339,12 @@
 
                 // Show info jika tidak ada cabang tersedia
                 if (availableDormsCount === 0) {
-                    dormInfo.textContent = 'Tidak ada cabang yang tersedia untuk kategori ini. Silakan pilih kategori penghuni lain atau biarkan admin menentukan kamar yang sesuai.';
+                    dormInfo.textContent = "{{ __('Tidak ada cabang yang tersedia untuk kategori ini. Silakan pilih kategori penghuni lain atau biarkan admin menentukan kamar yang sesuai.') }}";
                     dormInfo.classList.remove('hidden');
                     dormInfo.classList.remove('text-gray-500');
                     dormInfo.classList.add('text-amber-600');
                 } else {
-                    dormInfo.textContent = `${availableDormsCount} cabang tersedia untuk kategori ini`;
+                    dormInfo.textContent = `${availableDormsCount} {{ __('cabang tersedia untuk kategori ini') }}`;
                     dormInfo.classList.remove('hidden');
                     dormInfo.classList.remove('text-amber-600');
                     dormInfo.classList.add('text-gray-500');
@@ -398,15 +398,15 @@
                 // Show info
                 if (availableRoomTypesCount === 0) {
                     if (dormId) {
-                        roomTypeInfo.textContent = 'Tidak ada tipe kamar yang tersedia untuk kombinasi cabang dan kategori ini. Coba pilih cabang lain atau biarkan admin menentukan kamar yang sesuai.';
+                        roomTypeInfo.textContent = "{{ __('Tidak ada tipe kamar yang tersedia untuk kombinasi cabang dan kategori ini. Coba pilih cabang lain atau biarkan admin menentukan kamar yang sesuai.') }}";
                     } else {
-                        roomTypeInfo.textContent = 'Tidak ada tipe kamar yang tersedia untuk kategori ini. Silakan pilih kategori penghuni lain atau biarkan admin menentukan kamar yang sesuai.';
+                        roomTypeInfo.textContent = "{{ __('Tidak ada tipe kamar yang tersedia untuk kategori ini. Silakan pilih kategori penghuni lain atau biarkan admin menentukan kamar yang sesuai.') }}";
                     }
                     roomTypeInfo.classList.remove('hidden');
                     roomTypeInfo.classList.remove('text-gray-500');
                     roomTypeInfo.classList.add('text-amber-600');
                 } else {
-                    roomTypeInfo.textContent = `${availableRoomTypesCount} tipe kamar tersedia`;
+                    roomTypeInfo.textContent = `${availableRoomTypesCount} {{ __('tipe kamar tersedia') }}`;
                     roomTypeInfo.classList.remove('hidden');
                     roomTypeInfo.classList.remove('text-amber-600');
                     roomTypeInfo.classList.add('text-gray-500');

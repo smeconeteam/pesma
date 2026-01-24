@@ -6,14 +6,14 @@
                 <!-- Logo -->
                 <div class="flex shrink-0 items-center">
                     @auth
-                    @if (\Illuminate\Support\Facades\Route::has('dashboard'))
-                    <a href="{{ route('dashboard') }}" class="flex items-center gap-3">
+                        @if (\Illuminate\Support\Facades\Route::has('dashboard'))
+                            <a href="{{ route('dashboard') }}" class="flex items-center gap-3">
                         @else
-                        <a href="{{ url('/') }}" class="flex items-center gap-3">
-                            @endif
-                            @else
                             <a href="{{ url('/') }}" class="flex items-center gap-3">
-                                @endauth
+                        @endif
+                    @else
+                        <a href="{{ url('/') }}" class="flex items-center gap-3">
+                    @endauth
 
                                 @if ($institution?->logo_path)
                                 <img src="{{ \Illuminate\Support\Facades\Storage::url($institution->logo_path) }}"
@@ -39,17 +39,21 @@
                     <x-nav-link :href="route('resident.my-room')" :active="request()->routeIs('resident.my-room')">
                         {{ __('navigation.my_room') }}
                     </x-nav-link>
+                    @endif
 
                     @if (\Illuminate\Support\Facades\Route::has('resident.room-history'))
                     <x-nav-link :href="route('resident.room-history')" :active="request()->routeIs('resident.room-history')">
                         {{ __('navigation.room_history') }}
                     </x-nav-link>
+                    @endif
 
                     @guest
                     @if (\Illuminate\Support\Facades\Route::has('public.registration.create'))
                     <x-nav-link :href="route('public.registration.create')" :active="request()->routeIs('public.registration.*')">
                         {{ __('navigation.registration') }}
                     </x-nav-link>
+                    @endif
+                    @endguest
                 </div>
             </div>
 
@@ -133,24 +137,29 @@
             <x-responsive-nav-link :href="route('resident.my-room')" :active="request()->routeIs('resident.my-room')">
                 {{ __('navigation.my_room') }}
             </x-responsive-nav-link>
+            @endif
 
             @if (\Illuminate\Support\Facades\Route::has('resident.room-history'))
             <x-responsive-nav-link :href="route('resident.room-history')" :active="request()->routeIs('resident.room-history')">
                 {{ __('navigation.room_history') }}
             </x-responsive-nav-link>
+            @endif
 
             @if (\Illuminate\Support\Facades\Route::has('profile.edit'))
             <x-responsive-nav-link :href="route('profile.edit')" :active="request()->routeIs('profile.edit')">
                 {{ __('navigation.profile') }}
             </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->
         <div class="pt-4 pb-1 border-t border-gray-200">
+            @auth
             <div class="px-4">
                 <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
                 <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
             </div>
+            @endauth
 
             {{-- Language Switcher Mobile --}}
             <div class="px-4 py-2 border-t border-gray-200">
@@ -167,19 +176,21 @@
                     onclick="event.preventDefault(); this.closest('form').submit();">
                     {{ __('navigation.logout') }}
                 </x-responsive-nav-link>
+            </form>
+            @endif
 
             @guest
-            @if (\Illuminate\Support\Facades\Route::has('login'))
-            <x-responsive-nav-link :href="route('login')" :active="request()->routeIs('login')">
-                {{ __('navigation.login') }}
-            </x-responsive-nav-link>
-            @endif
+                @if (\Illuminate\Support\Facades\Route::has('login'))
+                <x-responsive-nav-link :href="route('login')" :active="request()->routeIs('login')">
+                    {{ __('navigation.login') }}
+                </x-responsive-nav-link>
+                @endif
 
-            @if (\Illuminate\Support\Facades\Route::has('public.registration.create'))
-            <x-responsive-nav-link :href="route('public.registration.create')" :active="request()->routeIs('public.registration.*')">
-                {{ __('navigation.registration') }}
-            </x-responsive-nav-link>
-            @endif
+                @if (\Illuminate\Support\Facades\Route::has('public.registration.create'))
+                <x-responsive-nav-link :href="route('public.registration.create')" :active="request()->routeIs('public.registration.*')">
+                    {{ __('navigation.registration') }}
+                </x-responsive-nav-link>
+                @endif
             @endguest
         </div>
     </div>
