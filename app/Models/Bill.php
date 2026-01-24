@@ -104,6 +104,24 @@ class Bill extends Model
         return $this->hasMany(BillPayment::class);
     }
 
+    public function verifiedPayments(): HasMany
+    {
+        return $this->hasMany(BillPayment::class)->where('status', 'verified');
+    }
+    public function pendingPayments(): HasMany
+    {
+        return $this->hasMany(BillPayment::class)->where('status', 'pending');
+    }
+    public function getTotalVerifiedPaymentAttribute(): int
+    {
+        return $this->verifiedPayments()->sum('amount');
+    }
+
+    public function getTotalPendingPaymentAttribute(): int
+    {
+        return $this->pendingPayments()->sum('amount');
+    }
+
     public function details(): HasMany
     {
         return $this->hasMany(BillDetail::class);
@@ -144,8 +162,7 @@ class Bill extends Model
     public static function generateBillNumber(): string
     {
         $date = now()->format('Ymd');
-        
-        // ✅ PERBAIKAN: Gunakan withTrashed() untuk cek semua data termasuk yang dihapus
+
         $lastBill = self::withTrashed()
             ->where('bill_number', 'LIKE', "{$date}-%")
             ->orderBy('bill_number', 'desc')
@@ -209,8 +226,7 @@ class Bill extends Model
 
     public function canBeDeleted(): bool
     {
-        // Tidak bisa dihapus jika sudah ada pembayaran
-        return !$this->payments()->exists();
+        return $this->verifiedPayments()->count() === 0;
     }
 
     // Format currency untuk display
@@ -262,6 +278,55 @@ class Bill extends Model
             return 'Tak Terbatas';
         }
 
-        return $this->period_end->format('d M Y');
+        $now = now();
+        $periodEnd = $this->period_end;
+
+        // Hitung selisih hari
+        $diffInDays = $periodEnd->diffInDays($now, false);
+
+        // Jika sudah lewat
+        if ($diffInDays < 0) {
+            $daysOverdue = abs($diffInDays);
+
+            if ($daysOverdue < 1) {
+                return 'Lewat kurang dari sehari';
+            }
+
+            if ($daysOverdue == 1) {
+                return 'Lewat 1 hari';
+            }
+
+            return "Lewat {$daysOverdue} hari";
+        }
+
+        // Jika hari ini
+        if ($diffInDays == 0) {
+            return 'Hari ini';
+        }
+
+        // Jika besok
+        if ($diffInDays == 1) {
+            return 'Besok';
+        }
+
+        // Jika kurang dari sehari (tapi belum lewat)
+        if ($diffInDays < 1) {
+            return 'Kurang dari sehari lagi';
+        }
+
+        // Jika masih beberapa hari lagi
+        return "{$diffInDays} hari lagi";
+    }
+    public function updateOverdueStatus(): void
+    {
+        if (
+            $this->period_end
+            && $this->period_end < now()
+            && in_array($this->status, ['issued', 'partial'])
+            && $this->remaining_amount > 0
+        ) {
+            $this->status = 'overdue';
+            $this->save();
+        }
     }
 }

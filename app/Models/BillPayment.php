@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class BillPayment extends Model
 {
@@ -14,6 +15,7 @@ class BillPayment extends Model
         'amount',
         'payment_date',
         'payment_method_id',
+        'bank_account_id',
         'paid_by_user_id',
         'paid_by_name',
         'is_pic_payment',
@@ -26,39 +28,12 @@ class BillPayment extends Model
     ];
 
     protected $casts = [
-        'amount' => 'integer',
         'payment_date' => 'date',
-        'is_pic_payment' => 'boolean',
         'verified_at' => 'datetime',
+        'is_pic_payment' => 'boolean',
     ];
 
-    // Boot method
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::creating(function ($payment) {
-            if (empty($payment->payment_number)) {
-                $payment->payment_number = self::generatePaymentNumber();
-            }
-        });
-
-        static::updated(function ($payment) {
-            // Auto-update bill status ketika payment diverifikasi
-            if ($payment->isDirty('status') && $payment->status === 'verified') {
-                $payment->bill->updatePaymentStatus();
-            }
-        });
-
-        static::deleting(function ($payment) {
-            // Hapus bukti pembayaran dari storage saat delete
-            if ($payment->proof_path && Storage::disk('public')->exists($payment->proof_path)) {
-                Storage::disk('public')->delete($payment->proof_path);
-            }
-        });
-    }
-
-    // Relasi
+    // RELATIONSHIPS
     public function bill(): BelongsTo
     {
         return $this->belongsTo(Bill::class);
@@ -69,7 +44,7 @@ class BillPayment extends Model
         return $this->belongsTo(PaymentMethod::class);
     }
 
-    public function paidBy(): BelongsTo
+    public function paidByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'paid_by_user_id');
     }
@@ -79,95 +54,155 @@ class BillPayment extends Model
         return $this->belongsTo(User::class, 'verified_by');
     }
 
-    // Scopes
-
-    public function scopePending($query)
+    public function bankAccount(): BelongsTo
     {
-        return $query->where('status', 'pending');
+        return $this->belongsTo(PaymentMethodBankAccount::class, 'bank_account_id');
     }
 
-    public function scopeVerified($query)
+    public function transaction(): HasOne
     {
-        return $query->where('status', 'verified');
+        return $this->hasOne(Transaction::class);
     }
 
-    public function scopeRejected($query)
+    // METHODS
+
+    public function verify(int $verifiedById): void
     {
-        return $query->where('status', 'rejected');
+        DB::transaction(function () use ($verifiedById) {
+            // Update status payment
+            $this->update([
+                'status' => 'verified',
+                'verified_by' => $verifiedById,
+                'verified_at' => now(),
+            ]);
+
+            // Update tagihan
+            $bill = $this->bill;
+
+            if ($this->is_pic_payment && $this->notes) {
+                preg_match_all('/Rp ([\d,.]+) untuk (BILL-[\w-]+)/', $this->notes, $matches);
+
+                if (!empty($matches[1]) && !empty($matches[2])) {
+                    foreach ($matches[2] as $index => $billNumber) {
+                        $allocatedAmount = (int) str_replace(['.', ','], '', $matches[1][$index]);
+
+                        $targetBill = Bill::where('bill_number', $billNumber)->first();
+                        if ($targetBill) {
+                            $targetBill->paid_amount += $allocatedAmount;
+                            $targetBill->remaining_amount = max(0, $targetBill->total_amount - $targetBill->paid_amount);
+
+                            if ($targetBill->remaining_amount <= 0) {
+                                $targetBill->status = 'paid';
+                            } elseif ($targetBill->paid_amount > 0) {
+                                $targetBill->status = 'partial';
+                            }
+
+                            $targetBill->save();
+                        }
+                    }
+                }
+            }
+            // Individual payment
+            else {
+                $bill->paid_amount += $this->amount;
+                $bill->remaining_amount = max(0, $bill->total_amount - $bill->paid_amount);
+
+                if ($bill->remaining_amount <= 0) {
+                    $bill->status = 'paid';
+                } elseif ($bill->paid_amount > 0) {
+                    $bill->status = 'partial';
+                }
+
+                $bill->save();
+            }
+
+            // ✅ AUTO CREATE TRANSACTION (Pemasukan dari Billing)
+            $this->createTransaction($verifiedById);
+        });
     }
 
-    // Helper Methods
-
-    public static function generatePaymentNumber(): string
+    public function reject(string $reason, int $verifiedById): void
     {
-        $date = now()->format('Ymd'); // 20260107
+        DB::transaction(function () use ($reason, $verifiedById) {
+            // Update status payment
+            $this->update([
+                'status' => 'rejected',
+                'rejection_reason' => $reason,
+                'verified_by' => $verifiedById,
+                'verified_at' => now(),
+            ]);
 
-        $lastPayment = self::whereDate('created_at', now())
-            ->orderBy('payment_number', 'desc')
-            ->first();
+            // Delete transaction if exists
+            $this->transaction()->delete();
+        });
+    }
 
-        if ($lastPayment && str_starts_with($lastPayment->payment_number, $date)) {
-            $lastNumber = (int) substr($lastPayment->payment_number, -4);
-            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $newNumber = '0001';
+    /**
+     * Create transaction entry for verified payment
+     */
+    protected function createTransaction(int $createdById): void
+    {
+        // Skip if transaction already exists
+        if ($this->transaction()->exists()) {
+            return;
         }
 
-        return $date . $newNumber; // 202601070001
+        $bill = $this->bill;
+        $room = $bill->room;
+        
+        // Determine payment method
+        $paymentMethodType = $this->paymentMethod?->kind === 'cash' ? 'cash' : 'credit';
+
+        Transaction::create([
+            'type' => 'income',
+            'name' => "Pembayaran {$bill->billingType->name} - {$this->paid_by_name}",
+            'amount' => $this->amount,
+            'payment_method' => $paymentMethodType,
+            'transaction_date' => $this->payment_date,
+            'notes' => $this->is_pic_payment 
+                ? "Pembayaran PIC (Gabungan)\n{$this->notes}" 
+                : "Pembayaran Bill #{$bill->bill_number}",
+            'dorm_id' => $room?->block?->dorm_id,
+            'block_id' => $room?->block_id,
+            'bill_payment_id' => $this->id,
+            'created_by' => $createdById,
+        ]);
     }
 
-    // Verifikasi pembayaran oleh admin
-    public function verify(User $admin): void
+    /**
+     * Cek apakah payment bisa diedit
+     */
+    public function canBeEdited(): bool
     {
-        $this->status = 'verified';
-        $this->verified_by = $admin->id;
-        $this->verified_at = now();
-        $this->save();
+        return $this->status === 'pending';
     }
 
-    // Tolak pembayaran dengan alasan
-    public function reject(User $admin, string $reason): void
+    /**
+     * Cek apakah payment bisa diverifikasi
+     */
+    public function canBeVerified(): bool
     {
-        $this->status = 'rejected';
-        $this->verified_by = $admin->id;
-        $this->verified_at = now();
-        $this->rejection_reason = $reason;
-        $this->save();
+        return $this->status === 'pending';
     }
 
-    // Get URL bukti pembayaran
-    public function getProofUrlAttribute(): ?string
-    {
-        if ($this->proof_path) {
-            return Storage::disk('public')->url($this->proof_path);
-        }
-        return null;
-    }
-
-    // Format
-
-    public function getFormattedAmountAttribute(): string
-    {
-        return 'Rp ' . number_format($this->amount, 0, ',', '.');
-    }
-
+    /**
+     * Format status untuk display
+     */
     public function getStatusLabelAttribute(): string
     {
         return match ($this->status) {
             'pending' => 'Menunggu Verifikasi',
             'verified' => 'Terverifikasi',
             'rejected' => 'Ditolak',
-            default => '-',
+            default => $this->status,
         };
     }
 
-    public function getStatusColorAttribute(): string
+    /**
+     * Get payment type label
+     */
+    public function getPaymentTypeLabelAttribute(): string
     {
-        return match ($this->status) {
-            'pending' => 'warning',
-            'verified' => 'success',
-            'rejected' => 'danger',
-            default => 'gray',
-        };
+        return $this->is_pic_payment ? 'PIC (Gabungan)' : 'Individual';
     }
 }
