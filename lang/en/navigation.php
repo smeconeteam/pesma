@@ -11,4 +11,5 @@ return [
     'login' => 'Login',
     'register' => 'Register',
     'language' => 'Language',
+    'dark_mode' => 'Dark Mode',
 ];

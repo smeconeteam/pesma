@@ -1,10 +1,10 @@
 <section>
     <header>
-        <h2 class="text-lg font-medium text-gray-900">
+        <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
             {{ __('profile.profile_info') }}
         </h2>
 
-        <p class="mt-1 text-sm text-gray-600">
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
             {{ __('profile.profile_desc') }}
         </p>
     </header>
@@ -30,10 +30,10 @@
                     
                     @if ($photoUrl)
                         <img id="photo-preview" src="{{ $photoUrl }}" alt="Foto Profil"
-                             class="h-20 w-20 rounded-full object-cover border-2 border-gray-300" />
+                             class="h-20 w-20 rounded-full object-cover border-2 border-gray-300 dark:border-gray-600" />
                     @else
-                        <div id="photo-preview" class="h-20 w-20 rounded-full bg-gray-100 border-2 border-gray-300 flex items-center justify-center">
-                            <span class="text-2xl font-semibold text-gray-600">
+                        <div id="photo-preview" class="h-20 w-20 rounded-full bg-gray-100 dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center">
+                            <span class="text-2xl font-semibold text-gray-600 dark:text-gray-400">
                                 {{ mb_substr($user->name ?? 'U', 0, 1) }}
                             </span>
                         </div>
@@ -54,7 +54,7 @@
                             />
                             <label 
                                 for="photo"
-                                class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg font-semibold text-xs text-gray-700 uppercase tracking-widest hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition cursor-pointer w-full"
+                                class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition cursor-pointer w-full"
                             >
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -77,7 +77,7 @@
                             </button>
                         @endif
                     </div>
-                    <p class="mt-2 text-xs text-gray-500">
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
                         {{ __('profile.photo_format') }}
                     </p>
                     <x-input-error class="mt-2" :messages="$errors->get('photo')" />
@@ -99,7 +99,7 @@
                 autocomplete="name"
                 placeholder="{{ __('profile.nickname_placeholder') }}"
             />
-            <p class="mt-1 text-xs text-gray-500">
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 {{ __('profile.nickname_help') }}
             </p>
             <x-input-error class="mt-2" :messages="$errors->get('name')" />
@@ -126,7 +126,7 @@
 
                         <button
                             form="send-verification"
-                            class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                            class="rounded-md text-sm text-gray-600 dark:text-gray-400 underline hover:text-gray-900 dark:hover:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                         >
                             {{ __('Klik di sini untuk mengirim ulang email verifikasi.') }}
                         </button>
@@ -165,7 +165,7 @@
                     x-show="show"
                     x-transition
                     x-init="setTimeout(() => show = false, 2000)"
-                    class="text-sm text-gray-600"
+                    class="text-sm text-gray-600 dark:text-gray-400"
                 >
                     {{ __('profile.saved') }}
                 </p>

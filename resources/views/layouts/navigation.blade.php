@@ -165,7 +165,7 @@ class="border-b bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 t
                                         <svg class="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                                         </svg>
-                                        <span class="font-semibold">Profil Saya</span>
+                                        <span class="font-semibold">{{ __('navigation.profile') }}</span>
                                     </a>
                                 </div>
 
@@ -182,7 +182,7 @@ class="border-b bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 t
                                             <svg x-show="darkMode" class="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: none;">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
                                             </svg>
-                                            <span class="font-medium">Tema Gelap</span>
+                                            <span class="font-medium">{{ __('navigation.dark_mode') }}</span>
                                         </div>
                                         <div class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200"
                                              :class="darkMode ? 'bg-green-600' : 'bg-gray-300'">
@@ -203,7 +203,7 @@ class="border-b bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 t
                                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
                                             </svg>
-                                            <span class="font-semibold">Keluar</span>
+                                            <span class="font-semibold">{{ __('navigation.logout') }}</span>
                                         </button>
                                     </form>
                                     @endif
