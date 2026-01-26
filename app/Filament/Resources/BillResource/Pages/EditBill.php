@@ -25,11 +25,16 @@ class EditBill extends EditRecord
                             ->disabled()
                             ->dehydrated(false),
 
-                        Forms\Components\Select::make('user_id')
+                        Forms\Components\Placeholder::make('penghuni')
                             ->label('Penghuni')
-                            ->relationship('user', 'name')
-                            ->disabled()
-                            ->dehydrated(false),
+                            ->content(function ($record) {
+                                if (!$record->user) return '-';
+
+                                $fullName = $record->user->residentProfile?->full_name ?? $record->user->name;
+                                $phone = $record->user->residentProfile?->phone_number ??$record->user->email;
+
+                                return "{$fullName} ({$phone})";
+                            }),
 
                         Forms\Components\Select::make('billing_type_id')
                             ->label('Jenis Tagihan')
@@ -48,13 +53,15 @@ class EditBill extends EditRecord
                 Forms\Components\Section::make('Nominal')
                     ->description('Diskon dapat diubah, nominal lainnya akan otomatis terkalkulasi')
                     ->schema([
-                        Forms\Components\TextInput::make('base_amount')
+                        Forms\Components\Placeholder::make('base_amount_display')
                             ->label('Nominal Dasar')
-                            ->numeric()
-                            ->prefix('Rp')
-                            ->disabled()
-                            ->dehydrated(false)
-                            ->formatStateUsing(fn($state) => number_format($state, 0, ',', '.')),
+                            ->content(function ($record) {
+                                return 'Rp ' . number_format($record->base_amount ?? 0, 0, ',', '.');
+                            }),
+
+                        Forms\Components\Hidden::make('base_amount_original')
+                            ->default(fn($record) => $record->base_amount)
+                            ->dehydrated(false),
 
                         Forms\Components\TextInput::make('discount_percent')
                             ->label('Diskon (%)')
