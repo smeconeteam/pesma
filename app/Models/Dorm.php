@@ -7,11 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-
 class Dorm extends Model
 {
-    use HasFactory;
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -20,8 +18,12 @@ class Dorm extends Model
         'is_active',
     ];
 
-    // RELASI
-    public function blocks()
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
+
+    // Relations
+    public function blocks(): HasMany
     {
         return $this->hasMany(Block::class);
     }
@@ -31,7 +33,7 @@ class Dorm extends Model
         return $this->hasManyThrough(Room::class, Block::class);
     }
 
-    public function adminScopes()
+    public function adminScopes(): HasMany
     {
         return $this->hasMany(AdminScope::class);
     }
@@ -41,8 +43,14 @@ class Dorm extends Model
         return $this->hasMany(Registration::class, 'preferred_dorm_id');
     }
 
-    public function canBeDeleted()
+    public function transactions(): HasMany
     {
-        return ! $this->blocks()->exists();
+        return $this->hasMany(Transaction::class);
+    }
+
+    // Helper methods
+    public function canBeDeleted(): bool
+    {
+        return !$this->blocks()->exists();
     }
 }

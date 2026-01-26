@@ -125,6 +125,12 @@ class RegistrationResource extends Resource
                             ->searchable()
                             ->native(false)
                             ->required()
+                            ->live()
+                            ->afterStateUpdated(function (Forms\Set $set) {
+                                // Reset preferensi saat kategori berubah
+                                $set('preferred_dorm_id', null);
+                                $set('preferred_room_type_id', null);
+                            })
                             ->createOptionForm([
                                 Forms\Components\TextInput::make('name')
                                     ->label('Nama Kategori')
@@ -269,16 +275,96 @@ class RegistrationResource extends Resource
 
                         Forms\Components\Select::make('preferred_dorm_id')
                             ->label('Cabang Yang Diinginkan')
-                            ->options(fn() => Dorm::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))
+                            ->options(function (Forms\Get $get) {
+                                $categoryId = $get('resident_category_id');
+                                
+                                if (blank($categoryId)) {
+                                    return Dorm::query()
+                                        ->where('is_active', true)
+                                        ->orderBy('name')
+                                        ->pluck('name', 'id');
+                                }
+
+                                // Ambil dorm yang memiliki kamar dengan kategori yang sesuai ATAU kamar tanpa kategori
+                                $dormIds = \Illuminate\Support\Facades\DB::table('rooms')
+                                    ->join('blocks', 'rooms.block_id', '=', 'blocks.id')
+                                    ->join('dorms', 'blocks.dorm_id', '=', 'dorms.id')
+                                    ->where('rooms.is_active', true)
+                                    ->where('blocks.is_active', true)
+                                    ->where('dorms.is_active', true)
+                                    ->where(function ($q) use ($categoryId) {
+                                        // Kamar dengan kategori yang sama
+                                        $q->where('rooms.resident_category_id', $categoryId)
+                                        // ATAU kamar tanpa kategori (NULL)
+                                        ->orWhereNull('rooms.resident_category_id');
+                                    })
+                                    ->distinct()
+                                    ->pluck('dorms.id');
+
+                                return Dorm::query()
+                                    ->whereIn('id', $dormIds)
+                                    ->orderBy('name')
+                                    ->pluck('name', 'id');
+                            })
                             ->searchable()
                             ->native(false)
+                            ->live() // ✅ Reactive saat kategori berubah
+                            ->afterStateUpdated(function (Forms\Set $set) {
+                                // Reset tipe kamar saat cabang berubah
+                                $set('preferred_room_type_id', null);
+                            })
+                            ->disabled(fn (Forms\Get $get) => blank($get('resident_category_id')))
+                            ->helperText(fn (Forms\Get $get) => 
+                                blank($get('resident_category_id'))
+                                    ? 'Pilih kategori penghuni terlebih dahulu'
+                                    : 'Hanya cabang dengan kamar sesuai kategori yang ditampilkan'
+                            )
                             ->nullable(),
 
                         Forms\Components\Select::make('preferred_room_type_id')
                             ->label('Tipe Kamar Yang Diinginkan')
-                            ->options(fn() => RoomType::query()->where('is_active', true)->orderBy('name')->pluck('name', 'id'))
+                            ->options(function (Forms\Get $get) {
+                                $categoryId = $get('resident_category_id');
+                                $dormId = $get('preferred_dorm_id');
+                                
+                                if (blank($categoryId) || blank($dormId)) {
+                                    return [];
+                                }
+
+                                // Ambil tipe kamar yang tersedia di cabang ini dengan kategori yang sesuai
+                                $roomTypeIds = \Illuminate\Support\Facades\DB::table('rooms')
+                                    ->join('blocks', 'rooms.block_id', '=', 'blocks.id')
+                                    ->join('room_types', 'rooms.room_type_id', '=', 'room_types.id')
+                                    ->where('blocks.dorm_id', $dormId)
+                                    ->where('rooms.is_active', true)
+                                    ->where('room_types.is_active', true)
+                                    ->where(function ($q) use ($categoryId) {
+                                        $q->where('rooms.resident_category_id', $categoryId)
+                                        ->orWhereNull('rooms.resident_category_id');
+                                    })
+                                    ->distinct()
+                                    ->pluck('room_types.id');
+
+                                return RoomType::query()
+                                    ->whereIn('id', $roomTypeIds)
+                                    ->orderBy('name')
+                                    ->pluck('name', 'id');
+                            })
                             ->searchable()
                             ->native(false)
+                            ->live() // ✅ Reactive saat cabang/kategori berubah
+                            ->disabled(function (Forms\Get $get) {
+                                return blank($get('resident_category_id')) || blank($get('preferred_dorm_id'));
+                            })
+                            ->helperText(function (Forms\Get $get) {
+                                if (blank($get('resident_category_id'))) {
+                                    return 'Pilih kategori penghuni terlebih dahulu';
+                                }
+                                if (blank($get('preferred_dorm_id'))) {
+                                    return 'Pilih cabang terlebih dahulu';
+                                }
+                                return 'Hanya tipe kamar yang tersedia di cabang terpilih';
+                            })
                             ->nullable(),
 
                         Forms\Components\DatePicker::make('planned_check_in_date')
@@ -399,7 +485,7 @@ class RegistrationResource extends Resource
                         ->label('Buat Tagihan')
                         ->icon('heroicon-o-banknotes')
                         ->color('info')
-                        ->visible(fn(Registration $record) => !$record->hasRegistrationBill())
+                        ->visible(fn(Registration $record) => !$record->hasRegistrationBill() && $canApproveReject && $record->status === 'approved')
                         ->url(fn(Registration $record) => route('filament.admin.resources.tagihan.create', [
                             'registration_id' => $record->id,
                             'auto_fill' => true,

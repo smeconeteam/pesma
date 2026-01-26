@@ -12,6 +12,11 @@ class MyRoomController extends Controller
     {
         $user = $request->user();
 
+        // Cek status penghuni - tolak akses jika inactive
+        if ($user->residentProfile && $user->residentProfile->status === 'inactive') {
+            abort(403, 'Akses ditolak. Akun Anda sudah tidak aktif.');
+        }
+
         // Penempatan kamar aktif penghuni
         $assignment = RoomResident::query()
             ->where('user_id', $user->id)

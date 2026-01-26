@@ -23,7 +23,11 @@ class DashboardController extends Controller
         
         $residentName = $profile?->full_name ?? $user->name ?? 'Penghuni';
         
-        $assignment = $user->activeRoomResident;
+        // Cek status penghuni
+        $isInactive = $profile && $profile->status === 'inactive';
+        
+        // Data kamar aktif - hanya jika status bukan inactive
+        $assignment = !$isInactive ? $user->activeRoomResident : null;
         $room = $assignment?->room;
         $block = $room?->block;
         $dorm = $block?->dorm;
@@ -46,10 +50,44 @@ class DashboardController extends Controller
         // ==========================================
         // 2. DATA KONTAK PENTING
         // ==========================================
+        // Ambil data checkout terakhir untuk penghuni inactive
+        $lastCheckout = null;
+        $checkoutReason = null;
+        if ($isInactive) {
+            $lastHistory = $user->roomHistories()
+                ->whereNotNull('check_out_date')
+                ->orderBy('check_out_date', 'desc')
+                ->first();
+            
+            if ($lastHistory) {
+                $lastCheckout = $lastHistory->check_out_date->format('d M Y');
+                $checkoutReason = $lastHistory->notes;
+            }
+        }
+        
+        // Data kontak
         $contacts = Contact::where('is_active', true)
-            ->where(function ($q) use ($dorm) {
-                $q->whereNull('dorm_id')
-                  ->orWhere('dorm_id', $dorm?->id);
+            ->where(function ($q) use ($dorm, $isInactive, $user) {
+                if ($isInactive) {
+                    // Untuk penghuni inactive: tampilkan kontak global + kontak dari cabang terakhir
+                    $lastDorm = $user->roomHistories()
+                        ->whereNotNull('check_out_date')
+                        ->with('room.block.dorm')
+                        ->orderBy('check_out_date', 'desc')
+                        ->first()
+                        ?->room
+                        ?->block
+                        ?->dorm;
+                    
+                    $q->whereNull('dorm_id') // Kontak global
+                    ->when($lastDorm, function($query) use ($lastDorm) {
+                        $query->orWhere('dorm_id', $lastDorm->id); // Kontak cabang terakhir
+                    });
+                } else {
+                    // Untuk penghuni active: tampilkan kontak global + kontak cabang saat ini
+                    $q->whereNull('dorm_id')
+                    ->orWhere('dorm_id', $dorm?->id);
+                }
             })
             ->orderBy('display_name')
             ->get();
@@ -84,6 +122,9 @@ class DashboardController extends Controller
             'statusLabel',
             'checkInDate',
             'contacts',
+            'isInactive',
+            'lastCheckout',
+            'checkoutReason',
             'totalBills',
             'unpaidBills',
             'totalUnpaid',

@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Block extends Model
 {
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
 
     protected $fillable = [
         'dorm_id',
@@ -17,23 +18,34 @@ class Block extends Model
         'is_active',
     ];
 
-    public function dorm()
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
+
+    // Relations
+    public function dorm(): BelongsTo
     {
         return $this->belongsTo(Dorm::class);
     }
 
-    public function rooms()
+    public function rooms(): HasMany
     {
         return $this->hasMany(Room::class);
     }
 
-    public function adminScopes()
+    public function adminScopes(): HasMany
     {
         return $this->hasMany(AdminScope::class);
     }
 
-    public function canBeDeleted()
+    public function transactions(): HasMany
     {
-        return ! $this->rooms()->exist();
+        return $this->hasMany(Transaction::class);
+    }
+
+    // Helper methods
+    public function canBeDeleted(): bool
+    {
+        return !$this->rooms()->exists();
     }
 }

@@ -21,13 +21,16 @@ class PaymentMethodBankAccount extends Model
         'is_active' => 'boolean',
     ];
 
+    /**
+     * Relasi ke PaymentMethod
+     */
     public function paymentMethod(): BelongsTo
     {
         return $this->belongsTo(PaymentMethod::class);
     }
 
     /**
-     * Get the resident categories that use this bank account
+     * Relasi many-to-many ke ResidentCategory
      */
     public function residentCategories(): BelongsToMany
     {
@@ -40,18 +43,24 @@ class PaymentMethodBankAccount extends Model
     }
 
     /**
-     * Get display name for the bank account
+     * Cek apakah bank account ini berlaku untuk kategori tertentu
      */
-    public function getDisplayNameAttribute(): string
+    public function isAvailableForCategory(?int $categoryId): bool
     {
-        $parts = [$this->bank_name, $this->account_number];
-        
-        if ($this->account_holder) {
-            $parts[] = "({$this->account_holder})";
-        } else {
-            $parts[] = "({$this->account_name})";
+        if (!$categoryId) {
+            return true; // Jika tidak ada kategori, anggap available
         }
-        
-        return implode(' - ', $parts);
+
+        return $this->residentCategories()
+            ->where('resident_categories.id', $categoryId)
+            ->exists();
+    }
+
+    /**
+     * Get formatted bank info
+     */
+    public function getFormattedBankInfoAttribute(): string
+    {
+        return "{$this->bank_name} - {$this->account_number} ({$this->account_name})";
     }
 }

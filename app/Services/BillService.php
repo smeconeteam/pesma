@@ -27,13 +27,13 @@ class BillService
             $residents = $data['residents'];
 
             foreach ($residents as $resident) {
-                if (isset($resident['selected']) && !$resident['selected']) {
+                if (!($resident['selected'] ?? false)) {
                     continue;
                 }
 
-                $baseAmount = $resident['amount'];
-                $discountPercent = $resident['discount_percent'] ?? 0;
-                $discountAmount = ($baseAmount * $discountPercent) / 100;
+                $baseAmount = (int) ($resident['amount'] ?? 0);
+                $discountPercent = (float) ($resident['discount_percent'] ?? 0);
+                $discountAmount = (int) (($baseAmount * $discountPercent) / 100);
                 $totalAmount = $baseAmount - $discountAmount;
 
                 $user = User::with('activeRoomResident')->find($resident['user_id']);
@@ -103,11 +103,9 @@ class BillService
         DB::beginTransaction();
 
         try {
-            // AUTO GET-OR-CREATE
             $billingType = $this->getOrCreateBiayaKamarType();
 
-            // Validasi max 60 bulan
-            $totalMonths = $data['total_months'];
+            $totalMonths = (int) ($data['total_months'] ?? 6);
             if ($totalMonths > 60) {
                 throw new \Exception('Maksimal periode tagihan kamar adalah 60 bulan (5 tahun)');
             }
@@ -117,18 +115,18 @@ class BillService
             $residents = $data['residents'];
             $periodStart = Carbon::parse($data['period_start']);
             $periodEnd = Carbon::parse($data['period_end']);
-            $monthlyRate = $data['monthly_rate'];
+            $monthlyRate = (int) ($data['monthly_rate'] ?? 0);
 
             foreach ($residents as $resident) {
                 if (!($resident['selected'] ?? false)) {
                     continue;
                 }
 
-                $discountPercent = $resident['discount_percent'] ?? 0;
+                $discountPercent = (float) ($resident['discount_percent'] ?? 0);
 
                 // Total untuk periode
                 $totalForPeriod = $monthlyRate * $totalMonths;
-                $discountAmount = ($totalForPeriod * $discountPercent) / 100;
+                $discountAmount = (int) (($totalForPeriod * $discountPercent) / 100);
                 $totalAfterDiscount = $totalForPeriod - $discountAmount;
 
                 // Buat bill dengan billing_type_id otomatis
@@ -204,9 +202,9 @@ class BillService
                     continue;
                 }
 
-                $baseAmount = $resident['amount'];
-                $discountPercent = $resident['discount_percent'] ?? 0;
-                $discountAmount = ($baseAmount * $discountPercent) / 100;
+                $baseAmount = (int) ($resident['amount'] ?? 0);
+                $discountPercent = (float) ($resident['discount_percent'] ?? 0);
+                $discountAmount = (int) (($baseAmount * $discountPercent) / 100);
                 $totalAmount = $baseAmount - $discountAmount;
 
                 $user = User::with('activeRoomResident')->find($resident['user_id']);
@@ -244,17 +242,16 @@ class BillService
 
     /**
      * Generate tagihan pendaftaran
-     * ✅ DIPERBAIKI: Otomatis ambil user_id dan room_id jika pendaftaran sudah approved
      */
     public function generateRegistrationBill(Registration $registration, array $data): Bill
     {
         // Validasi input
-        $amount = $data['amount'] ?? 0;
-        $discountPercent = $data['discount_percent'] ?? 0;
+        $amount = (int) ($data['amount'] ?? 0);
+        $discountPercent = (float) ($data['discount_percent'] ?? 0);
         $dueDate = $data['due_date'] ?? null;
 
         // Hitung total setelah diskon
-        $discountAmount = ($amount * $discountPercent) / 100;
+        $discountAmount = (int) (($amount * $discountPercent) / 100);
         $totalAmount = $amount - $discountAmount;
 
         // Cari atau buat BillingType untuk "Biaya Pendaftaran"
@@ -273,7 +270,7 @@ class BillService
 
         if ($registration->status === 'approved' && $registration->user_id) {
             $userId = $registration->user_id;
-            
+
             // Ambil room_id dari user yang sudah aktif
             $user = User::with('activeRoomResident.room')->find($userId);
             if ($user && $user->activeRoomResident) {
