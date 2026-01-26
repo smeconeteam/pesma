@@ -113,6 +113,25 @@ class DashboardController extends Controller
         $recentBills = $allBills->take(3);
         
         // ==========================================
+        // 4. DATA RIWAYAT PEMBAYARAN (PAYMENT HISTORY)
+        // ==========================================
+        $allPayments = \App\Models\BillPayment::whereHas('bill', function($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->with(['bill.billingType', 'paymentMethod'])
+            ->orderBy('payment_date', 'desc')
+            ->get();
+        
+        // Statistik pembayaran
+        $totalPayments = $allPayments->count();
+        $verifiedPayments = $allPayments->where('status', 'verified')->count();
+        $pendingPayments = $allPayments->where('status', 'pending')->count();
+        $totalVerifiedAmount = $allPayments->where('status', 'verified')->sum('amount');
+        
+        // Ambil 3 pembayaran terbaru
+        $recentPayments = $allPayments->take(3);
+        
+        // ==========================================
         
         return view('dashboard', compact(
             'residentPhotoUrl',
@@ -129,7 +148,12 @@ class DashboardController extends Controller
             'unpaidBills',
             'totalUnpaid',
             'totalPaid',
-            'recentBills'
+            'recentBills',
+            'totalPayments',
+            'verifiedPayments',
+            'pendingPayments',
+            'totalVerifiedAmount',
+            'recentPayments'
         ));
     }
 }

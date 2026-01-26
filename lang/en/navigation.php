@@ -5,6 +5,7 @@ return [
     'my_room' => 'My Room',
     'room_history' => 'Room History',
     'bills' => 'Bills',
+    'payment_history' => 'Payment History',
     'registration' => 'Registration',
     'profile' => 'Profile',
     'logout' => 'Logout',

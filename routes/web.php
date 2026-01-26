@@ -35,6 +35,10 @@ Route::middleware(['auth', 'verified', 'resident.only'])->group(function () {
     Route::get('/tagihan', [BillsController::class, 'index'])
         ->name('resident.bills');
 
+    // Halaman Riwayat Pembayaran
+    Route::get('/riwayat-pembayaran', [\App\Http\Controllers\Resident\PaymentHistoryController::class, 'index'])
+        ->name('resident.payment-history');
+
     // Profile routes
     Route::get('/profile', [ProfileController::class, 'edit'])
         ->name('profile.edit');

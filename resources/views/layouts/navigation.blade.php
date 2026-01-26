@@ -80,6 +80,13 @@ class="border-b bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 t
                         </x-nav-link>
                     @endif
 
+                    {{-- MENU RIWAYAT PEMBAYARAN --}}
+                    @if (\Illuminate\Support\Facades\Route::has('resident.payment-history'))
+                        <x-nav-link :href="route('resident.payment-history')" :active="request()->routeIs('resident.payment-history')">
+                            {{ __('navigation.payment_history') }}
+                        </x-nav-link>
+                    @endif
+
                     @guest
                         @if (\Illuminate\Support\Facades\Route::has('public.registration.create'))
                             <x-nav-link :href="route('public.registration.create')" :active="request()->routeIs('public.registration.*')">
@@ -272,6 +279,13 @@ class="border-b bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 t
                     </x-responsive-nav-link>
                 @endif
 
+                {{-- MENU RIWAYAT PEMBAYARAN (MOBILE) --}}
+                @if (\Illuminate\Support\Facades\Route::has('resident.payment-history'))
+                    <x-responsive-nav-link :href="route('resident.payment-history')" :active="request()->routeIs('resident.payment-history')">
+                        {{ __('navigation.payment_history') }}
+                    </x-responsive-nav-link>
+                @endif
+
                 <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
                     <button @click="toggleTheme()"
                             type="button"
@@ -283,7 +297,7 @@ class="border-b bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 t
                             <svg x-show="darkMode" class="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: none;">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
                             </svg>
-                            <span class="font-medium">Tema Gelap</span>
+                            <span class="font-medium">{{ __('navigation.dark_mode') }}</span>
                         </div>
                         <div class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200"
                              :class="darkMode ? 'bg-green-600' : 'bg-gray-300'">

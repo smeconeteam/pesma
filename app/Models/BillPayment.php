@@ -205,4 +205,16 @@ class BillPayment extends Model
     {
         return $this->is_pic_payment ? 'PIC (Gabungan)' : 'Individual';
     }
+
+    /**
+     * Get proof URL
+     */
+    public function getProofUrlAttribute(): ?string
+    {
+        if (!$this->proof_path) {
+            return null;
+        }
+        
+        return \Illuminate\Support\Facades\Storage::url($this->proof_path);
+    }
 }
