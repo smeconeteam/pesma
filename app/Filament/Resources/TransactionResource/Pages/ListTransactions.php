@@ -48,9 +48,9 @@ class ListTransactions extends ListRecords
                     FROM transactions t2
                     WHERE t2.deleted_at IS NULL
                     AND (
-                        t2.transaction_date < transactions.transaction_date
+                        t2.created_at < transactions.created_at
                         OR (
-                            t2.transaction_date = transactions.transaction_date 
+                            t2.created_at = transactions.created_at 
                             AND t2.id <= transactions.id
                         )
                     )

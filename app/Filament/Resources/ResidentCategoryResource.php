@@ -2,26 +2,27 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\ResidentCategoryResource\Pages;
-use App\Models\ResidentCategory;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Infolists\Infolist;
-use Filament\Infolists\Components\Section as InfoSection;
-use Filament\Infolists\Components\TextEntry;
-use Filament\Notifications\Notification;
-use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Forms\Form;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Models\ResidentCategory;
+use Filament\Infolists\Infolist;
+use Filament\Resources\Resource;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use App\Models\PaymentMethodBankAccount;
+use Filament\Notifications\Notification;
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Infolists\Components\TextEntry;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Infolists\Components\Section as InfoSection;
+use App\Filament\Resources\ResidentCategoryResource\Pages;
 
 class ResidentCategoryResource extends Resource
 {
     protected static ?string $model = ResidentCategory::class;
-    
+
     protected static ?string $slug = 'kategori';
     protected static ?string $navigationGroup = 'Asrama';
     protected static ?int $navigationSort = 12;
@@ -57,20 +58,31 @@ class ResidentCategoryResource extends Resource
                             ->label('Pilih Rekening Bank')
                             ->relationship(
                                 'bankAccounts',
-                                'bank_name',
-                                fn ($query) => $query->where('is_active', true)
+                                'account_holder'
                             )
-                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_name)
+                            ->getOptionLabelFromRecordUsing(function ($record) {
+                                return "{$record->bank_name} - {$record->account_number} ({$record->account_name})";
+                            })
+                            ->options(function () {
+                                return \App\Models\PaymentMethodBankAccount::query()
+                                    ->where('is_active', true)
+                                    ->get()
+                                    ->mapWithKeys(function ($account) {
+                                        return [
+                                            $account->id => "{$account->bank_name} - {$account->account_number} ({$account->account_name})"
+                                        ];
+                                    });
+                            })
                             ->helperText('Rekening yang dipilih akan menjadi opsi pembayaran untuk kategori ini')
                             ->searchable()
                             ->bulkToggleable()
                             ->columnSpanFull()
-                            ->visible(fn () => \App\Models\PaymentMethodBankAccount::where('is_active', true)->exists()),
+                            ->visible(fn() => PaymentMethodBankAccount::where('is_active', true)->exists()),
 
                         Forms\Components\Placeholder::make('no_bank_accounts')
                             ->label('')
                             ->content('Belum ada rekening bank aktif. Silakan tambahkan rekening bank terlebih dahulu di menu Metode Pembayaran.')
-                            ->visible(fn () => !\App\Models\PaymentMethodBankAccount::where('is_active', true)->exists()),
+                            ->visible(fn() => !PaymentMethodBankAccount::where('is_active', true)->exists()),
                     ])
                     ->columns(1)
                     ->collapsible(),
@@ -131,9 +143,9 @@ class ResidentCategoryResource extends Resource
                 Tables\Actions\ViewAction::make(),
 
                 Tables\Actions\EditAction::make()
-                    ->visible(fn (ResidentCategory $record): bool =>
-                        (auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false)
-                        && ! $record->trashed()
+                    ->visible(
+                        fn(ResidentCategory $record): bool => (auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false)
+                            && ! $record->trashed()
                     ),
 
                 Tables\Actions\DeleteAction::make()
@@ -148,7 +160,6 @@ class ResidentCategoryResource extends Resource
                             return false;
                         }
 
-                        // Cek apakah ada kamar yang menggunakan kategori ini
                         if ($record->rooms()->exists()) {
                             return false;
                         }
@@ -156,7 +167,6 @@ class ResidentCategoryResource extends Resource
                         return true;
                     })
                     ->action(function (ResidentCategory $record) {
-                        // Cek sekali lagi sebelum delete
                         if ($record->rooms()->exists()) {
                             Notification::make()
                                 ->title('Tidak dapat menghapus')
@@ -175,8 +185,8 @@ class ResidentCategoryResource extends Resource
                     }),
 
                 Tables\Actions\RestoreAction::make()
-                    ->visible(fn (ResidentCategory $record): bool => 
-                        (auth()->user()?->hasRole('super_admin') ?? false) && $record->trashed()
+                    ->visible(
+                        fn(ResidentCategory $record): bool => (auth()->user()?->hasRole('super_admin') ?? false) && $record->trashed()
                     )
                     ->action(function (ResidentCategory $record) {
                         $record->restore();
@@ -189,15 +199,14 @@ class ResidentCategoryResource extends Resource
 
                 Tables\Actions\ForceDeleteAction::make()
                     ->label('Hapus Permanen')
-                    ->visible(fn (ResidentCategory $record): bool =>
-                        (auth()->user()?->hasRole('super_admin') ?? false) && $record->trashed()
+                    ->visible(
+                        fn(ResidentCategory $record): bool => (auth()->user()?->hasRole('super_admin') ?? false) && $record->trashed()
                     )
                     ->requiresConfirmation()
                     ->modalHeading('Hapus Permanen Kategori')
                     ->modalDescription('Apakah Anda yakin ingin menghapus permanen kategori ini? Data yang terhapus permanen tidak dapat dipulihkan.')
                     ->modalSubmitActionLabel('Ya, Hapus Permanen')
                     ->before(function (Tables\Actions\ForceDeleteAction $action, ResidentCategory $record) {
-                        // Safety check: jangan hapus jika masih ada kamar yang menggunakan
                         if ($record->rooms()->exists()) {
                             Notification::make()
                                 ->title('Tidak dapat menghapus permanen')
@@ -228,7 +237,6 @@ class ResidentCategoryResource extends Resource
                             return false;
                         }
 
-                        // Hanya tampil di tab aktif
                         return ($livewire->activeTab ?? null) !== 'terhapus';
                     })
                     ->action(function (Collection $records) {
@@ -280,7 +288,6 @@ class ResidentCategoryResource extends Resource
                             return false;
                         }
 
-                        // Hanya tampil di tab terhapus
                         return ($livewire->activeTab ?? null) === 'terhapus';
                     })
                     ->action(function (Collection $records) {
@@ -332,14 +339,14 @@ class ResidentCategoryResource extends Resource
 
                         TextEntry::make('rooms_count')
                             ->label('Jumlah Kamar')
-                            ->state(fn (ResidentCategory $record) => $record->rooms()->count())
+                            ->state(fn(ResidentCategory $record) => $record->rooms()->count())
                             ->suffix(' kamar'),
                     ])
                     ->columns(2),
 
                 InfoSection::make('Rekening Bank untuk Pembayaran')
                     ->schema([
-                        TextEntry::make('bankAccounts')
+                        TextEntry::make('bank_accounts_list')
                             ->label('Rekening yang Digunakan')
                             ->listWithLineBreaks()
                             ->bulleted()
@@ -347,15 +354,19 @@ class ResidentCategoryResource extends Resource
                                 $accounts = $record->bankAccounts()
                                     ->where('is_active', true)
                                     ->get();
-                                
+
                                 if ($accounts->isEmpty()) {
-                                    return ['-'];
+                                    return ['Tidak ada rekening bank yang dipilih'];
                                 }
-                                
-                                return $accounts->map(fn ($account) => $account->display_name)->toArray();
-                            }),
+
+                                return $accounts->map(function ($account) {
+                                    return "{$account->bank_name} - {$account->account_number} ({$account->account_name})";
+                                })->toArray();
+                            })
+                            ->placeholder('Tidak ada rekening bank yang dipilih'),
                     ])
-                    ->columns(1),
+                    ->columns(1)
+                    ->collapsible(),
 
                 InfoSection::make('Waktu')
                     ->schema([
@@ -385,7 +396,6 @@ class ResidentCategoryResource extends Resource
 
         $query = parent::getEloquentQuery();
 
-        // Hanya super_admin yang bisa lihat data terhapus
         if ($user?->hasRole('super_admin')) {
             $query->withoutGlobalScopes([SoftDeletingScope::class]);
         }

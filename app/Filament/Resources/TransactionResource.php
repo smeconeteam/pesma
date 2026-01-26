@@ -18,11 +18,10 @@ class TransactionResource extends Resource
 {
     protected static ?string $model = Transaction::class;
 
-    protected static ?string $navigationIcon = null;
+    protected static ?string $navigationIcon = 'heroicon-o-banknotes';
     protected static ?string $navigationLabel = 'Arus Kas';
     protected static ?string $modelLabel = 'Transaksi';
     protected static ?string $pluralModelLabel = 'Arus Kas';
-    protected static ?string $navigationGroup = 'Keuangan';
     protected static ?int $navigationSort = 5;
 
     public static function form(Form $form): Form
@@ -126,7 +125,7 @@ class TransactionResource extends Resource
                     ->wrap()
                     ->limit(40)
                     ->description(fn (Transaction $record): ?string => 
-                        $record->bill_payment_id ? '🔗 Dari Billing' : null
+                        $record->bill_payment_id ? '🔗 Dari Pembayaran' : null
                     ),
 
                 Tables\Columns\TextColumn::make('payment_method')
@@ -176,10 +175,11 @@ class TransactionResource extends Resource
                     ->placeholder('-'),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Dibuat')
+                    ->label('Dibuat Pada')
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable()
+                    ->visible(false),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('type')
@@ -237,7 +237,7 @@ class TransactionResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
-            ->defaultSort('transaction_date', 'desc');
+            ->defaultSort('created_at', 'desc');
     }
 
     public static function getPages(): array

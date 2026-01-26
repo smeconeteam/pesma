@@ -27,6 +27,8 @@ class Transaction extends Model
     protected $casts = [
         'amount' => 'integer',
         'transaction_date' => 'date',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     // Relations
@@ -121,11 +123,11 @@ class Transaction extends Model
      */
     public function getRunningBalance(): int
     {
-        $query = self::where('transaction_date', '<=', $this->transaction_date)
+        $query = self::where('created_at', '<=', $this->created_at)
             ->where(function($q) {
-                $q->where('transaction_date', '<', $this->transaction_date)
+                $q->where('created_at', '<', $this->created_at)
                   ->orWhere(function($q2) {
-                      $q2->where('transaction_date', '=', $this->transaction_date)
+                      $q2->where('created_at', '=', $this->created_at)
                          ->where('id', '<=', $this->id);
                   });
             });

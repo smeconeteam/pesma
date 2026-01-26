@@ -106,7 +106,6 @@ class CreateBill extends CreateRecord
         $autoFill = request()->query('auto_fill');
         $user = auth()->user();
 
-        // ✅ Default tab = pendaftaran
         $fillData = [
             'tab' => 'registration',
             'discount_percent' => 0,
@@ -126,7 +125,6 @@ class CreateBill extends CreateRecord
                 $fillData['registration_email'] = $registration->email;
                 $fillData['registration_category'] = $registration->residentCategory?->name ?? '-';
 
-                // ✅ AUTO-FILL dari default_amount BillingType "Biaya Pendaftaran"
                 $registrationBillingType = BillingType::where('name', 'Biaya Pendaftaran')->first();
                 if ($registrationBillingType && $registrationBillingType->default_amount) {
                     $fillData['registration_fee_amount'] = $registrationBillingType->default_amount;
@@ -172,7 +170,6 @@ class CreateBill extends CreateRecord
 
         return $form
             ->schema([
-                // ✅ Default tab registration
                 Forms\Components\Hidden::make('tab')
                     ->default('registration'),
 
@@ -256,7 +253,7 @@ class CreateBill extends CreateRecord
                                         if ($billingType && $billingType->default_amount) {
                                             return 'Jenis tagihan otomatis: "Biaya Pendaftaran" | Nominal default: Rp ' . number_format($billingType->default_amount, 0, ',', '.');
                                         }
-                                        return 'Jenis tagihan otomatis: "Biaya Pendaftaran" (tidak ada nominal default)';
+                                        return 'Jenis tagihan otomatis: "Biaya Pendaftaran"';
                                     })
                                     ->visible(fn(Forms\Get $get) => !blank($get('registration_id')))
                                     ->columns(3)
@@ -268,6 +265,7 @@ class CreateBill extends CreateRecord
                                             ->required(fn(Forms\Get $get) => $get('tab') === 'registration')
                                             ->minValue(0)
                                             ->live(debounce: 500)
+                                            ->dehydrateStateUsing(fn($state) => (int) $state)
                                             ->helperText('Masukkan nominal biaya pendaftaran'),
 
                                         Forms\Components\TextInput::make('registration_fee_discount')
@@ -277,6 +275,7 @@ class CreateBill extends CreateRecord
                                             ->default(0)
                                             ->minValue(0)
                                             ->maxValue(100)
+                                            ->dehydrateStateUsing(fn($state) => (int) $state)
                                             ->live(debounce: 500),
 
                                         Forms\Components\DatePicker::make('registration_fee_due_date')
@@ -498,6 +497,7 @@ class CreateBill extends CreateRecord
                                                             ->required(fn(Forms\Get $get) => $get('tab') === 'individual')
                                                             ->numeric()
                                                             ->prefix('Rp')
+                                                            ->dehydrateStateUsing(fn($state) => (int) $state)
                                                             ->live(onBlur: true),
 
                                                         Forms\Components\TextInput::make('discount_percent')
@@ -507,6 +507,7 @@ class CreateBill extends CreateRecord
                                                             ->minValue(0)
                                                             ->maxValue(100)
                                                             ->suffix('%')
+                                                            ->dehydrateStateUsing(fn($state) => (int) $state)
                                                             ->live(onBlur: true),
 
                                                         Forms\Components\Placeholder::make('total')
@@ -630,7 +631,6 @@ class CreateBill extends CreateRecord
                                             ->helperText('Pilih kamar untuk melihat penghuni dan tarif bulanan'),
                                     ]),
 
-                                // ✅ FIX: peringatan hanya muncul jika memang tidak ada kamar berpenghuni aktif di blok tersebut
                                 Forms\Components\Section::make('Peringatan')
                                     ->visible(function (Forms\Get $get) {
                                         $blockId = $get('block_id');
@@ -702,10 +702,15 @@ class CreateBill extends CreateRecord
                                                     ->live(debounce: 500)
                                                     ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                                                         if ($state) {
-                                                            $months = (int) ($get('total_months') ?? 6);
-                                                            $endDate = \Carbon\Carbon::parse($state)
-                                                                ->addMonths($months - 1)
-                                                                ->endOfMonth();
+                                                            $months = max(1, (int) ($get('total_months') ?? 1));
+
+                                                            if ($months === 1) {
+                                                                $endDate = \Carbon\Carbon::parse($state)->endOfMonth();
+                                                            } else {
+                                                                $endDate = \Carbon\Carbon::parse($state)
+                                                                    ->addMonths($months - 1)
+                                                                    ->endOfMonth();
+                                                            }
                                                             $set('period_end', $endDate->toDateString());
                                                         }
                                                     }),
@@ -717,15 +722,20 @@ class CreateBill extends CreateRecord
                                                     ->minValue(1)
                                                     ->maxValue(60)
                                                     ->default(6)
-                                                    ->live(debounce: 500)
+                                                    ->live(debounce: 300)
+                                                    ->dehydrateStateUsing(fn($state) => max(1, (int) $state))
                                                     ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                                                        $months = (int) ($state ?? 6);
+                                                        $months = max(1, (int) ($state ?? 1));
                                                         $start = $get('period_start');
 
-                                                        if ($start && $months > 0) {
-                                                            $endDate = \Carbon\Carbon::parse($start)
-                                                                ->addMonths($months - 1)
-                                                                ->endOfMonth();
+                                                        if ($start) {
+                                                            if ($months === 1) {
+                                                                $endDate = \Carbon\Carbon::parse($start)->endOfMonth();
+                                                            } else {
+                                                                $endDate = \Carbon\Carbon::parse($start)
+                                                                    ->addMonths($months - 1)
+                                                                    ->endOfMonth();
+                                                            }
                                                             $set('period_end', $endDate->toDateString());
                                                         }
                                                     })
@@ -774,8 +784,8 @@ class CreateBill extends CreateRecord
                                                 $room = Room::find($roomId);
                                                 if (!$room) return '-';
 
-                                                $monthlyRate = $room->monthly_rate ?? 0;
-                                                $months = $get('total_months') ?? 6;
+                                                $monthlyRate = (int) ($room->monthly_rate ?? 0);
+                                                $months = max(1, (int) ($get('total_months') ?? 1));
                                                 $totalPeriod = $monthlyRate * $months;
 
                                                 return new \Illuminate\Support\HtmlString("
@@ -817,22 +827,23 @@ class CreateBill extends CreateRecord
                                                             ->minValue(0)
                                                             ->maxValue(100)
                                                             ->suffix('%')
+                                                            ->dehydrateStateUsing(fn($state) => (int) $state)
                                                             ->live(onBlur: true),
 
                                                         Forms\Components\Placeholder::make('total')
                                                             ->label('Total Tagihan')
                                                             ->content(function (Forms\Get $get) {
                                                                 $roomId = $get('../../room_id');
-                                                                $months = $get('../../total_months') ?? 6;
+                                                                $months = max(1, (int) ($get('../../total_months') ?? 1));
 
                                                                 if (!$roomId) return '-';
 
                                                                 $room = Room::find($roomId);
                                                                 if (!$room) return '-';
 
-                                                                $monthlyRate = $room->monthly_rate ?? 0;
+                                                                $monthlyRate = (int) ($room->monthly_rate ?? 0);
                                                                 $totalPeriod = $monthlyRate * $months;
-                                                                $discount = $get('discount_percent') ?? 0;
+                                                                $discount = (float) ($get('discount_percent') ?? 0);
 
                                                                 $afterDiscount = $totalPeriod - (($totalPeriod * $discount) / 100);
 
@@ -948,7 +959,7 @@ class CreateBill extends CreateRecord
 
                                                 $set('residents', $residents);
                                             })
-                                            ->helperText('Hanya menampilkan kategori yang memiliki penghuni di cabang ini'),
+                                            ->helperText('Hanya menampilkan kategori yang dimiliki penghuni di cabang ini'),
                                     ]),
 
                                 Forms\Components\Section::make('Peringatan')
@@ -1053,6 +1064,7 @@ class CreateBill extends CreateRecord
                                                             ->required(fn(Forms\Get $get) => $get('selected'))
                                                             ->numeric()
                                                             ->prefix('Rp')
+                                                            ->dehydrateStateUsing(fn($state) => (int) $state)
                                                             ->live(onBlur: true)
                                                             ->disabled(fn(Forms\Get $get) => !$get('selected')),
 
@@ -1062,6 +1074,7 @@ class CreateBill extends CreateRecord
                                                             ->default(0)
                                                             ->minValue(0)
                                                             ->maxValue(100)
+                                                            ->dehydrateStateUsing(fn($state) => (int) $state)
                                                             ->suffix('%')
                                                             ->live(onBlur: true)
                                                             ->disabled(fn(Forms\Get $get) => !$get('selected')),
@@ -1095,10 +1108,8 @@ class CreateBill extends CreateRecord
                                     ]),
                             ]),
                     ])
-                    // ✅ Default active tab: Biaya Pendaftaran
                     ->activeTab(1)
                     ->columnSpanFull()
-                    // ✅ Saat pindah tab, reset data tab sebelumnya (hanya saat klik tab header)
                     ->extraAttributes([
                         'x-on:click' => 'const el = $event.target.closest(\'[role="tab"]\');
                             if (!el) return;
@@ -1192,13 +1203,6 @@ class CreateBill extends CreateRecord
 
                 DB::commit();
 
-                // PERBAIKAN: Hanya satu notifikasi
-                Notification::make()
-                    ->success()
-                    ->title('Berhasil')
-                    ->body("Tagihan biaya pendaftaran untuk {$registration->full_name} berhasil dibuat")
-                    ->send();
-
                 return $bill;
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -1213,7 +1217,7 @@ class CreateBill extends CreateRecord
             }
         }
 
-        // Validasi untuk tab lain dengan warning, bukan error
+        // Validasi untuk tab lain
         if ($tab === 'individual') {
             if (empty($data['search_user_ids'])) {
                 Notification::make()
@@ -1280,15 +1284,6 @@ class CreateBill extends CreateRecord
 
             DB::commit();
 
-            $count = $bills->count();
-
-            // PERBAIKAN: Hanya satu notifikasi
-            Notification::make()
-                ->success()
-                ->title('Berhasil')
-                ->body("Berhasil membuat {$count} tagihan")
-                ->send();
-
             return $bills->first();
         } catch (\Exception $e) {
             DB::rollBack();
@@ -1324,6 +1319,30 @@ class CreateBill extends CreateRecord
 
     protected function getRedirectUrl(): string
     {
+        $tab = $this->data['tab'] ?? 'registration';
+
+        if ($tab === 'registration') {
+            $registration = Registration::find($this->data['registration_id'] ?? null);
+            if ($registration) {
+                Notification::make()
+                    ->success()
+                    ->title('Berhasil')
+                    ->body("Tagihan biaya pendaftaran untuk {$registration->full_name} berhasil dibuat")
+                    ->send();
+            }
+        } else {
+            // Untuk tab lain, hitung jumlah tagihan yang dibuat
+            $residentCount = collect($this->data['residents'] ?? [])
+                ->filter(fn($r) => $r['selected'] ?? true)
+                ->count();
+
+            Notification::make()
+                ->success()
+                ->title('Berhasil')
+                ->body("Berhasil membuat {$residentCount} tagihan")
+                ->send();
+        }
+
         $registrationId = request()->query('registration_id');
         $autoFill = request()->query('auto_fill');
 
@@ -1332,5 +1351,10 @@ class CreateBill extends CreateRecord
         }
 
         return $this->getResource()::getUrl('index');
+    }
+
+    protected function getCreatedNotification(): ?\Filament\Notifications\Notification
+    {
+        return null;
     }
 }
