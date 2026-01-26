@@ -29,7 +29,7 @@ class ViewActivePolicy extends Page
         // Jika belum ada record, buat default record
         if (! $this->record) {
             $this->record = Policy::create([
-                'title' => 'Kebijakan & Ketentuan',
+                'title' => 'Ketentuan',
                 'content' => '<p>Silakan edit untuk mengisi kebijakan dan ketentuan.</p>',
                 'is_active' => true,
                 'created_by' => auth()->id(),
@@ -45,13 +45,13 @@ class ViewActivePolicy extends Page
 
     public function getTitle(): string
     {
-        return 'Kebijakan & Ketentuan';
+        return 'Ketentuan';
     }
 
     public function getBreadcrumbs(): array
     {
         return [
-            PolicyResource::getUrl('active') => 'Kebijakan & Ketentuan',
+            PolicyResource::getUrl('active') => 'Ketentuan',
         ];
     }
 
@@ -76,7 +76,7 @@ class ViewActivePolicy extends Page
                     ->dehydrated(false),
 
                 Forms\Components\ViewField::make('content_html')
-                    ->label('Isi Kebijakan & Ketentuan')
+                    ->label('Isi Ketentuan')
                     ->view('filament.forms.components.policy-content-view')
                     ->columnSpanFull()
                     ->dehydrated(false),

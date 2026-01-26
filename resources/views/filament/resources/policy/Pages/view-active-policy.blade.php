@@ -4,7 +4,7 @@
             {{-- Judul --}}
             <div>
                 <h2 class="text-xl font-semibold">
-                    {{ data_get($this->data, 'title', '-') }}
+                    Ketentuan
                 </h2>
             </div>
 
@@ -20,7 +20,7 @@
 
             {{-- Isi Rich Text (satu card yang sama) --}}
             <div>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">Isi Kebijakan & Ketentuan</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">Isi Ketentuan</p>
 
                 <div class="rounded-xl border border-gray-200 bg-white p-4 text-gray-900 shadow-sm
                             dark:border-gray-800 dark:bg-gray-950 dark:text-gray-100">
