@@ -132,9 +132,9 @@ class BillResource extends Resource
                                 $q->whereHas('room.block.dorm', function ($subQ) use ($data) {
                                     $subQ->whereIn('dorms.id', $data['value']);
                                 })
-                                ->orWhereHas('user.roomResidents.room.block.dorm', function ($subQ) use ($data) {
-                                    $subQ->whereIn('dorms.id', $data['value']);
-                                });
+                                    ->orWhereHas('user.roomResidents.room.block.dorm', function ($subQ) use ($data) {
+                                        $subQ->whereIn('dorms.id', $data['value']);
+                                    });
                             });
                         }
                     })
@@ -162,18 +162,22 @@ class BillResource extends Resource
                 Tables\Actions\ViewAction::make()
                     ->visible(fn($record) => !$record->trashed()),
 
+                Tables\Actions\EditAction::make()
+                    ->visible(fn($record) => !$record->trashed()),
+
                 Tables\Actions\DeleteAction::make()
                     ->visible(fn($record) => !$record->trashed() && $record->canBeDeleted()),
 
                 Tables\Actions\RestoreAction::make()
                     ->label('Pulihkan')
-                    ->visible(fn(Bill $record): bool => 
-                        auth()->user()?->hasRole(['super_admin']) 
-                        && $record->trashed()
+                    ->visible(
+                        fn(Bill $record): bool =>
+                        auth()->user()?->hasRole(['super_admin'])
+                            && $record->trashed()
                     )
                     ->action(function (Bill $record) {
                         $registrationBillingType = \App\Models\BillingType::where('name', 'Biaya Pendaftaran')->first();
-                        
+
                         if ($registrationBillingType && $record->billing_type_id === $registrationBillingType->id) {
                             $existingBill = Bill::withoutTrashed()
                                 ->where('user_id', $record->user_id)
@@ -202,9 +206,10 @@ class BillResource extends Resource
 
                 Tables\Actions\ForceDeleteAction::make()
                     ->label('Hapus Permanen')
-                    ->visible(fn(Bill $record): bool =>
+                    ->visible(
+                        fn(Bill $record): bool =>
                         auth()->user()?->hasRole(['super_admin'])
-                        && $record->trashed()
+                            && $record->trashed()
                     )
                     ->requiresConfirmation()
                     ->modalHeading('Hapus Permanen Tagihan')
@@ -318,9 +323,9 @@ class BillResource extends Resource
                 $q->whereHas('room.block.dorm', function ($subQ) use ($dormIds) {
                     $subQ->whereIn('dorms.id', $dormIds);
                 })
-                ->orWhereHas('user.roomResidents.room.block.dorm', function ($subQ) use ($dormIds) {
-                    $subQ->whereIn('dorms.id', $dormIds);
-                });
+                    ->orWhereHas('user.roomResidents.room.block.dorm', function ($subQ) use ($dormIds) {
+                        $subQ->whereIn('dorms.id', $dormIds);
+                    });
             });
         }
 
@@ -330,9 +335,9 @@ class BillResource extends Resource
                 $q->whereHas('room.block', function ($subQ) use ($blockIds) {
                     $subQ->whereIn('blocks.id', $blockIds);
                 })
-                ->orWhereHas('user.roomResidents.room.block', function ($subQ) use ($blockIds) {
-                    $subQ->whereIn('blocks.id', $blockIds);
-                });
+                    ->orWhereHas('user.roomResidents.room.block', function ($subQ) use ($blockIds) {
+                        $subQ->whereIn('blocks.id', $blockIds);
+                    });
             });
         }
 
@@ -345,6 +350,7 @@ class BillResource extends Resource
             'index' => Pages\ListBills::route('/'),
             'create' => Pages\CreateBill::route('/buat'),
             'view' => Pages\ViewBill::route('/{record}'),
+            'edit' => Pages\EditBill::route('/{record}/edit'),
         ];
     }
 
