@@ -1,15 +1,33 @@
 {{-- Component untuk Language Switcher dengan localStorage --}}
 @props(['short' => false, 'selectClass' => ''])
 
-<div x-data="localeSwitcher()" {{ $attributes->except(['short', 'selectClass']) }}>
-    <select 
-        x-model="currentLocale"
-        @change="switchLocale($event.target.value)"
-        class="{{ $selectClass ?: 'text-sm border-gray-300 rounded-md shadow-sm focus:border-green-500 focus:ring-green-500' }}"
-    >
-        <option value="id">{{ $short ? '🇮🇩 ID' : '🇮🇩 Bahasa Indonesia' }}</option>
-        <option value="en">{{ $short ? '🇬🇧 EN' : '🇬🇧 English' }}</option>
-    </select>
+<div x-data="localeSwitcher()" {{ $attributes->except(['short', 'selectClass']) }} class="relative">
+    <x-dropdown align="right" width="32" contentClasses="py-1 bg-white dark:bg-gray-800">
+        <x-slot name="trigger">
+            <button class="inline-flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200">
+                <span class="flex items-center gap-2">
+                    <span x-text="currentLocale === 'id' ? '🇮🇩' : '🇬🇧'"></span>
+                    <span x-text="currentLocale === 'id' ? ({{ $short ? "'ID'" : "'Bahasa Indonesia'" }}) : ({{ $short ? "'EN'" : "'English'" }})"></span>
+                </span>
+                <svg class="w-4 h-4 ml-2 -mr-1 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </x-slot>
+
+        <x-slot name="content">
+            <button @click="switchLocale('id')" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+                <span>🇮🇩</span>
+                <span>{{ $short ? 'ID' : 'Bahasa Indonesia' }}</span>
+                <span x-show="currentLocale === 'id'" class="ml-auto text-green-600">✓</span>
+            </button>
+            <button @click="switchLocale('en')" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+                <span>🇬🇧</span>
+                <span>{{ $short ? 'EN' : 'English' }}</span>
+                <span x-show="currentLocale === 'en'" class="ml-auto text-green-600">✓</span>
+            </button>
+        </x-slot>
+    </x-dropdown>
 </div>
 
 @once

@@ -14,7 +14,9 @@ class DashboardController extends Controller
         $user = Auth::user();
         $profile = $user->residentProfile;
         
-        // Data profil penghuni
+        // ==========================================
+        // 1. DATA PROFIL & KAMAR
+        // ==========================================
         $residentPhotoUrl = $profile && $profile->photo_path 
             ? Storage::url($profile->photo_path) 
             : null;
@@ -45,6 +47,9 @@ class DashboardController extends Controller
             ? $assignment->check_in_date->format('d M Y')
             : '-';
         
+        // ==========================================
+        // 2. DATA KONTAK PENTING
+        // ==========================================
         // Ambil data checkout terakhir untuk penghuni inactive
         $lastCheckout = null;
         $checkoutReason = null;
@@ -87,22 +92,27 @@ class DashboardController extends Controller
             ->orderBy('display_name')
             ->get();
         
-        // ===== DATA TAGIHAN =====
+        // ==========================================
+        // 3. DATA TAGIHAN (BILLS)
+        // ==========================================
+        $allBills = collect();
+        if (method_exists($user, 'bills')) {
+            $allBills = $user->bills()
+                ->with(['billingType'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+        }
         
-        // Ambil semua tagihan user
-        $allBills = $user->bills()
-            ->with(['billingType', 'room.block.dorm', 'registration'])
-            ->orderBy('created_at', 'desc')
-            ->get();
-        
-        // Statistik tagihan
+        // Statistik
         $totalBills = $allBills->count();
         $unpaidBills = $allBills->whereIn('status', ['issued', 'partial', 'overdue'])->count();
         $totalUnpaid = $allBills->whereIn('status', ['issued', 'partial', 'overdue'])->sum('remaining_amount');
         $totalPaid = $allBills->where('status', 'paid')->sum('total_amount');
         
-        // Ambil 3 tagihan terbaru
+        // Ambil 3 tagihan terbaru (DATA ASLI)
         $recentBills = $allBills->take(3);
+        
+        // ==========================================
         
         return view('dashboard', compact(
             'residentPhotoUrl',

@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
             {{ __('profile.title') }}
         </h2>
     </x-slot>
@@ -48,17 +48,17 @@
     $isYouPic = $picUser?->id && $picUser->id === $user->id;
 
     // helper untuk list item
-    $itemsClass = "divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white";
+    $itemsClass = "divide-y divide-gray-100 dark:divide-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800";
     $rowClass = "px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6";
-    $labelClass = "text-sm font-medium text-gray-500";
-    $valueClass = "mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0";
+    $labelClass = "text-sm font-medium text-gray-500 dark:text-gray-400";
+    $valueClass = "mt-1 text-sm text-gray-900 dark:text-gray-100 sm:col-span-2 sm:mt-0";
     @endphp
 
     <div class="py-10">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
             {{-- Ringkasan --}}
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
                     <div class="flex items-center gap-4">
@@ -67,8 +67,8 @@
                             <img src="{{ $photoUrl }}" alt="Foto Profil"
                                 class="h-16 w-16 rounded-full object-cover border" />
                             @else
-                            <div class="h-16 w-16 rounded-full bg-gray-100 border flex items-center justify-center">
-                                <span class="text-xl font-semibold text-gray-600">
+                            <div class="h-16 w-16 rounded-full bg-gray-100 dark:bg-gray-700 border dark:border-gray-600 flex items-center justify-center">
+                                <span class="text-xl font-semibold text-gray-600 dark:text-gray-400">
                                     {{ mb_substr($profile?->full_name ?? $user->name ?? 'U', 0, 1) }}
                                 </span>
                             </div>
@@ -76,37 +76,28 @@
                         </div>
 
                         <div>
-                            <div class="text-lg font-semibold text-gray-900">
+                            <div class="text-lg font-semibold text-gray-900 dark:text-gray-100">
                                 {{ $profile?->full_name ?? $user->name ?? '-' }}
                             </div>
-                            <div class="mt-1 text-sm text-gray-600">
+                            <div class="mt-1 text-sm text-gray-600 dark:text-gray-400">
                                 {{ $user->email ?? '-' }}
                                 <span class="mx-2">•</span>
-                                Status: 
-                                <span class="font-semibold {{ $isInactive ? 'text-red-600' : 'text-gray-900' }}">
-                                    {{ $statusLabel }}
-                                </span>
+                                Status: <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $statusLabel }}</span>
                             </div>
 
                             <div class="mt-2 flex flex-wrap gap-2">
-                                @if (!$isInactive)
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 border">
-                                        {{ __('profile.room_code') }}: {{ $roomCode }}
-                                    </span>
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border dark:border-gray-600">
+                                    {{ __('profile.room_code') }}: {{ $roomCode }}
+                                </span>
 
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 border">
-                                        {{ __('profile.check_in') }}: {{ $checkInLabel }}
-                                    </span>
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border dark:border-gray-600">
+                                    {{ __('profile.check_in') }}: {{ $checkInLabel }}
+                                </span>
 
-                                    @if ($assignment)
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $assignment->is_pic ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-800 border' }} border">
-                                            {{ $assignment->is_pic ? __('profile.you_pic') : __('profile.not_pic') }}
-                                        </span>
-                                    @endif
-                                @else
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border-red-200 border">
-                                        Tanggal Keluar: {{ $checkOutLabel }}
-                                    </span>
+                                @if ($assignment)
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ $assignment->is_pic ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border dark:border-gray-600' }} border">
+                                    {{ $assignment->is_pic ? __('profile.you_pic') : __('profile.not_pic') }}
+                                </span>
                                 @endif
                             </div>
                         </div>
@@ -124,9 +115,9 @@
             </div>
 
             {{-- DATA PENGHUNI (LIST) --}}
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
-                    <div class="text-base font-semibold text-gray-900">{{ __('profile.resident_data') }}</div>
+                    <div class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ __('profile.resident_data') }}</div>
 
                     <dl class="mt-4 {{ $itemsClass }}">
                         <div class="{{ $rowClass }}">
@@ -154,7 +145,7 @@
                             <dd class="{{ $valueClass }}">
                                 {{ $profile?->citizenship_status ?? '-' }}
                                 @if (($profile?->citizenship_status ?? null) === 'WNA')
-                                <span class="text-gray-600">({{ $profile?->country?->name ?? '-' }})</span>
+                                <span class="text-gray-600 dark:text-gray-400">({{ $profile?->country?->name ?? '-' }})</span>
                                 @endif
                             </dd>
                         </div>
@@ -200,9 +191,9 @@
             </div>
 
             {{-- INFO ASRAMA (LIST) --}}
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
-                    <div class="text-base font-semibold text-gray-900">{{ __('profile.dorm_info') }}</div>
+                    <div class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ __('profile.dorm_info') }}</div>
 
                     <dl class="mt-4 {{ $itemsClass }}">
                         <div class="{{ $rowClass }}">
@@ -233,7 +224,7 @@
                                 @elseif ($picName === '-')
                                 {{ __('profile.pic_not_assigned') }}
                                 @else
-                                {{ $picName }} @if($isYouPic) <span class="text-green-600 font-semibold">{{ __('profile.you') }}</span> @endif
+                                {{ $picName }} @if($isYouPic) <span class="text-green-600 dark:text-green-400 font-semibold">{{ __('profile.you') }}</span> @endif
                                 @endif
                             </dd>
                         </div>
@@ -247,21 +238,20 @@
             </div>
 
             {{-- Ubah Profile --}}
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
-                    <div class="text-base font-semibold text-gray-900">{{ __('profile.update_profile') }}</div>
+                    <div class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ __('profile.update_profile') }}</div>
                     <div class="mt-4">
                         @include('profile.partials.update-profile-information-form')
                     </div>
                 </div>
 
-                {{-- Ubah Password - Hanya untuk user aktif --}}
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6">
-                        <div class="text-base font-semibold text-gray-900">Ubah Password</div>
-                        <div class="mt-4">
-                            @include('profile.partials.update-password-form')
-                        </div>
+            {{-- Ubah Password --}}
+            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6">
+                    <div class="text-base font-semibold text-gray-900 dark:text-gray-100">Ubah Password</div>
+                    <div class="mt-4">
+                        @include('profile.partials.update-password-form')
                     </div>
                 </div>
             @endif
