@@ -101,10 +101,7 @@
                         <input name="national_id" inputmode="numeric" pattern="[0-9]*" value="{{ old('national_id') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium">NIM/NIS <span class="text-red-500">*</span></label>
-                        <input name="student_id" type="text" value="{{ old('student_id') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
-                    </div>
+
 
                     <div>
                         <label class="block text-sm font-medium">Tempat Lahir <span class="text-red-500">*</span></label>
@@ -115,6 +112,11 @@
                         <label class="block text-sm font-medium">Tanggal Lahir <span class="text-red-500">*</span></label>
                         <input name="birth_date" type="date" value="{{ old('birth_date') }}" max="{{ now()->subYears(6)->format('Y-m-d') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
                         <p class="mt-1 text-xs text-gray-500">Minimal usia 6 tahun</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium">NIM/NIS <span class="text-red-500">*</span></label>
+                        <input name="student_id" type="text" value="{{ old('student_id') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
                     </div>
 
                     <div>

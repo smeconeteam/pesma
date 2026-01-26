@@ -164,9 +164,7 @@ class RegistrationResource extends Resource
                             ->extraInputAttributes(['inputmode' => 'numeric', 'pattern' => '[0-9]*'])
                             ->required(),
 
-                        Forms\Components\TextInput::make('student_id')
-                            ->label('NIM/NIS')
-                            ->required(),
+
 
                         Forms\Components\TextInput::make('birth_place')
                             ->label('Tempat Lahir')
@@ -183,6 +181,10 @@ class RegistrationResource extends Resource
                             ->extraAttributes([
                                 'x-data' => '{ init() { this.$nextTick(() => { if (this.$el.querySelector("input[type=text]")) { this.$el.querySelector("input[type=text]").dispatchEvent(new Event("click")); } }) } }'
                             ])
+                            ->required(),
+
+                        Forms\Components\TextInput::make('student_id')
+                            ->label('NIM/NIS')
                             ->required(),
 
                         Forms\Components\TextInput::make('university_school')
@@ -260,7 +262,7 @@ class RegistrationResource extends Resource
                     ]),
 
                 Forms\Components\Section::make('Informasi Pendaftaran')
-                    ->description('Tanggal pendaftaran dan preferensi kamar')
+                    ->description('Tanggal pendaftaran dan pilihan kamar')
                     ->columns(2)
                     ->schema([
                         Forms\Components\DatePicker::make('created_at')
