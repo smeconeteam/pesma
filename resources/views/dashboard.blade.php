@@ -96,8 +96,9 @@
                         </div>
                         
                         @if(\Illuminate\Support\Facades\Route::has('resident.bills'))
-                        <a href="{{ route('resident.bills') }}" class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm">
-                            {{ __('bills.view_all') }} >
+                        <a href="{{ route('resident.bills') }}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm">
+                            {{ __('bills.view_all') }}
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                         </a>
                         @endif
                     </div>
@@ -161,7 +162,100 @@
                 </div>
             </div>
 
-            {{-- CARD 3: PIC KAMAR --}}
+            {{-- CARD 3: RIWAYAT PEMBAYARAN TERBARU --}}
+            <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-lg sm:rounded-2xl rounded-xl border border-gray-100 dark:border-gray-800 transition-colors duration-200">
+                <div class="p-5 sm:p-7">
+                    {{-- Header Section --}}
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-purple-600 rounded-lg shadow-md">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ __('payment-history.title') }}</h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('payment-history.subtitle') }}</p>
+                            </div>
+                        </div>
+                        
+                        @if(\Illuminate\Support\Facades\Route::has('resident.payment-history'))
+                        <a href="{{ route('resident.payment-history') }}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm">
+                            {{ __('bills.view_all') }}
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </a>
+                        @endif
+                    </div>
+
+                    {{-- Mini Statistics --}}
+                    <div class="grid grid-cols-3 gap-3 mb-6">
+                        <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+                            <div class="text-xs text-blue-600 dark:text-blue-400 font-medium">Total</div>
+                            <div class="text-lg font-bold text-blue-900 dark:text-blue-100 mt-1">{{ $totalPayments }}</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
+                            <div class="text-xs text-green-600 dark:text-green-400 font-medium">{{ __('payment-history.verified_payments') }}</div>
+                            <div class="text-lg font-bold text-green-900 dark:text-green-100 mt-1">{{ $verifiedPayments }}</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 rounded-lg p-3 border border-amber-200 dark:border-amber-800">
+                            <div class="text-xs text-amber-600 dark:text-amber-400 font-medium">{{ __('payment-history.pending_payments') }}</div>
+                            <div class="text-lg font-bold text-amber-900 dark:text-amber-100 mt-1">{{ $pendingPayments }}</div>
+                        </div>
+                    </div>
+
+                    {{-- List Pembayaran --}}
+                    <div class="space-y-4">
+                        @forelse($recentPayments as $payment)
+                        <div class="group border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-200 bg-gray-50 dark:bg-gray-800/50">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                {{-- Kiri: Detail --}}
+                                <div class="space-y-1">
+                                    <div class="flex flex-wrap items-center gap-2 mb-2">
+                                        <h4 class="font-bold text-gray-900 dark:text-gray-100 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                                            {{ $payment->bill->billingType->name ?? 'Pembayaran' }}
+                                        </h4>
+                                        
+                                        @if($payment->status == 'verified')
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">{{ __('payment-history.status_verified') }}</span>
+                                        @elseif($payment->status == 'pending')
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800">{{ __('payment-history.status_pending') }}</span>
+                                        @else
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800">{{ __('payment-history.status_rejected') }}</span>
+                                        @endif
+                                    </div>
+
+                                    <div class="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                                        <p>{{ __('payment-history.payment_number') }}: <span class="font-mono text-gray-700 dark:text-gray-300">{{ $payment->payment_number ?? '-' }}</span></p>
+                                        <p>{{ __('payment-history.payment_date') }}: {{ $payment->payment_date->format('d M Y') }}</p>
+                                    </div>
+                                </div>
+
+                                {{-- Kanan: Harga --}}
+                                <div class="flex flex-row sm:flex-col justify-between items-center sm:items-end sm:text-right pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-200 dark:border-gray-700">
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                        {{ __('payment-history.amount') }}: <span class="font-bold text-gray-900 dark:text-gray-100">Rp {{ number_format($payment->amount, 0, ',', '.') }}</span>
+                                    </div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        {{ $payment->paymentMethod->name ?? '-' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @empty
+                        {{-- TAMPILAN JIKA KOSONG (EMPTY STATE) --}}
+                        <div class="text-center py-6">
+                            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 mb-3">
+                                <svg class="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ __('payment-history.no_payments_title') }}</h3>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('payment-history.no_payments_message') }}</p>
+                        </div>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+
+            {{-- CARD 4: PIC KAMAR --}}
             @if (!empty($picInfo))
                 <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-lg sm:rounded-2xl rounded-xl border border-gray-100 dark:border-gray-800 transition-colors duration-200">
                     <div class="p-5 sm:p-7">
@@ -225,7 +319,7 @@
                 </div>
             @endif
 
-            {{-- CARD 4: KONTAK --}}
+            {{-- CARD 5: KONTAK --}}
             @if (!empty($contacts) && count($contacts) > 0)
                 <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-lg sm:rounded-2xl rounded-xl border border-gray-100 dark:border-gray-800 transition-colors duration-200">
                     <div class="p-5 sm:p-7">
