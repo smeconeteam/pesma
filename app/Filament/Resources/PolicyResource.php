@@ -17,10 +17,10 @@ class PolicyResource extends Resource
 {
     protected static ?string $model = Policy::class;
 
-    protected static ?string $slug = 'kebijakan-dan-ketentuan';
+    protected static ?string $slug = 'ketentuan';
     protected static ?string $navigationGroup = 'Pengaturan';
-    protected static ?string $navigationLabel = 'Kebijakan & Ketentuan';
-    protected static ?string $pluralLabel = 'Kebijakan & Ketentuan';
+    protected static ?string $navigationLabel = 'Ketentuan';
+    protected static ?string $pluralLabel = 'Ketentuan';
     protected static ?int $navigationSort = 10;
 
     public static function canAccess(): bool
@@ -60,7 +60,7 @@ class PolicyResource extends Resource
                 ->columnSpanFull(),
 
             RichEditor::make('content')
-                ->label('Isi Kebijakan & Ketentuan')
+                ->label('Isi Ketentuan')
                 ->required()
                 ->columnSpanFull()
                  ->toolbarButtons([

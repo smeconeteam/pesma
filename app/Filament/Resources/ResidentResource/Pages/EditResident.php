@@ -160,8 +160,7 @@ class EditResident extends EditRecord
                         ->helperText('Hanya angka.')
                         ->extraInputAttributes(['inputmode' => 'numeric', 'pattern' => '[0-9]*']),
 
-                    Forms\Components\TextInput::make('residentProfile.student_id')
-                        ->label('NIM'),
+
 
                     Forms\Components\Select::make('residentProfile.gender')
                         ->label('Jenis Kelamin')
@@ -178,6 +177,9 @@ class EditResident extends EditRecord
                         ->native(false)
                         ->displayFormat('d F Y') // Format tampilan: 1 Januari 2004
                         ->format('Y-m-d'), // Format penyimpanan ke database
+
+                    Forms\Components\TextInput::make('residentProfile.student_id')
+                        ->label('NIM'),
 
                     Forms\Components\TextInput::make('residentProfile.university_school')
                         ->label('Universitas/Sekolah')
