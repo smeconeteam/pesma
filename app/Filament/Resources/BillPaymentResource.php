@@ -149,6 +149,14 @@ class BillPaymentResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
 
+                Tables\Actions\Action::make('receipt')
+                    ->label('Cetak Bukti')
+                    ->icon('heroicon-o-printer')
+                    ->color('info')
+                    ->visible(fn(BillPayment $record) => $record->status === 'verified')
+                    ->url(fn(BillPayment $record) => route('receipt.show', $record))
+                    ->openUrlInNewTab(),
+
                 Tables\Actions\Action::make('verify')
                     ->label('Verifikasi')
                     ->icon('heroicon-o-check-circle')
