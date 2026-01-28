@@ -30,8 +30,8 @@ class ReceiptController extends Controller
         // Get room members if this is a room-based payment
         $roomMembers = [];
         if ($payment->bill->room_id) {
-            $roomMembers = \App\Models\Resident::where('room_id', $payment->bill->room_id)
-                ->where('status', 'active')
+            $roomMembers = \App\Models\RoomResident::where('room_id', $payment->bill->room_id)
+                ->whereNull('check_out_date')
                 ->with('user')
                 ->get();
         }
