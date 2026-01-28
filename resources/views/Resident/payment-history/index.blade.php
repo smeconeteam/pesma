@@ -254,7 +254,7 @@
                             <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('payment-history.bill_number') }}: <span class="font-semibold text-gray-900 dark:text-gray-200">${payment.bill.bill_number}</span></p>
                         </div>
                         <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold ${statusColor}">
-                            ${payment.status_label}
+                            ${payment.status === 'verified' ? 'Terverifikasi' : (payment.status === 'pending' ? 'Menunggu Verifikasi' : 'Ditolak')}
                         </span>
                     </div>
                 </div>
@@ -272,11 +272,17 @@
                         </div>
                         <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
                             <span class="text-gray-700 dark:text-gray-300">{{ __('payment-history.payment_method') }}</span>
-                            <span class="font-bold text-gray-900 dark:text-gray-100">${payment.payment_method?.name || '-'}</span>
+                            <span class="font-bold text-gray-900 dark:text-gray-100">${
+                                payment.payment_method ? 
+                                    (payment.payment_method.kind === 'qris' ? 'QRIS' : 
+                                    (payment.payment_method.kind === 'transfer' ? 'Transfer Bank' : 
+                                    (payment.payment_method.kind === 'cash' ? 'Tunai' : payment.payment_method.kind))) 
+                                : '-'
+                            }</span>
                         </div>
                         <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
                             <span class="text-gray-700 dark:text-gray-300">{{ __('payment-history.payment_type') }}</span>
-                            <span class="font-bold text-gray-900 dark:text-gray-100">${payment.payment_type_label}</span>
+                            <span class="font-bold text-gray-900 dark:text-gray-100">${payment.is_pic_payment ? 'PIC (Gabungan)' : 'Pribadi'}</span>
                         </div>
                         ${payment.verified_at ? `
                         <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
