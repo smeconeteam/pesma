@@ -254,7 +254,7 @@
                             <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('payment-history.bill_number') }}: <span class="font-semibold text-gray-900 dark:text-gray-200">${payment.bill.bill_number}</span></p>
                         </div>
                         <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold ${statusColor}">
-                            ${payment.status_label}
+                            ${payment.status === 'verified' ? 'Terverifikasi' : (payment.status === 'pending' ? 'Menunggu Verifikasi' : 'Ditolak')}
                         </span>
                     </div>
                 </div>
@@ -272,11 +272,17 @@
                         </div>
                         <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
                             <span class="text-gray-700 dark:text-gray-300">{{ __('payment-history.payment_method') }}</span>
-                            <span class="font-bold text-gray-900 dark:text-gray-100">${payment.payment_method?.name || '-'}</span>
+                            <span class="font-bold text-gray-900 dark:text-gray-100">${
+                                payment.payment_method ? 
+                                    (payment.payment_method.kind === 'qris' ? 'QRIS' : 
+                                    (payment.payment_method.kind === 'transfer' ? 'Transfer Bank' : 
+                                    (payment.payment_method.kind === 'cash' ? 'Tunai' : payment.payment_method.kind))) 
+                                : '-'
+                            }</span>
                         </div>
                         <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
                             <span class="text-gray-700 dark:text-gray-300">{{ __('payment-history.payment_type') }}</span>
-                            <span class="font-bold text-gray-900 dark:text-gray-100">${payment.payment_type_label}</span>
+                            <span class="font-bold text-gray-900 dark:text-gray-100">${payment.is_pic_payment ? 'PIC (Gabungan)' : 'Pribadi'}</span>
                         </div>
                         ${payment.verified_at ? `
                         <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
@@ -324,7 +330,15 @@
                 </div>
                 ` : ''}
                 
-                <div class="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div class="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700 gap-3">
+                    ${payment.status === 'verified' ? `
+                    <a href="{{ url('/receipt') }}/${payment.id}" target="_blank" class="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg font-semibold transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2-4h6a2 2 0 002-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 002 2zm-6 9h6m-6 0a2 2 0 002 2h2a2 2 0 002-2m-6 0h6"></path>
+                        </svg>
+                        Download Nota
+                    </a>
+                    ` : ''}
                     <button onclick="closePaymentModal()" class="px-6 py-2.5 bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors">
                         {{ __('payment-history.close') }}
                     </button>
