@@ -411,7 +411,37 @@ class RoomResource extends Resource
                                             ->label('Icon')
                                             ->options(static::getIconOptions())
                                             ->allowHtml()
-                                            ->searchable(),
+                                            ->searchable()
+                                            ->getSearchResultsUsing(function (string $search) {
+                                                if (empty($search)) {
+                                                    return static::getIconOptions();
+                                                }
+                                                
+                                                $icons = static::getAvailableIcons();
+                                                
+                                                return collect($icons)
+                                                    ->filter(fn ($label, $icon) => 
+                                                        stripos($label, $search) !== false || 
+                                                        stripos($icon, $search) !== false
+                                                    )
+                                                    ->mapWithKeys(fn ($label, $icon) => [
+                                                        $icon => '<div class="flex items-center gap-2">' .
+                                                            svg($icon, 'w-5 h-5')->toHtml() .
+                                                            '<span>' . $label . '</span>' .
+                                                            '</div>'
+                                                    ])
+                                                    ->toArray();
+                                            })
+                                            ->getOptionLabelUsing(function ($value) {
+                                                if (!$value) return null;
+                                                $label = static::getAvailableIcons()[$value] ?? $value;
+                                                return new \Illuminate\Support\HtmlString(
+                                                    '<div class="flex items-center gap-2">' .
+                                                    svg($value, 'w-5 h-5')->toHtml() .
+                                                    '<span>' . $label . '</span>' .
+                                                    '</div>'
+                                                );
+                                            }),
                                     ]),
                                     
                                 Select::make('facility_parkir')
@@ -438,7 +468,37 @@ class RoomResource extends Resource
                                             ->label('Icon')
                                             ->options(static::getIconOptions())
                                             ->allowHtml()
-                                            ->searchable(),
+                                            ->searchable()
+                                            ->getSearchResultsUsing(function (string $search) {
+                                                if (empty($search)) {
+                                                    return static::getIconOptions();
+                                                }
+                                                
+                                                $icons = static::getAvailableIcons();
+                                                
+                                                return collect($icons)
+                                                    ->filter(fn ($label, $icon) => 
+                                                        stripos($label, $search) !== false || 
+                                                        stripos($icon, $search) !== false
+                                                    )
+                                                    ->mapWithKeys(fn ($label, $icon) => [
+                                                        $icon => '<div class="flex items-center gap-2">' .
+                                                            svg($icon, 'w-5 h-5')->toHtml() .
+                                                            '<span>' . $label . '</span>' .
+                                                            '</div>'
+                                                    ])
+                                                    ->toArray();
+                                            })
+                                            ->getOptionLabelUsing(function ($value) {
+                                                if (!$value) return null;
+                                                $label = static::getAvailableIcons()[$value] ?? $value;
+                                                return new \Illuminate\Support\HtmlString(
+                                                    '<div class="flex items-center gap-2">' .
+                                                    svg($value, 'w-5 h-5')->toHtml() .
+                                                    '<span>' . $label . '</span>' .
+                                                    '</div>'
+                                                );
+                                            }),
                                     ])
                                     ->createOptionUsing(fn ($data) => Facility::create($data)->id),
 
@@ -466,7 +526,37 @@ class RoomResource extends Resource
                                             ->label('Icon')
                                             ->options(static::getIconOptions())
                                             ->allowHtml()
-                                            ->searchable(),
+                                            ->searchable()
+                                            ->getSearchResultsUsing(function (string $search) {
+                                                if (empty($search)) {
+                                                    return static::getIconOptions();
+                                                }
+                                                
+                                                $icons = static::getAvailableIcons();
+                                                
+                                                return collect($icons)
+                                                    ->filter(fn ($label, $icon) => 
+                                                        stripos($label, $search) !== false || 
+                                                        stripos($icon, $search) !== false
+                                                    )
+                                                    ->mapWithKeys(fn ($label, $icon) => [
+                                                        $icon => '<div class="flex items-center gap-2">' .
+                                                            svg($icon, 'w-5 h-5')->toHtml() .
+                                                            '<span>' . $label . '</span>' .
+                                                            '</div>'
+                                                    ])
+                                                    ->toArray();
+                                            })
+                                            ->getOptionLabelUsing(function ($value) {
+                                                if (!$value) return null;
+                                                $label = static::getAvailableIcons()[$value] ?? $value;
+                                                return new \Illuminate\Support\HtmlString(
+                                                    '<div class="flex items-center gap-2">' .
+                                                    svg($value, 'w-5 h-5')->toHtml() .
+                                                    '<span>' . $label . '</span>' .
+                                                    '</div>'
+                                                );
+                                            }),
                                     ])
                                     ->createOptionUsing(fn ($data) => Facility::create($data)->id),
 
@@ -494,7 +584,37 @@ class RoomResource extends Resource
                                             ->label('Icon')
                                             ->options(static::getIconOptions())
                                             ->allowHtml()
-                                            ->searchable(),
+                                            ->searchable()
+                                            ->getSearchResultsUsing(function (string $search) {
+                                                if (empty($search)) {
+                                                    return static::getIconOptions();
+                                                }
+                                                
+                                                $icons = static::getAvailableIcons();
+                                                
+                                                return collect($icons)
+                                                    ->filter(fn ($label, $icon) => 
+                                                        stripos($label, $search) !== false || 
+                                                        stripos($icon, $search) !== false
+                                                    )
+                                                    ->mapWithKeys(fn ($label, $icon) => [
+                                                        $icon => '<div class="flex items-center gap-2">' .
+                                                            svg($icon, 'w-5 h-5')->toHtml() .
+                                                            '<span>' . $label . '</span>' .
+                                                            '</div>'
+                                                    ])
+                                                    ->toArray();
+                                            })
+                                            ->getOptionLabelUsing(function ($value) {
+                                                if (!$value) return null;
+                                                $label = static::getAvailableIcons()[$value] ?? $value;
+                                                return new \Illuminate\Support\HtmlString(
+                                                    '<div class="flex items-center gap-2">' .
+                                                    svg($value, 'w-5 h-5')->toHtml() .
+                                                    '<span>' . $label . '</span>' .
+                                                    '</div>'
+                                                );
+                                            }),
                                     ])
                                     ->createOptionUsing(fn ($data) => Facility::create($data)->id),
 
@@ -522,7 +642,37 @@ class RoomResource extends Resource
                                             ->label('Icon')
                                             ->options(static::getIconOptions())
                                             ->allowHtml()
-                                            ->searchable(),
+                                            ->searchable()
+                                            ->getSearchResultsUsing(function (string $search) {
+                                                if (empty($search)) {
+                                                    return static::getIconOptions();
+                                                }
+                                                
+                                                $icons = static::getAvailableIcons();
+                                                
+                                                return collect($icons)
+                                                    ->filter(fn ($label, $icon) => 
+                                                        stripos($label, $search) !== false || 
+                                                        stripos($icon, $search) !== false
+                                                    )
+                                                    ->mapWithKeys(fn ($label, $icon) => [
+                                                        $icon => '<div class="flex items-center gap-2">' .
+                                                            svg($icon, 'w-5 h-5')->toHtml() .
+                                                            '<span>' . $label . '</span>' .
+                                                            '</div>'
+                                                    ])
+                                                    ->toArray();
+                                            })
+                                            ->getOptionLabelUsing(function ($value) {
+                                                if (!$value) return null;
+                                                $label = static::getAvailableIcons()[$value] ?? $value;
+                                                return new \Illuminate\Support\HtmlString(
+                                                    '<div class="flex items-center gap-2">' .
+                                                    svg($value, 'w-5 h-5')->toHtml() .
+                                                    '<span>' . $label . '</span>' .
+                                                    '</div>'
+                                                );
+                                            }),
                                     ])
                                     ->createOptionUsing(fn ($data) => Facility::create($data)->id),
                             ]),
@@ -1327,70 +1477,102 @@ class RoomResource extends Resource
         return Str::before($code, '__trashed__');
     }
 
+    public static function getAvailableIcons(): array
+    {
+        return [
+            'heroicon-o-home' => 'Rumah',
+            'heroicon-o-building-office' => 'Gedung Kantor',
+            'heroicon-o-building-library' => 'Perpustakaan',
+            'heroicon-o-academic-cap' => 'Topi Akademik',
+            'heroicon-o-users' => 'Pengguna',
+            'heroicon-o-user-group' => 'Grup Pengguna',
+            'heroicon-o-wifi' => 'WiFi',
+            'heroicon-o-tv' => 'TV',
+            'heroicon-o-computer-desktop' => 'Komputer Desktop',
+            'heroicon-o-device-phone-mobile' => 'HP',
+            'heroicon-o-device-tablet' => 'Tablet',
+            'heroicon-o-printer' => 'Printer',
+            'heroicon-o-light-bulb' => 'Lampu',
+            'heroicon-o-fire' => 'Api',
+            'heroicon-o-bolt' => 'Petir',
+            'heroicon-o-sun' => 'Matahari',
+            'heroicon-o-moon' => 'Bulan',
+            'heroicon-o-sparkles' => 'Kilauan',
+            'heroicon-o-star' => 'Bintang',
+            'heroicon-o-heart' => 'Hati',
+            'heroicon-o-shield-check' => 'Perisai Centang',
+            'heroicon-o-lock-closed' => 'Kunci Tertutup',
+            'heroicon-o-lock-open' => 'Kunci Terbuka',
+            'heroicon-o-key' => 'Kunci',
+            'heroicon-o-bell' => 'Lonceng',
+            'heroicon-o-book-open' => 'Buku Terbuka',
+            'heroicon-o-newspaper' => 'Koran',
+            'heroicon-o-document' => 'Dokumen',
+            'heroicon-o-folder' => 'Folder',
+            'heroicon-o-clipboard' => 'Clipboard',
+            'heroicon-o-calendar' => 'Kalender',
+            'heroicon-o-clock' => 'Jam',
+            'heroicon-o-beaker' => 'Gelas Kimia',
+            'heroicon-o-wrench-screwdriver' => 'Kunci dan Obeng',
+            'heroicon-o-cog-6-tooth' => 'Pengaturan',
+            'heroicon-o-shopping-bag' => 'Tas Belanja',
+            'heroicon-o-shopping-cart' => 'Keranjang Belanja',
+            'heroicon-o-gift' => 'Hadiah',
+            'heroicon-o-truck' => 'Truk',
+            'heroicon-o-map' => 'Peta',
+            'heroicon-o-map-pin' => 'Pin Peta',
+            'heroicon-o-globe-alt' => 'Bola Dunia',
+            'heroicon-o-flag' => 'Bendera',
+            'heroicon-o-camera' => 'Kamera',
+            'heroicon-o-video-camera' => 'Video Kamera',
+            'heroicon-o-musical-note' => 'Not Musik',
+            'heroicon-o-microphone' => 'Mikrofon',
+            'heroicon-o-phone' => 'Telepon',
+            'heroicon-o-envelope' => 'Amplop',
+            'heroicon-o-chat-bubble-left-right' => 'Chat',
+            'heroicon-o-inbox' => 'Inbox',
+            'heroicon-o-archive-box' => 'Kotak Arsip',
+            'heroicon-o-trash' => 'Tempat Sampah',
+            'heroicon-o-credit-card' => 'Kartu Kredit',
+            'heroicon-o-banknotes' => 'Uang Kertas',
+            'heroicon-o-cloud' => 'Awan',
+            'heroicon-o-arrow-path' => 'Panah Melingkar',
+            'heroicon-o-arrow-up-tray' => 'Unggah',
+            'heroicon-o-arrow-down-tray' => 'Unduh',
+            'heroicon-o-magnifying-glass' => 'Kaca Pembesar',
+            'heroicon-o-funnel' => 'Filter',
+            'heroicon-o-bars-3' => 'Menu',
+            'heroicon-o-squares-2x2' => 'Kotak',
+            'heroicon-o-squares-plus' => 'Tambah Kotak',
+            'heroicon-o-square-3-stack-3d' => 'Tumpukan 3D',
+            'heroicon-o-cube' => 'Kubus',
+            'heroicon-o-rectangle-stack' => 'Tumpukan',
+            'heroicon-o-window' => 'Jendela',
+            'heroicon-o-check' => 'Centang',
+            'heroicon-o-check-circle' => 'Centang Lingkaran',
+            'heroicon-o-x-mark' => 'Silang',
+            'heroicon-o-x-circle' => 'Silang Lingkaran',
+            'heroicon-o-exclamation-circle' => 'Seru Lingkaran',
+            'heroicon-o-exclamation-triangle' => 'Seru Segitiga',
+            'heroicon-o-information-circle' => 'Info Lingkaran',
+            'heroicon-o-question-mark-circle' => 'Tanya Lingkaran',
+            'heroicon-o-plus' => 'Plus',
+            'heroicon-o-minus' => 'Minus',
+            'heroicon-o-ellipsis-horizontal' => 'Titik Tiga',
+            'heroicon-o-no-symbol' => 'Dilarang',
+            'heroicon-o-hand-raised' => 'Tangan Terangkat',
+            'heroicon-o-shield-exclamation' => 'Peringatan',
+        ];
+    }
+
     public static function getIconOptions(): array
     {
-        $icons = [
-            'wifi' => 'WiFi / Internet',
-            'tv' => 'TV / Televisi',
-            'truck' => 'Parkir Motor / Mobil',
-            'inbox-stack' => 'Kasur / Tempat Tidur',
-            'archive-box' => 'Lemari Pakaian',
-            'sparkles' => 'Kamar Mandi Dalam',
-            'trash' => 'Tempat Sampah',
-            'bolt' => 'Listrik / Token',
-            'light-bulb' => 'Lampu / Penerangan',
-            'key' => 'Kunci / Akses 24 Jam',
-            'lock-closed' => 'Terkunci / Keamanan CCTV',
-            'shield-check' => 'Keamanan / Satpam',
-            'user-group' => 'Ruang Tamu Bersama',
-            'home' => 'Rumah / Fasilitas Utama',
-            'home-modern' => 'Bangunan Baru / Modern',
-            'building-office' => 'Kantor Pengelola',
-            'book-open' => 'Meja Belajar / Ruang Baca',
-            'academic-cap' => 'Lingkungan Akademik',
-            'computer-desktop' => 'Meja Kerja / Komputer',
-            'device-phone-mobile' => 'Telepon / Interkom',
-            'clock' => 'Jam Malam / Waktu Bertamu',
-            'calendar' => 'Periode Sewa Fleksibel',
-            'map-pin' => 'Lokasi Strategis',
-            'no-symbol' => 'Dilarang Merokok / Hewan',
-            'check-circle' => 'Fasilitas Tersedia',
-            'exclamation-circle' => 'Peringatan / Aturan Khusus',
-            'information-circle' => 'Pusat Informasi',
-            'fire' => 'Dapur / Kompor Bersama',
-            'beaker' => 'Laundry / Cucian', // Kreatif: beaker -> kimia/sabun -> laundry
-            'briefcase' => 'Cocok untuk Pekerja',
-            'credit-card' => 'Bisa Bayar Non-Tunai',
-            'currency-dollar' => 'Harga Termasuk Listrik/Air',
-            'shopping-cart' => 'Dekat Minimarket',
-            'shopping-bag' => 'Dekat Pusat Belanja',
-            'ticket' => 'Tiket / Voucher Promo',
-            'printer' => 'Fasilitas Print / Fotokopi',
-            'camera' => 'Spot Foto / Estetik',
-            'video-camera' => 'Pengawasan CCTV',
-            'microphone' => 'Ruang Karaoke / Hiburan',
-            'speaker-wave' => 'Sistem Audio',
-            'musical-note' => 'Ruang Musik',
-            'sun' => 'Pencahayaan Baik / Jendela',
-            'moon' => 'Suasana Tenang / Istirahat',
-            'star' => 'Fasilitas Unggulan',
-            'heart' => 'Fasilitas Favorit',
-            'face-smile' => 'Pelayanan Ramah',
-            'puzzle-piece' => 'Area Bermain / Santai',
-            'wrench' => 'Layanan Perbaikan',
-            'wrench-screwdriver' => 'Teknisi Tersedia',
-            'server' => 'Internet Kecepatan Tinggi',
-        ];
-
-        return collect($icons)
+        return collect(static::getAvailableIcons())
             ->mapWithKeys(function ($label, $icon) {
-                $iconName = "heroicon-o-{$icon}";
-                // Render icon + text
-                $html = '<div class="flex items-center gap-2">' .
-                        svg($iconName, 'w-5 h-5')->toHtml() .
+                return [$icon => '<div class="flex items-center gap-2">' .
+                        svg($icon, 'w-5 h-5')->toHtml() .
                         '<span>' . $label . '</span>' .
-                        '</div>';
-                return [$iconName => $html];
+                        '</div>'];
             })
             ->toArray();
     }
