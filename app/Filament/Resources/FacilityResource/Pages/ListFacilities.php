@@ -50,4 +50,9 @@ class ListFacilities extends ListRecords
 
         return $tabs;
     }
+
+    public function updatedActiveTab(): void
+    {
+        $this->deselectAllTableRecords();
+    }
 }
