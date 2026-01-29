@@ -140,34 +140,6 @@ class EditRoom extends EditRecord
         return $data;
     }
 
-    protected function mutateFormDataBeforeFill(array $data): array
-    {
-        // Load facilities untuk setiap tipe
-        $data['facility_parkir'] = $this->record->facilities()->where('type', 'parkir')->pluck('facilities.id')->toArray();
-        $data['facility_umum'] = $this->record->facilities()->where('type', 'umum')->pluck('facilities.id')->toArray();
-        $data['facility_kamar_mandi'] = $this->record->facilities()->where('type', 'kamar_mandi')->pluck('facilities.id')->toArray();
-        $data['facility_kamar'] = $this->record->facilities()->where('type', 'kamar')->pluck('facilities.id')->toArray();
-        
-        return $data;
-    }
-
-    protected function handleRecordUpdate(\Illuminate\Database\Eloquent\Model $record, array $data): \Illuminate\Database\Eloquent\Model
-    {
-        $record = parent::handleRecordUpdate($record, $data);
-        
-        // Sync facilities dari semua tipe
-        $allFacilities = array_merge(
-            $data['facility_parkir'] ?? [],
-            $data['facility_umum'] ?? [],
-            $data['facility_kamar_mandi'] ?? [],
-            $data['facility_kamar'] ?? []
-        );
-        
-        $record->facilities()->sync($allFacilities);
-        
-        return $record;
-    }
-
     protected function getHeaderActions(): array
     {
         return [
