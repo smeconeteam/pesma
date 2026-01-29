@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
@@ -21,12 +22,19 @@ class Room extends Model
         'capacity',
         'monthly_rate',
         'is_active',
+        'thumbnail',
+        'images',
+        'width',
+        'length',
     ];
 
     protected $casts = [
         'capacity' => 'integer',
         'monthly_rate' => 'integer',
         'is_active' => 'boolean',
+        'images' => 'array',
+        'width' => 'decimal:2',
+        'length' => 'decimal:2',
     ];
 
     // Relations
@@ -70,6 +78,16 @@ class Room extends Model
     {
         return $this->bills()
             ->whereIn('status', ['issued', 'partial', 'overdue']);
+    }
+
+    public function facilities(): BelongsToMany
+    {
+        return $this->belongsToMany(Facility::class);
+    }
+
+    public function roomRules(): BelongsToMany
+    {
+        return $this->belongsToMany(RoomRule::class, 'room_room_rule');
     }
 
     // Helper methods
