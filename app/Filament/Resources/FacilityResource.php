@@ -101,6 +101,7 @@ class FacilityResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->recordAction(fn ($record, $livewire) => ($livewire->activeTab === 'terhapus' || $record->trashed()) ? 'view' : 'edit')
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nama Fasilitas')
@@ -167,45 +168,55 @@ class FacilityResource extends Resource
                     ->label('Lihat')
                     ->modalHeading(fn ($record) => 'Detail: ' . $record->name)
                     ->infolist([
-                        TextEntry::make('name')->label('Nama Fasilitas'),
-                        TextEntry::make('type')
-                            ->label('Tipe')
-                            ->badge()
-                            ->color(fn (string $state): string => match ($state) {
-                                'parkir' => 'info',
-                                'umum' => 'success',
-                                'kamar_mandi' => 'warning',
-                                'kamar' => 'primary',
-                                default => 'gray',
-                            })
-                            ->formatStateUsing(fn (string $state): string => match ($state) {
-                                'parkir' => 'Parkir',
-                                'umum' => 'Umum',
-                                'kamar_mandi' => 'Kamar Mandi',
-                                'kamar' => 'Kamar',
-                                default => $state,
-                            }),
-                        TextEntry::make('icon')
-                            ->label('Icon')
-                            ->formatStateUsing(function ($state) {
-                                $labels = static::getAvailableIcons();
-                                $label = $labels[$state] ?? $state;
-                                return new \Illuminate\Support\HtmlString(
-                                    '<div class="flex items-center gap-2">' .
-                                    ($state ? svg($state, 'w-5 h-5')->toHtml() : '') .
-                                    '<span>' . $label . '</span></div>'
-                                );
-                            }),
-                        IconEntry::make('is_active')
-                            ->label('Status Aktif')
-                            ->boolean(),
-                        TextEntry::make('created_at')
-                            ->label('Dibuat Pada')
-                            ->dateTime('d M Y H:i'),
-                        TextEntry::make('deleted_at')
-                            ->label('Dihapus Pada')
-                            ->dateTime('d M Y H:i')
-                            ->placeholder('-'),
+                        \Filament\Infolists\Components\Section::make('Detail Fasilitas')
+                            ->schema([
+                                \Filament\Infolists\Components\Grid::make(2)
+                                    ->schema([
+                                        TextEntry::make('name')
+                                            ->label('Nama Fasilitas'),
+                                        TextEntry::make('slug')
+                                            ->label('Slug')
+                                            ->copyable(),
+                                        TextEntry::make('type')
+                                            ->label('Tipe')
+                                            ->badge()
+                                            ->color(fn (string $state): string => match ($state) {
+                                                'parkir' => 'info',
+                                                'umum' => 'success',
+                                                'kamar_mandi' => 'warning',
+                                                'kamar' => 'primary',
+                                                default => 'gray',
+                                            })
+                                            ->formatStateUsing(fn (string $state): string => match ($state) {
+                                                'parkir' => 'Parkir',
+                                                'umum' => 'Umum',
+                                                'kamar_mandi' => 'Kamar Mandi',
+                                                'kamar' => 'Kamar',
+                                                default => $state,
+                                            }),
+                                        TextEntry::make('icon')
+                                            ->label('Icon')
+                                            ->formatStateUsing(function ($state) {
+                                                $labels = static::getAvailableIcons();
+                                                $label = $labels[$state] ?? $state;
+                                                return new \Illuminate\Support\HtmlString(
+                                                    '<div class="flex items-center gap-2">' .
+                                                    ($state ? svg($state, 'w-5 h-5')->toHtml() : '') .
+                                                    '<span>' . $label . '</span></div>'
+                                                );
+                                            }),
+                                        IconEntry::make('is_active')
+                                            ->label('Status Aktif')
+                                            ->boolean(),
+                                        TextEntry::make('created_at')
+                                            ->label('Dibuat Pada')
+                                            ->dateTime('d M Y H:i'),
+                                        TextEntry::make('deleted_at')
+                                            ->label('Dihapus Pada')
+                                            ->dateTime('d M Y H:i')
+                                            ->placeholder('-'),
+                                    ]),
+                            ]),
                     ]),
 
                 Tables\Actions\EditAction::make()
@@ -216,9 +227,7 @@ class FacilityResource extends Resource
                     ->label('Hapus')
                     ->visible(fn ($livewire) => ($livewire->activeTab ?? null) !== 'terhapus')
                     ->action(function (Facility $record) {
-                        DB::transaction(function () use ($record) {
-                            static::releaseSlugThenSoftDelete($record);
-                        });
+                        $record->delete();
 
                         Notification::make()
                             ->title('Fasilitas berhasil dihapus')
@@ -235,31 +244,37 @@ class FacilityResource extends Resource
                     ->label('Pulihkan')
                     ->visible(fn ($livewire) => auth()->user()->hasRole('super_admin') && ($livewire->activeTab ?? null) === 'terhapus')
                     ->action(function (Facility $record) {
-                        DB::transaction(function () use ($record) {
-                            $originalSlug = static::extractOriginalSlug($record->slug);
+                        $targetSlug = $record->slug;
+                        // Support legacy slug with __trashed__
+                        if (\Illuminate\Support\Str::contains($targetSlug, '__trashed__')) {
+                            $targetSlug = \Illuminate\Support\Str::before($targetSlug, '__trashed__');
+                        }
 
-                            $existsActive = Facility::query()
-                                ->whereNull('deleted_at')
-                                ->where('slug', $originalSlug)
-                                ->exists();
+                        $existsActive = Facility::query()
+                            ->whereNull('deleted_at')
+                            ->where('slug', $targetSlug)
+                            ->where('id', '!=', $record->id)
+                            ->exists();
 
-                            if ($existsActive) {
-                                Notification::make()
-                                    ->title('Gagal Memulihkan')
-                                    ->body("Tidak bisa memulihkan karena sudah ada fasilitas aktif dengan slug: {$originalSlug}.")
-                                    ->danger()
-                                    ->send();
-                                return;
-                            }
-
-                            $record->updateQuietly(['slug' => $originalSlug]);
-                            $record->restore();
-
+                        if ($existsActive) {
                             Notification::make()
-                                ->title('Fasilitas berhasil dipulihkan')
-                                ->success()
+                                ->title('Gagal Memulihkan')
+                                ->body("Tidak bisa memulihkan karena sudah ada fasilitas aktif dengan slug: {$targetSlug}.")
+                                ->danger()
                                 ->send();
-                        });
+                            return;
+                        }
+
+                        if ($targetSlug !== $record->slug) {
+                             $record->updateQuietly(['slug' => $targetSlug]);
+                        }
+                        
+                        $record->restore();
+
+                        Notification::make()
+                            ->title('Fasilitas berhasil dipulihkan')
+                            ->success()
+                            ->send();
                     }),
             ])
             ->bulkActions([
@@ -267,11 +282,9 @@ class FacilityResource extends Resource
                     ->label('Hapus yang dipilih')
                     ->visible(fn ($livewire) => ($livewire->activeTab ?? null) !== 'terhapus')
                     ->action(function (Collection $records) {
-                        DB::transaction(function () use ($records) {
-                            foreach ($records as $record) {
-                                static::releaseSlugThenSoftDelete($record);
-                            }
-                        });
+                        foreach ($records as $record) {
+                            $record->delete();
+                        }
 
                         Notification::make()
                             ->title('Fasilitas terpilih berhasil dihapus')
@@ -293,19 +306,25 @@ class FacilityResource extends Resource
                                     continue;
                                 }
 
-                                $originalSlug = static::extractOriginalSlug($record->slug);
+                                $targetSlug = $record->slug;
+                                if (\Illuminate\Support\Str::contains($targetSlug, '__trashed__')) {
+                                    $targetSlug = \Illuminate\Support\Str::before($targetSlug, '__trashed__');
+                                }
 
                                 $existsActive = Facility::query()
                                     ->whereNull('deleted_at')
-                                    ->where('slug', $originalSlug)
+                                    ->where('slug', $targetSlug)
+                                    ->where('id', '!=', $record->id)
                                     ->exists();
 
                                 if ($existsActive) {
-                                    $blockedSlugs[] = $originalSlug;
+                                    $blockedSlugs[] = $targetSlug;
                                     continue;
                                 }
 
-                                $record->updateQuietly(['slug' => $originalSlug]);
+                                if ($targetSlug !== $record->slug) {
+                                    $record->updateQuietly(['slug' => $targetSlug]);
+                                }
                                 $record->restore();
                                 $restored++;
                             }
@@ -364,6 +383,11 @@ class FacilityResource extends Resource
 
     public static function canEdit($record): bool
     {
+        // Prevent editing trashed records
+        if ($record->trashed()) {
+            return false;
+        }
+        
         return auth()->user()->hasRole(['main_admin', 'super_admin']);
     }
 
@@ -478,26 +502,4 @@ class FacilityResource extends Resource
             ->toArray();
     }
 
-    protected static function releaseSlugThenSoftDelete(Facility $facility): void
-    {
-        if ($facility->trashed()) {
-            return;
-        }
-
-        $original = $facility->slug;
-
-        if (!Str::contains($original, '__trashed__')) {
-            $suffix = '__trashed__' . $facility->id . '__' . now()->timestamp;
-            $facility->updateQuietly([
-                'slug' => $original . $suffix,
-            ]);
-        }
-
-        $facility->delete();
-    }
-
-    protected static function extractOriginalSlug(string $slug): string
-    {
-        return Str::before($slug, '__trashed__');
-    }
 }
