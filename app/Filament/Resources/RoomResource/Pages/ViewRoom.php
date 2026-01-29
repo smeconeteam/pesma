@@ -60,6 +60,16 @@ class ViewRoom extends ViewRecord
                         TextEntry::make('monthly_rate')
                             ->label('Tarif Bulanan')
                             ->money('IDR', true),
+                        
+                        TextEntry::make('width')
+                            ->label('Lebar Kamar')
+                            ->suffix(' m')
+                            ->placeholder('-'),
+
+                        TextEntry::make('length')
+                            ->label('Panjang Kamar')
+                            ->suffix(' m')
+                            ->placeholder('-'),
 
                         TextEntry::make('residentCategory.name')
                             ->label('Kategori Kamar')
@@ -84,7 +94,85 @@ class ViewRoom extends ViewRecord
                             ->state(fn(Room $record) => $record->getAvailableCapacityAttribute())
                             ->suffix(' orang'),
                     ])
+
                     ->columns(3),
+
+                InfoSection::make('Galeri')
+                    ->schema([
+                        Grid::make(2)
+                            ->schema([
+                                \Filament\Infolists\Components\ImageEntry::make('thumbnail')
+                                    ->label('Thumbnail')
+                                    ->height(300)
+                                    ->defaultImageUrl(url('/images/placeholder-room.jpg'))
+                                    ->extraImgAttributes([
+                                        'class' => 'rounded-lg shadow-md object-cover w-full',
+                                        'style' => 'aspect-ratio: 16/9;'
+                                    ])
+                                    ->visible(fn($record) => !empty($record->thumbnail)),
+                            ])
+                            ->visible(fn($record) => !empty($record->thumbnail)),
+
+                        \Filament\Infolists\Components\ImageEntry::make('images')
+                            ->label('Galeri Foto')
+                            ->columnSpanFull()
+                            ->height(200)
+                            ->extraImgAttributes([
+                                'class' => 'rounded-lg shadow-sm object-cover',
+                                'style' => 'aspect-ratio: 4/3;'
+                            ])
+                            ->visible(fn($record) => !empty($record->images) && count($record->images) > 0),
+
+                        TextEntry::make('no_gallery')
+                            ->label('')
+                            ->default('Belum ada foto yang diupload')
+                            ->color('gray')
+                            ->visible(fn($record) => empty($record->thumbnail) && (empty($record->images) || count($record->images) === 0))
+                            ->columnSpanFull(),
+                    ])
+                    ->collapsible(),
+
+                InfoSection::make('Fasilitas & Aturan')
+                    ->schema([
+                        RepeatableEntry::make('roomRules')
+                            ->label('Peraturan Kamar')
+                            ->schema([
+                                TextEntry::make('name')
+                                    ->hiddenLabel()
+                                    ->formatStateUsing(function ($state, $record) {
+                                        $icon = $record->icon ? svg($record->icon, 'w-5 h-5 text-primary-500')->toHtml() : '';
+                                        return new \Illuminate\Support\HtmlString(
+                                            '<div class="flex items-center gap-2">' .
+                                                $icon .
+                                                '<span>' . $state . '</span>' .
+                                            '</div>'
+                                        );
+                                    }),
+                            ])
+                            ->grid(3)
+                            ->visible(fn($record) => $record->roomRules()->exists())
+                            ->placeholder('Belum ada peraturan kamar'),
+
+                        RepeatableEntry::make('facilities')
+                            ->label('Fasilitas')
+                            ->schema([
+                                TextEntry::make('name')
+                                    ->label(fn ($record) => \Illuminate\Support\Str::of($record->type)->replace('_', ' ')->title())
+                                    ->formatStateUsing(function ($state, $record) {
+                                        $icon = $record->icon ? svg($record->icon, 'w-5 h-5 text-success-500')->toHtml() : '';
+                                        return new \Illuminate\Support\HtmlString(
+                                            '<div class="flex items-center gap-2">' .
+                                                $icon .
+                                                '<span>' . $state . '</span>' .
+                                            '</div>'
+                                        );
+                                    }),
+                            ])
+                            ->grid(3)
+                            ->visible(fn($record) => $record->facilities()->exists())
+                            ->placeholder('Belum ada fasilitas'),
+                    ])
+                    ->collapsible(),
 
                 InfoSection::make('Daftar Penghuni Aktif')
                     ->schema([
