@@ -87,6 +87,36 @@ class FacilityResource extends Resource
                             ->searchable()
                             ->native(false)
                             ->allowHtml()
+                            ->getSearchResultsUsing(function (string $search) {
+                                if (empty($search)) {
+                                    return static::getIconOptions();
+                                }
+                                
+                                $icons = static::getAvailableIcons();
+                                
+                                return collect($icons)
+                                    ->filter(fn ($label, $icon) => 
+                                        stripos($label, $search) !== false || 
+                                        stripos($icon, $search) !== false
+                                    )
+                                    ->mapWithKeys(fn ($label, $icon) => [
+                                        $icon => '<div class="flex items-center gap-2">' .
+                                            svg($icon, 'w-5 h-5')->toHtml() .
+                                            '<span>' . $label . '</span>' .
+                                            '</div>'
+                                    ])
+                                    ->toArray();
+                            })
+                            ->getOptionLabelUsing(function ($value) {
+                                if (!$value) return null;
+                                $label = static::getAvailableIcons()[$value] ?? $value;
+                                return new \Illuminate\Support\HtmlString(
+                                    '<div class="flex items-center gap-2">' .
+                                    svg($value, 'w-5 h-5')->toHtml() .
+                                    '<span>' . $label . '</span>' .
+                                    '</div>'
+                                );
+                            })
                             ->columnSpan(1),
 
                         Forms\Components\Toggle::make('is_active')
