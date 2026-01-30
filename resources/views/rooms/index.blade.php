@@ -5,36 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kamar Tersedia - {{ $institution->dormitory_name ?? 'Asrama' }}</title>
     
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.bunny.net">
+    <!-- Performance Optimization -->
+    <link rel="dns-prefetch" href="https://fonts.bunny.net">
+    <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
+    
+    <!-- Fonts with font-display swap for performance -->
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,800&display=swap" rel="stylesheet" />
     
     
+    <script>
+        // Check for saved theme preference or default to light mode immediately to prevent flash
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+    </script>
     <style>
         :root {
-            --bg-primary: #f8f9fa;
+            /* Light Mode - Matching Tailwind Gray-50/White */
+            --bg-primary: #f9fafb; /* gray-50 */
             --bg-secondary: #ffffff;
-            --text-primary: #333333;
-            --text-secondary: #64748b;
-            --text-tertiary: #94a3b8;
-            --border-color: var(--border-color);
-            --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
-            --shadow-md: 0 2px 12px rgba(0,0,0,0.08);
-            --shadow-lg: 0 12px 28px rgba(0,0,0,0.12);
-            --footer-bg: #1e293b;
+            --text-primary: #111827; /* gray-900 */
+            --text-secondary: #6b7280; /* gray-500 */
+            --text-tertiary: #9ca3af; /* gray-400 */
+            --border-color: #e5e7eb; /* gray-200 */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --footer-bg: #111827; /* gray-900 */
         }
 
         [data-theme="dark"] {
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --text-primary: #f1f5f9;
-            --text-secondary: #cbd5e1;
-            --text-tertiary: #94a3b8;
-            --border-color: #334155;
-            --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
-            --shadow-md: 0 2px 12px rgba(0,0,0,0.4);
-            --shadow-lg: 0 12px 28px rgba(0,0,0,0.5);
-            --footer-bg: #020617;
+            /* Dark Mode - Matching Tailwind Gray-950/Gray-900 */
+            --bg-primary: #030712; /* gray-950 */
+            --bg-secondary: #111827; /* gray-900 */
+            --text-primary: #f3f4f6; /* gray-100 */
+            --text-secondary: #9ca3af; /* gray-400 */
+            --text-tertiary: #6b7280; /* gray-500 */
+            --border-color: #1f2937; /* gray-800 */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            --footer-bg: #030712; /* gray-950 */
         }
 
         * {
@@ -151,6 +161,18 @@
             box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         }
 
+        /* Dark Mode Button Consistency */
+        [data-theme="dark"] .btn-primary {
+            background: #34d399; /* Emerald-400 */
+            color: #022c22;
+            font-weight: 700;
+        }
+
+        [data-theme="dark"] .btn-primary:hover {
+            background: #10b981;
+            box-shadow: 0 4px 15px rgba(52, 211, 153, 0.4);
+        }
+
         .btn-secondary {
             background: var(--bg-secondary);
             color: #10b981;
@@ -165,6 +187,20 @@
         .btn-secondary:hover {
             background: #10b981;
             color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+
+        /* Fix for Dark Mode - Make Secondary Button BRIGHTER (Outline style) */
+        [data-theme="dark"] .btn-secondary {
+            color: #34d399; /* Emerald-400 (Brighter Green) */
+            border-color: #34d399;
+            background: transparent; /* Ensure transparent bg to show border */
+        }
+
+        [data-theme="dark"] .btn-secondary:hover {
+            background: #34d399;
+            color: #022c22; /* Dark text on hover */
+            box-shadow: 0 4px 15px rgba(52, 211, 153, 0.3);
         }
 
         /* Container */
@@ -219,18 +255,19 @@
 
         .room-card {
             background: var(--bg-secondary);
-            border-radius: 12px;
+            border-radius: 16px; /* sm:rounded-2xl */
             overflow: hidden;
-            box-shadow: var(--shadow-sm);
-            transition: all 0.3s;
+            border: 1px solid var(--border-color); /* Added border like dashboard */
+            box-shadow: var(--shadow-lg); /* shadow-lg */
+            transition: all 0.2s ease;
             text-decoration: none;
             color: inherit;
             display: block;
         }
 
         .room-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+            border-color: #10b981; /* hover:border-green-500 approximation */
         }
 
         .room-image {
@@ -498,13 +535,13 @@
                 @foreach($rooms as $room)
                     <a href="{{ route('public.registration.create') }}" class="room-card">
                         <div class="room-image">
-                            {{ $room->room_number }}
+                            {{ $room->number }}
                             @if($room->is_active)
                                 <div class="room-badge">Tersedia</div>
                             @endif
                         </div>
                         <div class="room-content">
-                            <div class="room-title">Kamar {{ $room->room_number }}</div>
+                            <div class="room-title">Kamar {{ $room->number }}</div>
                             <div class="room-type">{{ $room->roomType->name }}</div>
                             <div class="room-location">📍 {{ $room->block->name }}, {{ $room->block->dorm->name }}</div>
                             <div class="room-info">
@@ -575,12 +612,14 @@
         const moonIcon = document.querySelector('.moon-icon');
         const html = document.documentElement;
 
-        // Check for saved theme preference or default to light mode
-        const currentTheme = localStorage.getItem('theme') || 'light';
+        // Initialize icons based on current theme
+        const currentTheme = document.documentElement.getAttribute('data-theme');
         if (currentTheme === 'dark') {
-            html.setAttribute('data-theme', 'dark');
             sunIcon.style.display = 'none';
             moonIcon.style.display = 'block';
+        } else {
+            sunIcon.style.display = 'block';
+            moonIcon.style.display = 'none';
         }
 
         // Toggle dark mode
