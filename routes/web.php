@@ -7,12 +7,13 @@ use App\Http\Controllers\Resident\MyRoomController;
 use App\Http\Controllers\Resident\RoomHistoryController;
 use App\Http\Controllers\Resident\BillsController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\LandingController;
 use Illuminate\Support\Facades\Route;
 
 
-Route::get('/', function () {
-    return redirect()->route('login');
-});
+// Landing Page for Public
+Route::get('/', [LandingController::class, 'index'])->name('home');
+Route::get('/kamar-tersedia', [LandingController::class, 'allRooms'])->name('rooms.available');
 
 // =====================
 // Resident Routes
