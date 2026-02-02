@@ -24,7 +24,6 @@ class CreateBillPayment extends CreateRecord
     {
         $user = auth()->user();
 
-        // Default data
         $fillData = [
             'tab' => 'individual',
             'payment_date' => now()->toDateString(),
@@ -44,7 +43,7 @@ class CreateBillPayment extends CreateRecord
 
                 Forms\Components\Tabs::make('payment_tabs')
                     ->tabs([
-                        // TAB 1: BAYAR INDIVIDUAL (Admin mencatat pembayaran penghuni)
+                        // TAB 1: BAYAR INDIVIDUAL
                         Forms\Components\Tabs\Tab::make('Bayar Individual')
                             ->icon('heroicon-o-user')
                             ->schema([
@@ -58,7 +57,6 @@ class CreateBillPayment extends CreateRecord
                                                     ->whereHas('residentProfile')
                                                     ->with(['residentProfile', 'activeRoomResident.room.block.dorm']);
 
-                                                // Filter berdasarkan role admin
                                                 if ($user->hasRole('branch_admin')) {
                                                     $dormIds = $user->branchDormIds();
                                                     $query->where(function ($q) use ($dormIds) {
@@ -156,172 +154,156 @@ class CreateBillPayment extends CreateRecord
                                                     ->live(debounce: 500)
                                                     ->minValue(1)
                                                     ->maxValue(fn(Forms\Get $get) => $get('max_amount'))
-                                                    ->helperText(function (Forms\Get $get) {
-                                                        $max = $get('max_amount');
-                                                        if (!$max) return '';
-
-                                                        return 'Maksimal: Rp ' . number_format($max, 0, ',', '.') . ' | Bisa cicil dengan nominal lebih kecil';
-                                                    }),
+                                                    ->helperText(
+                                                        fn(Forms\Get $get) =>
+                                                        $get('max_amount')
+                                                            ? 'Maksimal: Rp ' . number_format($get('max_amount'), 0, ',', '.')
+                                                            : 'Masukkan jumlah pembayaran'
+                                                    ),
 
                                                 Forms\Components\DatePicker::make('payment_date')
                                                     ->label('Tanggal Pembayaran')
                                                     ->required(fn(Forms\Get $get) => $get('tab') === 'individual')
-                                                    ->default(now())
-                                                    ->native(false)
-                                                    ->maxDate(now())
-                                                    ->displayFormat('d/m/Y'),
+                                                    ->default(now()),
                                             ]),
-                                    ]),
 
-                                Forms\Components\Section::make('Metode Pembayaran')
-                                    ->visible(fn(Forms\Get $get) => !blank($get('amount')) && $get('tab') === 'individual')
-                                    ->schema([
-                                        Forms\Components\Select::make('payment_method_id')
-                                            ->label('Metode Pembayaran')
-                                            ->options(function () {
-                                                return PaymentMethod::where('is_active', true)
-                                                    ->get()
-                                                    ->mapWithKeys(fn($pm) => [
-                                                        $pm->id => match ($pm->kind) {
-                                                            'qris' => 'QRIS',
-                                                            'transfer' => 'Transfer Bank',
-                                                            'cash' => 'Tunai',
-                                                            default => $pm->kind,
+                                        Forms\Components\Grid::make(2)
+                                            ->schema([
+                                                Forms\Components\Select::make('payment_method_id')
+                                                    ->label('Metode Pembayaran')
+                                                    ->options(
+                                                        PaymentMethod::where('is_active', true)
+                                                            ->get()
+                                                            ->mapWithKeys(fn($pm) => [
+                                                                $pm->id => match ($pm->kind) {
+                                                                    'qris' => 'QRIS',
+                                                                    'transfer' => 'Transfer Bank',
+                                                                    'cash' => 'Tunai',
+                                                                    default => $pm->kind,
+                                                                }
+                                                            ])
+                                                            ->toArray()
+                                                    )
+                                                    ->required(fn(Forms\Get $get) => $get('tab') === 'individual')
+                                                    ->native(false)
+                                                    ->live()
+                                                    ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
+                                                        $set('bank_account_id', null);
+
+                                                        $paymentMethodId = $get('payment_method_id');
+                                                        if (!$paymentMethodId) return;
+
+                                                        $paymentMethod = PaymentMethod::find($paymentMethodId);
+                                                        if (!$paymentMethod || $paymentMethod->kind !== 'transfer') return;
+
+                                                        $userId = $get('user_id');
+                                                        if (!$userId) return;
+
+                                                        $selectedUser = User::with('residentProfile.residentCategory')->find($userId);
+                                                        $residentCategoryId = $selectedUser?->residentProfile?->resident_category_id;
+
+                                                        if (!$residentCategoryId) return;
+
+                                                        $bankAccount = PaymentMethodBankAccount::query()
+                                                            ->where('payment_method_id', $paymentMethodId)
+                                                            ->where('is_active', true)
+                                                            ->whereHas('residentCategories', function ($q) use ($residentCategoryId) {
+                                                                $q->where('resident_categories.id', $residentCategoryId);
+                                                            })
+                                                            ->first();
+
+                                                        if ($bankAccount) {
+                                                            $set('bank_account_id', $bankAccount->id);
                                                         }
-                                                    ])
-                                                    ->toArray();
-                                            })
-                                            ->required(fn(Forms\Get $get) => $get('tab') === 'individual')
-                                            ->native(false)
-                                            ->live()
-                                            ->afterStateUpdated(function (Forms\Set $set) {
-                                                $set('bank_account_id', null);
-                                            }),
+                                                    }),
 
-                                        // QRIS
-                                        Forms\Components\Placeholder::make('qris_image')
-                                            ->label('QR Code')
-                                            ->visible(function (Forms\Get $get) {
-                                                if (!$get('payment_method_id')) return false;
-                                                $pm = PaymentMethod::find($get('payment_method_id'));
-                                                return $pm && $pm->kind === 'qris' && $pm->qr_image_path;
-                                            })
-                                            ->content(function (Forms\Get $get) {
-                                                $pm = PaymentMethod::find($get('payment_method_id'));
-                                                if (!$pm || !$pm->qr_image_path) return '';
+                                                Forms\Components\Select::make('bank_account_id')
+                                                    ->label('Rekening Bank Tujuan')
+                                                    ->options(function (Forms\Get $get) {
+                                                        $paymentMethodId = $get('payment_method_id');
+                                                        if (!$paymentMethodId) return [];
 
-                                                $url = Storage::url($pm->qr_image_path);
-                                                return new \Illuminate\Support\HtmlString("
-                                                    <div class='flex flex-col items-center gap-3'>
-                                                        <img src='{$url}' alt='QR Code' class='max-w-xs rounded-lg border-2 border-gray-200'>
-                                                        <p class='text-sm text-gray-600'>Scan QR Code untuk pembayaran</p>
-                                                    </div>
-                                                ");
-                                            }),
+                                                        $paymentMethod = PaymentMethod::find($paymentMethodId);
+                                                        if (!$paymentMethod || $paymentMethod->kind !== 'transfer') {
+                                                            return [];
+                                                        }
 
-                                        // Transfer Bank
-                                        Forms\Components\Select::make('bank_account_id')
-                                            ->label('Rekening Tujuan')
-                                            ->visible(function (Forms\Get $get) {
-                                                if (!$get('payment_method_id')) return false;
-                                                $pm = PaymentMethod::find($get('payment_method_id'));
-                                                return $pm && $pm->kind === 'transfer';
-                                            })
-                                            ->options(function (Forms\Get $get) {
-                                                $pmId = $get('payment_method_id');
-                                                $userId = $get('user_id');
+                                                        $userId = $get('user_id');
+                                                        $residentCategoryId = null;
 
-                                                if (!$pmId || !$userId) return [];
+                                                        if ($userId) {
+                                                            $selectedUser = User::with('residentProfile.residentCategory')->find($userId);
+                                                            $residentCategoryId = $selectedUser?->residentProfile?->resident_category_id;
+                                                        }
 
-                                                $user = User::find($userId);
-                                                $categoryId = $user->residentProfile?->resident_category_id;
-
-                                                if (!$categoryId) {
-                                                    return PaymentMethodBankAccount::where('payment_method_id', $pmId)
-                                                        ->where('is_active', true)
-                                                        ->get()
-                                                        ->mapWithKeys(function ($bank) {
-                                                            return [$bank->id => $bank->formatted_bank_info];
-                                                        })
-                                                        ->toArray();
-                                                }
-
-                                                return PaymentMethodBankAccount::where('payment_method_id', $pmId)
-                                                    ->where('is_active', true)
-                                                    ->whereHas('residentCategories', function ($q) use ($categoryId) {
-                                                        $q->where('resident_categories.id', $categoryId);
+                                                        return PaymentMethodBankAccount::query()
+                                                            ->where('payment_method_id', $paymentMethodId)
+                                                            ->where('is_active', true)
+                                                            ->when($residentCategoryId, function ($query) use ($residentCategoryId) {
+                                                                $query->whereHas('residentCategories', function ($q) use ($residentCategoryId) {
+                                                                    $q->where('resident_categories.id', $residentCategoryId);
+                                                                });
+                                                            })
+                                                            ->get()
+                                                            ->mapWithKeys(fn($ba) => [
+                                                                $ba->id => "{$ba->bank_name} - {$ba->account_number} ({$ba->account_name})"
+                                                            ])
+                                                            ->toArray();
                                                     })
-                                                    ->get()
-                                                    ->mapWithKeys(function ($bank) {
-                                                        return [$bank->id => $bank->formatted_bank_info];
+                                                    ->searchable()
+                                                    ->native(false)
+                                                    ->visible(function (Forms\Get $get) {
+                                                        $paymentMethodId = $get('payment_method_id');
+                                                        if (!$paymentMethodId) return false;
+
+                                                        $paymentMethod = PaymentMethod::find($paymentMethodId);
+                                                        return $paymentMethod && $paymentMethod->kind === 'transfer';
                                                     })
-                                                    ->toArray();
-                                            })
-                                            ->searchable()
-                                            ->native(false)
-                                            ->required(function (Forms\Get $get) {
-                                                if (!$get('payment_method_id') || $get('tab') !== 'individual') return false;
-                                                $pm = PaymentMethod::find($get('payment_method_id'));
-                                                return $pm && $pm->kind === 'transfer';
-                                            })
-                                            ->helperText('Pilih rekening bank tujuan transfer'),
+                                                    ->required(function (Forms\Get $get) {
+                                                        if ($get('tab') !== 'individual') return false;
 
-                                        // Tunai
-                                        Forms\Components\Placeholder::make('cash_info')
-                                            ->label('Informasi Pembayaran Tunai')
-                                            ->visible(function (Forms\Get $get) {
-                                                if (!$get('payment_method_id')) return false;
-                                                $pm = PaymentMethod::find($get('payment_method_id'));
-                                                return $pm && $pm->kind === 'cash';
-                                            })
-                                            ->content(function (Forms\Get $get) {
-                                                $pm = PaymentMethod::find($get('payment_method_id'));
-                                                if (!$pm || !$pm->instructions) {
-                                                    return 'Silakan lakukan pembayaran tunai ke admin.';
-                                                }
-                                                return new \Illuminate\Support\HtmlString(nl2br(e($pm->instructions)));
-                                            }),
-                                    ]),
+                                                        $paymentMethodId = $get('payment_method_id');
+                                                        if (!$paymentMethodId) return false;
 
-                                Forms\Components\Section::make('Bukti Pembayaran')
-                                    ->visible(fn(Forms\Get $get) => !blank($get('payment_method_id')) && $get('tab') === 'individual')
-                                    ->schema([
+                                                        $paymentMethod = PaymentMethod::find($paymentMethodId);
+                                                        return $paymentMethod && $paymentMethod->kind === 'transfer';
+                                                    })
+                                                    ->helperText('Rekening otomatis dipilih berdasarkan kategori penghuni'),
+                                            ]),
+
                                         Forms\Components\FileUpload::make('proof_path')
-                                            ->label('Upload Bukti Transfer/Pembayaran')
+                                            ->label('Bukti Pembayaran')
                                             ->image()
-                                            ->imageEditor()
-                                            ->imageEditorAspectRatios([null, '16:9', '4:3', '1:1'])
-                                            ->maxSize(5120)
                                             ->directory('payment-proofs')
                                             ->visibility('private')
-                                            ->nullable()
-                                            ->helperText('Format: JPG, PNG, max 5MB. Upload foto bukti transfer atau struk pembayaran.'),
+                                            ->maxSize(5120)
+                                            ->required(fn(Forms\Get $get) => $get('tab') === 'individual')
+                                            ->helperText('Upload foto bukti transfer/pembayaran (maks. 5MB) - WAJIB'),
 
                                         Forms\Components\Textarea::make('notes')
-                                            ->label('Catatan (Opsional)')
+                                            ->label('Catatan')
                                             ->rows(3)
-                                            ->placeholder('Contoh: Dibayar melalui ATM BCA, sudah dipotong biaya admin Rp 6.500')
-                                            ->nullable(),
+                                            ->placeholder('Catatan tambahan (opsional)'),
                                     ]),
                             ]),
 
-                        // TAB 2: BAYAR SEBAGAI PIC (Admin mencatat pembayaran PIC untuk kamar)
+                        // TAB 2: BAYAR SEBAGAI PIC
                         Forms\Components\Tabs\Tab::make('Bayar sebagai PIC')
                             ->icon('heroicon-o-user-group')
                             ->schema([
                                 Forms\Components\Section::make('Pilih PIC & Kamar')
-                                    ->description('Pilih PIC yang melakukan pembayaran gabungan untuk kamarnya')
+                                    ->description('PIC membayarkan tagihan untuk beberapa penghuni sekaligus')
                                     ->schema([
                                         Forms\Components\Select::make('pic_user_id')
-                                            ->label('PIC yang Bayar')
+                                            ->label('PIC yang Membayar')
                                             ->options(function () use ($user) {
                                                 $query = User::query()
-                                                    ->whereHas('activeRoomResident', function ($q) {
-                                                        $q->where('is_pic', true);
+                                                    ->whereHas('roomResidents', function ($q) {
+                                                        $q->whereNull('check_out_date')
+                                                            ->where('is_pic', true);
                                                     })
                                                     ->with(['residentProfile', 'activeRoomResident.room.block.dorm']);
 
-                                                // Filter berdasarkan role admin
                                                 if ($user->hasRole('branch_admin')) {
                                                     $dormIds = $user->branchDormIds();
                                                     $query->whereHas('activeRoomResident.room.block.dorm', function ($q) use ($dormIds) {
@@ -338,7 +320,7 @@ class CreateBillPayment extends CreateRecord
                                                     ->mapWithKeys(function ($u) {
                                                         $profile = $u->residentProfile;
                                                         $room = $u->activeRoomResident?->room;
-                                                        $roomInfo = $room ? " - {$room->code}" : '';
+                                                        $roomInfo = $room ? " - Kamar {$room->code}" : '';
                                                         $name = $profile->full_name ?? $u->name;
 
                                                         return [$u->id => "{$name} ({$u->email}){$roomInfo}"];
@@ -348,376 +330,297 @@ class CreateBillPayment extends CreateRecord
                                             ->searchable()
                                             ->required(fn(Forms\Get $get) => $get('tab') === 'room')
                                             ->native(false)
-                                            ->live()
-                                            ->afterStateUpdated(function ($state, Forms\Set $set) {
-                                                if (!$state) {
-                                                    $set('room_id', null);
-                                                    $set('bill_items', []);
-                                                    return;
-                                                }
+                                            ->live(onBlur: true)
+                                            ->afterStateUpdated(function (Forms\Set $set, $state, Forms\Get $get) {
+                                                $set('room_id', null);
+                                                $set('bill_items', []);
+
+                                                if (!$state) return;
 
                                                 $picUser = User::with('activeRoomResident.room')->find($state);
-                                                if ($picUser && $picUser->activeRoomResident) {
-                                                    $set('room_id', $picUser->activeRoomResident->room_id);
-                                                }
-                                            })
-                                            ->helperText('Pilih PIC yang melakukan pembayaran'),
-
-                                        Forms\Components\Select::make('room_id')
-                                            ->label('Kamar')
-                                            ->disabled()
-                                            ->dehydrated()
-                                            ->options(function (Forms\Get $get) {
-                                                $picUserId = $get('pic_user_id');
-                                                if (!$picUserId) return [];
-
-                                                $picUser = User::with('activeRoomResident.room.activeResidents')->find($picUserId);
-                                                if (!$picUser || !$picUser->activeRoomResident) return [];
-
-                                                $room = $picUser->activeRoomResident->room;
-                                                return [
-                                                    $room->id => "{$room->code} ({$room->activeResidents->count()} penghuni)"
-                                                ];
-                                            })
-                                            ->native(false)
-                                            ->live()
-                                            ->afterStateUpdated(function ($state, Forms\Set $set) {
-                                                if (!$state) {
-                                                    $set('bill_items', []);
+                                                if (!$picUser || !$picUser->activeRoomResident) {
                                                     return;
                                                 }
 
-                                                $room = Room::with(['activeResidents.user.residentProfile', 'activeResidents.user.bills'])
-                                                    ->find($state);
+                                                $roomId = $picUser->activeRoomResident->room_id;
+                                                $set('room_id', $roomId);
 
-                                                if (!$room) {
-                                                    $set('bill_items', []);
-                                                    return;
-                                                }
+                                                $room = Room::with([
+                                                    'activeResidents.user.residentProfile',
+                                                    'activeResidents.user.bills' => function ($q) {
+                                                        $q->whereIn('status', ['issued', 'partial', 'overdue'])
+                                                            ->with('billingType')
+                                                            ->orderBy('created_at', 'asc');
+                                                    }
+                                                ])->find($roomId);
 
-                                                $billItems = [];
+                                                if (!$room) return;
+
+                                                $items = [];
 
                                                 foreach ($room->activeResidents as $resident) {
-                                                    $user = $resident->user;
+                                                    $userItem = $resident->user;
+                                                    $profile = $userItem->residentProfile;
 
-                                                    $bills = Bill::query()
-                                                        ->where('user_id', $user->id)
-                                                        ->where('room_id', $room->id)
-                                                        ->whereIn('status', ['issued', 'partial', 'overdue'])
-                                                        ->with('billingType')
-                                                        ->get();
+                                                    foreach ($userItem->bills as $bill) {
+                                                        $isPaid = $bill->status === 'paid' || $bill->remaining_amount <= 0;
 
-                                                    foreach ($bills as $bill) {
-                                                        $billItems[] = [
-                                                            'selected' => false,
+                                                        $items[] = [
                                                             'bill_id' => $bill->id,
                                                             'bill_number' => $bill->bill_number,
-                                                            'resident_name' => $user->residentProfile->full_name ?? $user->name,
-                                                            'billing_type' => $bill->billingType->name,
-                                                            'total_amount' => $bill->total_amount,
+                                                            'user_id' => $userItem->id,
+                                                            'resident_name' => $profile->full_name ?? $userItem->name,
+                                                            'billing_type_name' => $bill->billingType->name,
                                                             'remaining_amount' => $bill->remaining_amount,
+                                                            'is_paid' => $isPaid,
+                                                            'selected' => false,
                                                             'payment_amount' => 0,
                                                         ];
                                                     }
                                                 }
 
-                                                $set('bill_items', $billItems);
+                                                $set('bill_items', $items);
                                             })
-                                            ->helperText('Kamar otomatis terisi berdasarkan PIC yang dipilih'),
-                                    ]),
+                                            ->helperText('Pilih PIC kamar yang akan membayar'),
 
-                                Forms\Components\Section::make('Info PIC')
-                                    ->visible(fn(Forms\Get $get) => !blank($get('pic_user_id')))
-                                    ->schema([
-                                        Forms\Components\Placeholder::make('pic_info')
-                                            ->label('')
+                                        Forms\Components\Placeholder::make('room_display')
+                                            ->label('Kamar')
                                             ->content(function (Forms\Get $get) {
                                                 $picUserId = $get('pic_user_id');
-                                                if (!$picUserId) return '';
+                                                if (!$picUserId) return '-';
 
-                                                $picUser = User::with('residentProfile')->find($picUserId);
-                                                if (!$picUser) return '';
+                                                $picUser = User::with('activeRoomResident.room.block.dorm')->find($picUserId);
+                                                if (!$picUser || !$picUser->activeRoomResident) {
+                                                    return 'PIC belum memiliki kamar';
+                                                }
 
-                                                $name = $picUser->residentProfile->full_name ?? $picUser->name;
+                                                $room = $picUser->activeRoomResident->room;
+                                                return "{$room->block->dorm->name} - {$room->block->name} - {$room->code}";
+                                            })
+                                            ->visible(fn(Forms\Get $get) => !blank($get('pic_user_id'))),
 
-                                                return new \Illuminate\Support\HtmlString("
-                                                    <div class='p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg'>
-                                                        <div class='flex items-center gap-3'>
-                                                            <svg class='w-6 h-6 text-blue-600 dark:text-blue-400' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                                                                <path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'></path>
-                                                            </svg>
-                                                            <div>
-                                                                <div class='font-semibold text-blue-800 dark:text-blue-200'>
-                                                                    PIC: {$name}
-                                                                </div>
-                                                                <div class='text-sm text-blue-600 dark:text-blue-300'>
-                                                                    Membayar atas nama kamar
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ");
-                                            }),
+                                        Forms\Components\Hidden::make('room_id'),
                                     ]),
 
-                                Forms\Components\Section::make('Peringatan')
-                                    ->visible(fn(Forms\Get $get) => !blank($get('room_id')) && empty($get('bill_items')))
-                                    ->schema([
-                                        Forms\Components\Placeholder::make('no_bills_warning')
-                                            ->label('')
-                                            ->content(new \Illuminate\Support\HtmlString('
-                                                <div class="flex items-center gap-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                                                    <svg class="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                                                    </svg>
-                                                    <div>
-                                                        <div class="font-semibold text-yellow-800 dark:text-yellow-200">
-                                                            Tidak Ada Tagihan
-                                                        </div>
-                                                        <div class="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                                                            Tidak ditemukan tagihan kamar yang belum lunas.
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ')),
-                                    ]),
-
-                                Forms\Components\Section::make('Daftar Tagihan')
-                                    ->description('Centang tagihan yang dibayar PIC dan masukkan nominal pembayaran')
-                                    ->visible(fn(Forms\Get $get) => !empty($get('bill_items')))
+                                Forms\Components\Section::make('Tagihan Penghuni Kamar')
+                                    ->visible(fn(Forms\Get $get) => !blank($get('room_id')) && !empty($get('bill_items')))
+                                    ->description('Pilih tagihan yang akan dibayarkan dan masukkan nominal pembayaran')
                                     ->schema([
                                         Forms\Components\Repeater::make('bill_items')
                                             ->label('')
                                             ->schema([
-                                                Forms\Components\Grid::make(6)
-                                                    ->schema([
-                                                        Forms\Components\Checkbox::make('selected')
-                                                            ->label('Pilih')
-                                                            ->default(false)
-                                                            ->live()
-                                                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                                                                if (!$state) {
-                                                                    $set('payment_amount', 0);
-                                                                } else {
-                                                                    // Auto-fill dengan sisa tagihan
-                                                                    $set('payment_amount', $get('remaining_amount'));
-                                                                }
-                                                            }),
-
-                                                        Forms\Components\TextInput::make('resident_name')
-                                                            ->label('Penghuni')
-                                                            ->disabled()
-                                                            ->dehydrated(false),
-
-                                                        Forms\Components\TextInput::make('billing_type')
-                                                            ->label('Jenis Tagihan')
-                                                            ->disabled()
-                                                            ->dehydrated(false),
-
-                                                        Forms\Components\Placeholder::make('remaining_display')
-                                                            ->label('Sisa Tagihan')
-                                                            ->content(fn(Forms\Get $get) => 'Rp ' . number_format($get('remaining_amount') ?? 0, 0, ',', '.')),
-
-                                                        Forms\Components\TextInput::make('payment_amount')
-                                                            ->label('Nominal Dibayar')
-                                                            ->required(fn(Forms\Get $get) => $get('selected'))
-                                                            ->numeric()
-                                                            ->prefix('Rp')
-                                                            ->minValue(0)
-                                                            ->maxValue(fn(Forms\Get $get) => $get('remaining_amount'))
-                                                            ->disabled(fn(Forms\Get $get) => !$get('selected'))
-                                                            ->live(debounce: 500)
-                                                            ->helperText(
-                                                                fn(Forms\Get $get) => $get('selected')
-                                                                    ? 'Max: Rp ' . number_format($get('remaining_amount') ?? 0, 0, ',', '.')
-                                                                    : ''
-                                                            ),
-
-                                                        Forms\Components\Placeholder::make('bill_number_display')
-                                                            ->label('No. Tagihan')
-                                                            ->content(fn(Forms\Get $get) => $get('bill_number') ?? '-'),
-                                                    ]),
-
                                                 Forms\Components\Hidden::make('bill_id'),
                                                 Forms\Components\Hidden::make('bill_number'),
-                                                Forms\Components\Hidden::make('total_amount'),
+                                                Forms\Components\Hidden::make('user_id'),
                                                 Forms\Components\Hidden::make('remaining_amount'),
+                                                Forms\Components\Hidden::make('is_paid'),
+                                                Forms\Components\Hidden::make('resident_name'),
+                                                Forms\Components\Hidden::make('billing_type_name'),
+
+                                                Forms\Components\Checkbox::make('selected')
+                                                    ->label('Pilih')
+                                                    ->inline()
+                                                    ->disabled(fn(Forms\Get $get) => $get('is_paid') === true)
+                                                    ->live(onBlur: true)
+                                                    ->afterStateUpdated(function (Forms\Set $set, $state, Forms\Get $get) {
+                                                        if (!$state) {
+                                                            $set('payment_amount', 0);
+                                                        } else {
+                                                            $set('payment_amount', $get('remaining_amount'));
+                                                        }
+                                                    }),
+
+                                                Forms\Components\Placeholder::make('resident_info')
+                                                    ->label('Penghuni')
+                                                    ->content(fn(Forms\Get $get) => $get('resident_name') ?? '-'),
+
+                                                Forms\Components\Placeholder::make('bill_info')
+                                                    ->label('Tagihan')
+                                                    ->content(function (Forms\Get $get) {
+                                                        $billNumber = $get('bill_number');
+                                                        $billingType = $get('billing_type_name');
+                                                        $remaining = $get('remaining_amount') ?? 0;
+
+                                                        $status = $get('is_paid')
+                                                            ? '<span class="text-green-600 font-bold">✓ LUNAS</span>'
+                                                            : '<span class="text-orange-600">Belum Lunas</span>';
+
+                                                        return new \Illuminate\Support\HtmlString(
+                                                            "{$billNumber} - {$billingType}<br>" .
+                                                                "Sisa: Rp " . number_format($remaining, 0, ',', '.') . "<br>" .
+                                                                $status
+                                                        );
+                                                    }),
+
+                                                Forms\Components\TextInput::make('payment_amount')
+                                                    ->label('Jumlah Dibayar')
+                                                    ->numeric()
+                                                    ->prefix('Rp')
+                                                    ->disabled(fn(Forms\Get $get) => !$get('selected') || $get('is_paid') === true)
+                                                    ->required(fn(Forms\Get $get) => $get('selected') === true && $get('is_paid') === false)
+                                                    ->minValue(0)
+                                                    ->maxValue(fn(Forms\Get $get) => $get('remaining_amount'))
+                                                    ->live(onBlur: true)
+                                                    ->helperText(
+                                                        fn(Forms\Get $get) =>
+                                                        $get('is_paid')
+                                                            ? 'Tagihan sudah lunas'
+                                                            : 'Maksimal: Rp ' . number_format($get('remaining_amount') ?: 0, 0, ',', '.')
+                                                    ),
                                             ])
+                                            ->columns(4)
+                                            ->reorderable(false)
                                             ->addable(false)
                                             ->deletable(false)
-                                            ->reorderable(false)
-                                            ->columnSpanFull(),
+                                            ->live(),
 
                                         Forms\Components\Placeholder::make('total_payment')
                                             ->label('Total yang Akan Dibayar')
                                             ->content(function (Forms\Get $get) {
-                                                $billItems = $get('bill_items') ?? [];
-                                                $total = 0;
+                                                $items = collect($get('bill_items') ?? []);
+                                                $total = $items
+                                                    ->filter(fn($item) => ($item['selected'] ?? false) === true)
+                                                    ->sum(fn($item) => (int)($item['payment_amount'] ?? 0));
 
-                                                foreach ($billItems as $item) {
-                                                    if (($item['selected'] ?? false) && !empty($item['payment_amount'])) {
-                                                        $total += $item['payment_amount'];
-                                                    }
-                                                }
-
-                                                return new \Illuminate\Support\HtmlString("
-                                                    <div class='text-2xl font-bold text-green-600 dark:text-green-400'>
-                                                        Rp " . number_format($total, 0, ',', '.') . "
-                                                    </div>
-                                                ");
-                                            }),
+                                                return new \Illuminate\Support\HtmlString(
+                                                    '<span class="text-2xl font-bold text-green-600">Rp ' .
+                                                        number_format($total, 0, ',', '.') .
+                                                        '</span>'
+                                                );
+                                            })
+                                            ->extraAttributes(['class' => 'text-right']),
                                     ]),
+
+                                Forms\Components\Placeholder::make('no_bills_message')
+                                    ->label('')
+                                    ->content('Tidak ada tagihan yang belum lunas untuk penghuni di kamar ini.')
+                                    ->visible(fn(Forms\Get $get) => !blank($get('room_id')) && empty($get('bill_items'))),
 
                                 Forms\Components\Section::make('Detail Pembayaran')
-                                    ->visible(function (Forms\Get $get) {
-                                        $billItems = $get('bill_items') ?? [];
-                                        $hasSelected = collect($billItems)->where('selected', true)->isNotEmpty();
-                                        return $hasSelected && $get('tab') === 'room';
-                                    })
+                                    ->visible(fn(Forms\Get $get) => !blank($get('room_id')) && !empty($get('bill_items')))
                                     ->schema([
-                                        Forms\Components\DatePicker::make('payment_date')
-                                            ->label('Tanggal Pembayaran')
-                                            ->required(fn(Forms\Get $get) => $get('tab') === 'room')
-                                            ->default(now())
-                                            ->native(false)
-                                            ->maxDate(now())
-                                            ->displayFormat('d/m/Y'),
-                                    ]),
+                                        Forms\Components\Grid::make(2)
+                                            ->schema([
+                                                Forms\Components\DatePicker::make('payment_date')
+                                                    ->label('Tanggal Pembayaran')
+                                                    ->required(fn(Forms\Get $get) => $get('tab') === 'room')
+                                                    ->default(now()),
 
-                                // Metode Pembayaran PIC - sama seperti individual, gunakan Part 2B tapi sesuaikan kondisi visible dan required
-                                // Copy dari Part 2B, ganti semua kondisi:
-                                // - $get('tab') === 'individual' menjadi $get('tab') === 'room'
-                                // - $get('user_id') menjadi $get('pic_user_id')
+                                                Forms\Components\Select::make('payment_method_id')
+                                                    ->label('Metode Pembayaran')
+                                                    ->options(
+                                                        PaymentMethod::where('is_active', true)
+                                                            ->get()
+                                                            ->mapWithKeys(fn($pm) => [
+                                                                $pm->id => match ($pm->kind) {
+                                                                    'qris' => 'QRIS',
+                                                                    'transfer' => 'Transfer Bank',
+                                                                    'cash' => 'Tunai',
+                                                                    default => $pm->kind,
+                                                                }
+                                                            ])
+                                                            ->toArray()
+                                                    )
+                                                    ->required(fn(Forms\Get $get) => $get('tab') === 'room')
+                                                    ->native(false)
+                                                    ->live()
+                                                    ->afterStateUpdated(function (Forms\Set $set, Forms\Get $get) {
+                                                        $set('bank_account_id', null);
 
-                                Forms\Components\Section::make('Metode Pembayaran')
-                                    ->visible(fn(Forms\Get $get) => !blank($get('amount')) && $get('tab') === 'room')
-                                    ->schema([
-                                        Forms\Components\Select::make('payment_method_id')
-                                            ->label('Metode Pembayaran')
-                                            ->options(function () {
-                                                return PaymentMethod::where('is_active', true)
-                                                    ->get()
-                                                    ->mapWithKeys(fn($pm) => [
-                                                        $pm->id => match ($pm->kind) {
-                                                            'qris' => 'QRIS',
-                                                            'transfer' => 'Transfer Bank',
-                                                            'cash' => 'Tunai',
-                                                            default => $pm->kind,
+                                                        $paymentMethodId = $get('payment_method_id');
+                                                        if (!$paymentMethodId) return;
+
+                                                        $paymentMethod = PaymentMethod::find($paymentMethodId);
+                                                        if (!$paymentMethod || $paymentMethod->kind !== 'transfer') return;
+
+                                                        $picUserId = $get('pic_user_id');
+                                                        if (!$picUserId) return;
+
+                                                        $picUser = User::with('residentProfile.residentCategory')->find($picUserId);
+                                                        $residentCategoryId = $picUser?->residentProfile?->resident_category_id;
+
+                                                        if (!$residentCategoryId) return;
+
+                                                        $bankAccount = PaymentMethodBankAccount::query()
+                                                            ->where('payment_method_id', $paymentMethodId)
+                                                            ->where('is_active', true)
+                                                            ->whereHas('residentCategories', function ($q) use ($residentCategoryId) {
+                                                                $q->where('resident_categories.id', $residentCategoryId);
+                                                            })
+                                                            ->first();
+
+                                                        if ($bankAccount) {
+                                                            $set('bank_account_id', $bankAccount->id);
                                                         }
-                                                    ])
-                                                    ->toArray();
-                                            })
-                                            ->required(fn(Forms\Get $get) => $get('tab') === 'room')
-                                            ->native(false)
-                                            ->live()
-                                            ->afterStateUpdated(function (Forms\Set $set) {
-                                                $set('bank_account_id', null);
-                                            }),
+                                                    }),
+                                            ]),
 
-                                        // QRIS
-                                        Forms\Components\Placeholder::make('qris_image')
-                                            ->label('QR Code')
-                                            ->visible(function (Forms\Get $get) {
-                                                if (!$get('payment_method_id')) return false;
-                                                $pm = PaymentMethod::find($get('payment_method_id'));
-                                                return $pm && $pm->kind === 'qris' && $pm->qr_image_path;
-                                            })
-                                            ->content(function (Forms\Get $get) {
-                                                $pm = PaymentMethod::find($get('payment_method_id'));
-                                                if (!$pm || !$pm->qr_image_path) return '';
-
-                                                $url = Storage::url($pm->qr_image_path);
-                                                return new \Illuminate\Support\HtmlString("
-                                                    <div class='flex flex-col items-center gap-3'>
-                                                        <img src='{$url}' alt='QR Code' class='max-w-xs rounded-lg border-2 border-gray-200'>
-                                                        <p class='text-sm text-gray-600'>Scan QR Code untuk pembayaran</p>
-                                                    </div>
-                                                ");
-                                            }),
-
-                                        // Transfer Bank
                                         Forms\Components\Select::make('bank_account_id')
-                                            ->label('Rekening Tujuan')
-                                            ->visible(function (Forms\Get $get) {
-                                                if (!$get('payment_method_id')) return false;
-                                                $pm = PaymentMethod::find($get('payment_method_id'));
-                                                return $pm && $pm->kind === 'transfer';
-                                            })
+                                            ->label('Rekening Bank Tujuan')
                                             ->options(function (Forms\Get $get) {
-                                                $pmId = $get('payment_method_id');
-                                                $userId = $get('pic_user_id');
+                                                $paymentMethodId = $get('payment_method_id');
+                                                if (!$paymentMethodId) return [];
 
-                                                if (!$pmId || !$userId) return [];
-
-                                                $user = User::find($userId);
-                                                $categoryId = $user->residentProfile?->resident_category_id;
-
-                                                if (!$categoryId) {
-                                                    return PaymentMethodBankAccount::where('payment_method_id', $pmId)
-                                                        ->where('is_active', true)
-                                                        ->get()
-                                                        ->mapWithKeys(function ($bank) {
-                                                            return [$bank->id => $bank->formatted_bank_info];
-                                                        })
-                                                        ->toArray();
+                                                $paymentMethod = PaymentMethod::find($paymentMethodId);
+                                                if (!$paymentMethod || $paymentMethod->kind !== 'transfer') {
+                                                    return [];
                                                 }
 
-                                                return PaymentMethodBankAccount::where('payment_method_id', $pmId)
+                                                $picUserId = $get('pic_user_id');
+                                                $residentCategoryId = null;
+
+                                                if ($picUserId) {
+                                                    $picUser = User::with('residentProfile.residentCategory')->find($picUserId);
+                                                    $residentCategoryId = $picUser?->residentProfile?->resident_category_id;
+                                                }
+
+                                                return PaymentMethodBankAccount::query()
+                                                    ->where('payment_method_id', $paymentMethodId)
                                                     ->where('is_active', true)
-                                                    ->whereHas('residentCategories', function ($q) use ($categoryId) {
-                                                        $q->where('resident_categories.id', $categoryId);
+                                                    ->when($residentCategoryId, function ($query) use ($residentCategoryId) {
+                                                        $query->whereHas('residentCategories', function ($q) use ($residentCategoryId) {
+                                                            $q->where('resident_categories.id', $residentCategoryId);
+                                                        });
                                                     })
                                                     ->get()
-                                                    ->mapWithKeys(function ($bank) {
-                                                        return [$bank->id => $bank->formatted_bank_info];
-                                                    })
+                                                    ->mapWithKeys(fn($ba) => [
+                                                        $ba->id => "{$ba->bank_name} - {$ba->account_number} ({$ba->account_name})"
+                                                    ])
                                                     ->toArray();
                                             })
                                             ->searchable()
                                             ->native(false)
-                                            ->required(function (Forms\Get $get) {
-                                                if (!$get('payment_method_id') || $get('tab') !== 'room') return false;
-                                                $pm = PaymentMethod::find($get('payment_method_id'));
-                                                return $pm && $pm->kind === 'transfer';
-                                            })
-                                            ->helperText('Pilih rekening bank tujuan transfer'),
-
-                                        // Tunai
-                                        Forms\Components\Placeholder::make('cash_info')
-                                            ->label('Informasi Pembayaran Tunai')
                                             ->visible(function (Forms\Get $get) {
-                                                if (!$get('payment_method_id')) return false;
-                                                $pm = PaymentMethod::find($get('payment_method_id'));
-                                                return $pm && $pm->kind === 'cash';
-                                            })
-                                            ->content(function (Forms\Get $get) {
-                                                $pm = PaymentMethod::find($get('payment_method_id'));
-                                                if (!$pm || !$pm->instructions) {
-                                                    return 'Silakan lakukan pembayaran tunai ke admin.';
-                                                }
-                                                return new \Illuminate\Support\HtmlString(nl2br(e($pm->instructions)));
-                                            }),
-                                    ]),
+                                                $paymentMethodId = $get('payment_method_id');
+                                                if (!$paymentMethodId) return false;
 
-                                Forms\Components\Section::make('Bukti Pembayaran')
-                                    ->visible(fn(Forms\Get $get) => !blank($get('payment_method_id')) && $get('tab') === 'room')
-                                    ->schema([
+                                                $paymentMethod = PaymentMethod::find($paymentMethodId);
+                                                return $paymentMethod && $paymentMethod->kind === 'transfer';
+                                            })
+                                            ->required(function (Forms\Get $get) {
+                                                if ($get('tab') !== 'room') return false;
+
+                                                $paymentMethodId = $get('payment_method_id');
+                                                if (!$paymentMethodId) return false;
+
+                                                $paymentMethod = PaymentMethod::find($paymentMethodId);
+                                                return $paymentMethod && $paymentMethod->kind === 'transfer';
+                                            })
+                                            ->helperText('Rekening otomatis dipilih berdasarkan kategori penghuni'),
+
                                         Forms\Components\FileUpload::make('proof_path')
-                                            ->label('Upload Bukti Transfer/Pembayaran')
+                                            ->label('Bukti Pembayaran')
                                             ->image()
-                                            ->imageEditor()
-                                            ->imageEditorAspectRatios([null, '16:9', '4:3', '1:1'])
-                                            ->maxSize(5120)
                                             ->directory('payment-proofs')
                                             ->visibility('private')
-                                            ->nullable()
-                                            ->helperText('Format: JPG, PNG, max 5MB. Upload foto bukti transfer atau struk pembayaran.'),
+                                            ->maxSize(5120)
+                                            ->required(fn(Forms\Get $get) => $get('tab') === 'room')
+                                            ->helperText('Upload foto bukti transfer/pembayaran (maks. 5MB) - WAJIB'),
 
                                         Forms\Components\Textarea::make('notes')
-                                            ->label('Catatan (Opsional)')
+                                            ->label('Catatan')
                                             ->rows(3)
-                                            ->placeholder('Contoh: Dibayar melalui ATM BCA, sudah dipotong biaya admin Rp 6.500')
-                                            ->nullable(),
+                                            ->placeholder('Catatan tambahan (opsional)'),
                                     ]),
                             ]),
                     ])
@@ -748,16 +651,15 @@ class CreateBillPayment extends CreateRecord
 
     protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
     {
-        $admin = auth()->user(); // Admin yang mencatat
         $tab = $data['tab'] ?? 'individual';
 
         try {
             DB::beginTransaction();
 
-            // ============================================
-            // MODE: PIC PAYMENT (GABUNGAN TAGIHAN KAMAR)
-            // ============================================
             if ($tab === 'room') {
+                // ============================================
+                // APPROACH BARU: 1 PAYMENT PER BILL
+                // ============================================
                 $billItems = collect($data['bill_items'] ?? [])
                     ->where('selected', true)
                     ->filter(fn($item) => !empty($item['payment_amount']) && $item['payment_amount'] > 0);
@@ -771,49 +673,62 @@ class CreateBillPayment extends CreateRecord
                     throw new \Exception('PIC tidak ditemukan.');
                 }
 
-                // Validasi: pastikan semua bill masih ada dan remaining_amount cukup
+                // Validasi semua bill
                 foreach ($billItems as $item) {
                     $bill = Bill::find($item['bill_id']);
-
                     if (!$bill) {
                         throw new \Exception("Tagihan {$item['bill_number']} tidak ditemukan.");
                     }
-
                     if ($item['payment_amount'] > $bill->remaining_amount) {
                         throw new \Exception("Nominal pembayaran untuk {$item['bill_number']} melebihi sisa tagihan.");
                     }
                 }
 
-                // Generate nomor pembayaran
-                $paymentNumber = 'PAY-' . now()->format('Ymd') . '-' . strtoupper(uniqid());
+                // Generate GROUP payment number (SAMA untuk semua payment dalam 1 transaksi PIC)
+                $groupPaymentNumber = 'PIC-' . now()->format('Ymd-His') . '-' . strtoupper(substr(uniqid(), -6));
 
-                // Buat 1 payment record sebagai "induk" untuk gabungan
-                $firstBill = Bill::find($billItems->first()['bill_id']);
-                $totalAmount = $billItems->sum('payment_amount');
+                // ✅ BUAT 1 PAYMENT PER BILL
+                $createdPayments = [];
 
-                $payment = BillPayment::create([
-                    'bill_id' => $firstBill->id,
-                    'payment_number' => $paymentNumber,
-                    'amount' => $totalAmount,
-                    'payment_date' => $data['payment_date'],
-                    'payment_method_id' => $data['payment_method_id'],
-                    'bank_account_id' => $data['bank_account_id'] ?? null,
-                    'paid_by_user_id' => $picUser->id, // PIC yang bayar
-                    'paid_by_name' => $picUser->residentProfile->full_name ?? $picUser->name,
-                    'is_pic_payment' => true,
-                    'proof_path' => $data['proof_path'] ?? null,
-                    'status' => 'pending',
-                    'notes' => $data['notes'] ?? null,
-                ]);
+                foreach ($billItems as $item) {
+                    $bill = Bill::with('user.residentProfile')->find($item['bill_id']);
 
-                // Simpan detail alokasi di notes untuk diproses saat verify
-                $allocations = $billItems->map(function ($item) {
-                    return "Rp " . number_format($item['payment_amount'], 0, ',', '.') . " untuk {$item['bill_number']}";
-                })->toArray();
+                    $residentName = $bill->user->residentProfile->full_name ?? $bill->user->name;
 
-                $payment->notes = "PIC Payment ({$paymentNumber}):\n" . implode("\n", $allocations) . "\n\n" . ($data['notes'] ?? '');
-                $payment->save();
+                    $payment = BillPayment::create([
+                        'bill_id' => $bill->id,
+                        'payment_number' => $groupPaymentNumber, // ✅ SAMA untuk grouping
+                        'amount' => $item['payment_amount'],
+                        'payment_date' => $data['payment_date'],
+                        'payment_method_id' => $data['payment_method_id'],
+                        'bank_account_id' => $data['bank_account_id'] ?? null,
+                        'paid_by_user_id' => $picUser->id,
+                        'paid_by_name' => $picUser->residentProfile->full_name ?? $picUser->name,
+                        'is_pic_payment' => true,
+                        'proof_path' => $data['proof_path'] ?? null,
+                        'status' => 'pending',
+                        'notes' => "Dibayarkan oleh PIC untuk: {$residentName}\n" .
+                            "Tagihan: {$bill->bill_number}\n" .
+                            ($data['notes'] ?? ''),
+                    ]);
+
+                    $createdPayments[] = $payment;
+                }
+
+                // Return payment pertama
+                $firstPayment = $createdPayments[0];
+
+                DB::commit();
+
+                Notification::make()
+                    ->success()
+                    ->title('Pembayaran Berhasil Dicatat')
+                    ->body(count($createdPayments) . ' pembayaran telah dicatat dan menunggu verifikasi.')
+                    ->send();
+
+                return $firstPayment;
             }
+
             // ============================================
             // MODE: INDIVIDUAL PAYMENT
             // ============================================
@@ -825,15 +740,12 @@ class CreateBillPayment extends CreateRecord
 
                 $bill = Bill::findOrFail($data['bill_id']);
 
-                // Validasi
                 if ($data['amount'] > $bill->remaining_amount) {
                     throw new \Exception('Jumlah pembayaran melebihi sisa tagihan.');
                 }
 
-                // Generate nomor pembayaran
-                $paymentNumber = 'PAY-' . now()->format('Ymd') . '-' . strtoupper(uniqid());
+                $paymentNumber = 'PAY-' . now()->format('Ymd-His') . '-' . strtoupper(substr(uniqid(), -6));
 
-                // Buat payment record
                 $payment = BillPayment::create([
                     'bill_id' => $bill->id,
                     'payment_number' => $paymentNumber,
@@ -841,24 +753,24 @@ class CreateBillPayment extends CreateRecord
                     'payment_date' => $data['payment_date'],
                     'payment_method_id' => $data['payment_method_id'],
                     'bank_account_id' => $data['bank_account_id'] ?? null,
-                    'paid_by_user_id' => $payer->id, // Penghuni yang bayar
+                    'paid_by_user_id' => $payer->id,
                     'paid_by_name' => $payer->residentProfile->full_name ?? $payer->name,
                     'is_pic_payment' => false,
                     'proof_path' => $data['proof_path'] ?? null,
                     'status' => 'pending',
                     'notes' => $data['notes'] ?? null,
                 ]);
+
+                DB::commit();
+
+                Notification::make()
+                    ->success()
+                    ->title('Pembayaran Berhasil Dicatat')
+                    ->body('Pembayaran telah dicatat dan menunggu verifikasi.')
+                    ->send();
+
+                return $payment;
             }
-
-            DB::commit();
-
-            Notification::make()
-                ->success()
-                ->title('Pembayaran Berhasil Dicatat')
-                ->body('Pembayaran telah dicatat dan menunggu verifikasi.')
-                ->send();
-
-            return $payment;
         } catch (\Exception $e) {
             DB::rollBack();
 

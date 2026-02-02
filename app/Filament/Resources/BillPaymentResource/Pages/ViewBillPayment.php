@@ -15,6 +15,14 @@ class ViewBillPayment extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('receipt')
+                ->label('Cetak Bukti')
+                ->icon('heroicon-o-printer')
+                ->color('info')
+                ->visible(fn() => $this->record->status === 'verified')
+                ->url(fn() => route('receipt.show', $this->record))
+                ->openUrlInNewTab(),
+
             Actions\Action::make('verify')
                 ->label('Verifikasi')
                 ->icon('heroicon-o-check-circle')
@@ -125,6 +133,11 @@ class ViewBillPayment extends ViewRecord
                             ->label('Jenis Tagihan')
                             ->badge()
                             ->color('info'),
+
+                        Infolists\Components\TextEntry::make('bill.user.residentProfile.full_name')
+                            ->label('Penghuni yang Tertagih')
+                            ->icon('heroicon-o-user')
+                            ->default(fn($record) => $record->bill->user->name ?? '-'),
 
                         Infolists\Components\TextEntry::make('bill.room.code')
                             ->label('Kamar')
