@@ -590,9 +590,9 @@
                             @endif
                         </div>
                         <div class="room-content">
-                            <div class="room-title">{{ $room->block->dorm->name }} {{ $room->roomType->name }} {{ $room->number }}</div>
+                            <div class="room-title">Cabang {{ $room->block->dorm->name }} Nomor {{ $room->number }} Tipe {{ $room->roomType->name }}</div>
                             <div class="room-type">{{ $room->roomType->name }}</div>
-                            <div class="room-location">📍 {{ $room->block->name }}, {{ $room->block->dorm->name }}</div>
+                            <div class="room-location">📍 Komplek {{ $room->block->name }}, Cabang {{ $room->block->dorm->name }}, {{ $room->block->dorm->address }}</div>
                             <div class="room-info">
                                 <div class="room-price">
                                     Rp {{ number_format($room->monthly_rate ?? $room->roomType->default_monthly_rate, 0, ',', '.') }}

@@ -20,7 +20,7 @@ class LandingController extends Controller
         $rooms = cache()->remember('landing_rooms', 600, function () {
             return Room::with(['roomType:id,name,default_monthly_rate,default_capacity', 
                             'block:id,name,dorm_id', 
-                            'block.dorm:id,name'])
+                            'block.dorm:id,name,address'])
                 ->select('id', 'number', 'code', 'room_type_id', 'block_id', 'capacity', 'monthly_rate', 'is_active', 'thumbnail')
                 ->where('is_active', true)
                 ->latest('id')
@@ -48,7 +48,7 @@ class LandingController extends Controller
         $rooms = cache()->remember('rooms_page_' . $page, 600, function () {
             return Room::with(['roomType:id,name,default_monthly_rate,default_capacity', 
                             'block:id,name,dorm_id', 
-                            'block.dorm:id,name'])
+                            'block.dorm:id,name,address'])
                 ->select('id', 'number', 'code', 'room_type_id', 'block_id', 'capacity', 'monthly_rate', 'is_active', 'thumbnail')
                 ->where('is_active', true)
                 ->latest('id')
