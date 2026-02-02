@@ -455,7 +455,6 @@ class RoomResource extends Resource
                                             '<span>' . $f->name . '</span></div>'
                                     ]))
                                     ->default(fn ($record) => $record ? $record->facilities()->where('type', 'parkir')->pluck('facilities.id')->toArray() : [])
-                                    ->dehydrated(false)
                                     ->afterStateHydrated(function (Select $component, $state, $record) {
                                         if ($record) {
                                             $component->state($record->facilities()->where('type', 'parkir')->pluck('facilities.id')->toArray());
@@ -513,7 +512,6 @@ class RoomResource extends Resource
                                             '<span>' . $f->name . '</span></div>'
                                     ]))
                                     ->default(fn ($record) => $record ? $record->facilities()->where('type', 'umum')->pluck('facilities.id')->toArray() : [])
-                                    ->dehydrated(false)
                                     ->afterStateHydrated(function (Select $component, $state, $record) {
                                         if ($record) {
                                             $component->state($record->facilities()->where('type', 'umum')->pluck('facilities.id')->toArray());
@@ -571,7 +569,6 @@ class RoomResource extends Resource
                                             '<span>' . $f->name . '</span></div>'
                                     ]))
                                     ->default(fn ($record) => $record ? $record->facilities()->where('type', 'kamar_mandi')->pluck('facilities.id')->toArray() : [])
-                                    ->dehydrated(false)
                                     ->afterStateHydrated(function (Select $component, $state, $record) {
                                         if ($record) {
                                             $component->state($record->facilities()->where('type', 'kamar_mandi')->pluck('facilities.id')->toArray());
@@ -629,7 +626,6 @@ class RoomResource extends Resource
                                             '<span>' . $f->name . '</span></div>'
                                     ]))
                                     ->default(fn ($record) => $record ? $record->facilities()->where('type', 'kamar')->pluck('facilities.id')->toArray() : [])
-                                    ->dehydrated(false)
                                     ->afterStateHydrated(function (Select $component, $state, $record) {
                                         if ($record) {
                                             $component->state($record->facilities()->where('type', 'kamar')->pluck('facilities.id')->toArray());
@@ -1307,15 +1303,76 @@ class RoomResource extends Resource
                                     }),
                             ])->grid(3),
 
-                        \Filament\Infolists\Components\RepeatableEntry::make('facilities')
-                            ->label('Fasilitas')
+                        \Filament\Infolists\Components\Grid::make(3)
                             ->schema([
-                                \Filament\Infolists\Components\TextEntry::make('name')
-                                    ->formatStateUsing(function ($state, $record) {
-                                        $icon = $record->icon ? svg($record->icon, 'w-5 h-5 text-success-500 inline mr-2')->toHtml() : '';
-                                        return new \Illuminate\Support\HtmlString($icon . $state . " <span class='text-xs text-gray-500'>({$record->type})</span>");
-                                    }),
-                            ])->grid(3),
+                                \Filament\Infolists\Components\Section::make('Parkir')
+                                    ->icon('heroicon-o-truck')
+                                    ->schema([
+                                        \Filament\Infolists\Components\TextEntry::make('facilitiesParkir_list')
+                                            ->hiddenLabel()
+                                            ->state(fn ($record) => $record->facilitiesParkir)
+                                            ->formatStateUsing(function ($state) {
+                                                return $state->map(function ($facility) {
+                                                     $icon = $facility->icon ? svg($facility->icon, 'w-5 h-5 text-info-500 inline mr-2')->toHtml() : '';
+                                                     return '<div class="flex items-center mb-1">' . $icon . '<span>' . e($facility->name) . '</span></div>';
+                                                })->implode('');
+                                            })
+                                            ->html(),
+                                    ])
+                                    ->visible(fn ($record) => $record->facilitiesParkir()->exists())
+                                    ->compact(),
+
+                                \Filament\Infolists\Components\Section::make('Umum')
+                                    ->icon('heroicon-o-building-storefront')
+                                    ->schema([
+                                        \Filament\Infolists\Components\TextEntry::make('facilitiesUmum_list')
+                                            ->hiddenLabel()
+                                            ->state(fn ($record) => $record->facilitiesUmum)
+                                            ->formatStateUsing(function ($state) {
+                                                return $state->map(function ($facility) {
+                                                     $icon = $facility->icon ? svg($facility->icon, 'w-5 h-5 text-success-500 inline mr-2')->toHtml() : '';
+                                                     return '<div class="flex items-center mb-1">' . $icon . '<span>' . e($facility->name) . '</span></div>';
+                                                })->implode('');
+                                            })
+                                            ->html(),
+                                    ])
+                                    ->visible(fn ($record) => $record->facilitiesUmum()->exists())
+                                    ->compact(),
+
+                                \Filament\Infolists\Components\Section::make('Kamar Mandi')
+                                    ->icon('heroicon-o-sparkles')
+                                    ->schema([
+                                        \Filament\Infolists\Components\TextEntry::make('facilitiesKamarMandi_list')
+                                            ->hiddenLabel()
+                                            ->state(fn ($record) => $record->facilitiesKamarMandi)
+                                            ->formatStateUsing(function ($state) {
+                                                return $state->map(function ($facility) {
+                                                     $icon = $facility->icon ? svg($facility->icon, 'w-5 h-5 text-warning-500 inline mr-2')->toHtml() : '';
+                                                     return '<div class="flex items-center mb-1">' . $icon . '<span>' . e($facility->name) . '</span></div>';
+                                                })->implode('');
+                                            })
+                                            ->html(),
+                                    ])
+                                    ->visible(fn ($record) => $record->facilitiesKamarMandi()->exists())
+                                    ->compact(),
+
+                                \Filament\Infolists\Components\Section::make('Kamar')
+                                    ->icon('heroicon-o-home')
+                                    ->schema([
+                                        \Filament\Infolists\Components\TextEntry::make('facilitiesKamar_list')
+                                            ->hiddenLabel()
+                                            ->state(fn ($record) => $record->facilitiesKamar)
+                                            ->formatStateUsing(function ($state) {
+                                                return $state->map(function ($facility) {
+                                                     $icon = $facility->icon ? svg($facility->icon, 'w-5 h-5 text-primary-500 inline mr-2')->toHtml() : '';
+                                                     return '<div class="flex items-center mb-1">' . $icon . '<span>' . e($facility->name) . '</span></div>';
+                                                })->implode('');
+                                            })
+                                            ->html(),
+                                    ])
+                                    ->visible(fn ($record) => $record->facilitiesKamar()->exists())
+                                    ->compact(),
+                            ]),
                     ]),
             ]);
     }

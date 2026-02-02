@@ -85,6 +85,26 @@ class Room extends Model
         return $this->belongsToMany(Facility::class);
     }
 
+    public function facilitiesParkir(): BelongsToMany
+    {
+        return $this->facilities()->where('type', 'parkir');
+    }
+
+    public function facilitiesUmum(): BelongsToMany
+    {
+        return $this->facilities()->where('type', 'umum');
+    }
+
+    public function facilitiesKamarMandi(): BelongsToMany
+    {
+        return $this->facilities()->where('type', 'kamar_mandi');
+    }
+
+    public function facilitiesKamar(): BelongsToMany
+    {
+        return $this->facilities()->where('type', 'kamar');
+    }
+
     public function roomRules(): BelongsToMany
     {
         return $this->belongsToMany(RoomRule::class, 'room_room_rule');

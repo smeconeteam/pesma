@@ -132,7 +132,7 @@ class ViewRoom extends ViewRecord
                     ])
                     ->collapsible(),
 
-                InfoSection::make('Fasilitas & Aturan')
+                InfoSection::make('Peraturan & Fasilitas')
                     ->schema([
                         RepeatableEntry::make('roomRules')
                             ->label('Peraturan Kamar')
@@ -153,24 +153,114 @@ class ViewRoom extends ViewRecord
                             ->visible(fn($record) => $record->roomRules()->exists())
                             ->placeholder('Belum ada peraturan kamar'),
 
-                        RepeatableEntry::make('facilities')
-                            ->label('Fasilitas')
+                        Grid::make(1)
                             ->schema([
-                                TextEntry::make('name')
-                                    ->label(fn ($record) => \Illuminate\Support\Str::of($record->type)->replace('_', ' ')->title())
-                                    ->formatStateUsing(function ($state, $record) {
-                                        $icon = $record->icon ? svg($record->icon, 'w-5 h-5 text-success-500')->toHtml() : '';
-                                        return new \Illuminate\Support\HtmlString(
-                                            '<div class="flex items-center gap-2">' .
-                                                $icon .
-                                                '<span>' . $state . '</span>' .
-                                            '</div>'
-                                        );
-                                    }),
-                            ])
-                            ->grid(3)
-                            ->visible(fn($record) => $record->facilities()->exists())
-                            ->placeholder('Belum ada fasilitas'),
+                                TextEntry::make('facilities_heading')
+                                    ->label('Fasilitas Kamar')
+                                    ->default('')
+                                    ->columnSpanFull()
+                                    ->extraAttributes(['class' => 'text-sm font-medium'])
+                                    ->visible(fn($record) => $record->facilities()->exists()),
+                            ]),
+
+                        Grid::make(2)
+                            ->schema([
+                                InfoSection::make('Parkir')
+                                    ->schema([
+                                        TextEntry::make('facilitiesParkir_list')
+                                            ->hiddenLabel()
+                                            ->getStateUsing(function ($record) {
+                                                $facilities = $record->facilitiesParkir;
+                                                if ($facilities->isEmpty()) return '';
+                                                return $facilities->map(function ($facility) {
+                                                    $iconHtml = '';
+                                                    if ($facility->icon) {
+                                                        try {
+                                                            $iconHtml = \Illuminate\Support\Facades\Blade::render('<x-dynamic-component :component="$icon" class="w-5 h-5 text-info-500 inline-block mr-2" />', ['icon' => $facility->icon]);
+                                                        } catch (\Exception $e) {
+                                                            $iconHtml = '';
+                                                        }
+                                                    }
+                                                    return '<div class="flex items-center gap-2 mb-1">' . $iconHtml . '<span>' . e($facility->name) . '</span></div>';
+                                                })->implode('');
+                                            })
+                                            ->html(),
+                                    ])
+                                    ->visible(fn ($record) => $record->facilitiesParkir()->exists())
+                                    ->compact(),
+
+                                InfoSection::make('Umum')
+                                    ->schema([
+                                        TextEntry::make('facilitiesUmum_list')
+                                            ->hiddenLabel()
+                                            ->getStateUsing(function ($record) {
+                                                $facilities = $record->facilitiesUmum;
+                                                if ($facilities->isEmpty()) return '';
+                                                return $facilities->map(function ($facility) {
+                                                    $iconHtml = '';
+                                                    if ($facility->icon) {
+                                                        try {
+                                                            $iconHtml = \Illuminate\Support\Facades\Blade::render('<x-dynamic-component :component="$icon" class="w-5 h-5 text-success-500 inline-block mr-2" />', ['icon' => $facility->icon]);
+                                                        } catch (\Exception $e) {
+                                                            $iconHtml = '';
+                                                        }
+                                                    }
+                                                    return '<div class="flex items-center gap-2 mb-1">' . $iconHtml . '<span>' . e($facility->name) . '</span></div>';
+                                                })->implode('');
+                                            })
+                                            ->html(),
+                                    ])
+                                    ->visible(fn ($record) => $record->facilitiesUmum()->exists())
+                                    ->compact(),
+
+                                InfoSection::make('Kamar Mandi')
+                                    ->schema([
+                                        TextEntry::make('facilitiesKamarMandi_list')
+                                            ->hiddenLabel()
+                                            ->getStateUsing(function ($record) {
+                                                $facilities = $record->facilitiesKamarMandi;
+                                                if ($facilities->isEmpty()) return '';
+                                                return $facilities->map(function ($facility) {
+                                                    $iconHtml = '';
+                                                    if ($facility->icon) {
+                                                        try {
+                                                            $iconHtml = \Illuminate\Support\Facades\Blade::render('<x-dynamic-component :component="$icon" class="w-5 h-5 text-warning-500 inline-block mr-2" />', ['icon' => $facility->icon]);
+                                                        } catch (\Exception $e) {
+                                                            $iconHtml = '';
+                                                        }
+                                                    }
+                                                    return '<div class="flex items-center gap-2 mb-1">' . $iconHtml . '<span>' . e($facility->name) . '</span></div>';
+                                                })->implode('');
+                                            })
+                                            ->html(),
+                                    ])
+                                    ->visible(fn ($record) => $record->facilitiesKamarMandi()->exists())
+                                    ->compact(),
+
+                                InfoSection::make('Kamar')
+                                    ->schema([
+                                        TextEntry::make('facilitiesKamar_list')
+                                            ->hiddenLabel()
+                                            ->getStateUsing(function ($record) {
+                                                $facilities = $record->facilitiesKamar;
+                                                if ($facilities->isEmpty()) return '';
+                                                return $facilities->map(function ($facility) {
+                                                    $iconHtml = '';
+                                                    if ($facility->icon) {
+                                                        try {
+                                                            $iconHtml = \Illuminate\Support\Facades\Blade::render('<x-dynamic-component :component="$icon" class="w-5 h-5 text-primary-500 inline-block mr-2" />', ['icon' => $facility->icon]);
+                                                        } catch (\Exception $e) {
+                                                            $iconHtml = '';
+                                                        }
+                                                    }
+                                                    return '<div class="flex items-center gap-2 mb-1">' . $iconHtml . '<span>' . e($facility->name) . '</span></div>';
+                                                })->implode('');
+                                            })
+                                            ->html(),
+                                    ])
+                                    ->visible(fn ($record) => $record->facilitiesKamar()->exists())
+                                    ->compact(),
+                            ]),
                     ])
                     ->collapsible(),
 

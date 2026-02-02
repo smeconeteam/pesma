@@ -33,4 +33,28 @@ class CreateRoom extends CreateRecord
 
         return $data;
     }
+
+    protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
+    {
+        // Extract facilities
+        $facilities = [];
+        $keys = ['facility_parkir', 'facility_umum', 'facility_kamar_mandi', 'facility_kamar'];
+        
+        foreach ($keys as $key) {
+            if (isset($data[$key])) {
+                $facilities = array_merge($facilities, $data[$key]);
+                unset($data[$key]);
+            }
+        }
+        
+        // Buat record room
+        $record = static::getModel()::create($data);
+
+        // Sync facilities manual
+        if (!empty($facilities)) {
+            $record->facilities()->sync(array_unique($facilities));
+        }
+
+        return $record;
+    }
 }
