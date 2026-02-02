@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class BillPayment extends Model
 {
@@ -59,13 +58,11 @@ class BillPayment extends Model
         return $this->belongsTo(PaymentMethodBankAccount::class, 'bank_account_id');
     }
 
-    public function transaction(): HasOne
-    {
-        return $this->hasOne(Transaction::class);
-    }
-
     // METHODS
 
+    /**
+     * VERIFY - Simple: 1 payment = 1 bill
+     */
     public function verify(int $verifiedById): void
     {
         DB::transaction(function () use ($verifiedById) {
@@ -76,34 +73,10 @@ class BillPayment extends Model
                 'verified_at' => now(),
             ]);
 
-            // Update tagihan
+            // Update bill yang terkait
             $bill = $this->bill;
 
-            if ($this->is_pic_payment && $this->notes) {
-                preg_match_all('/Rp ([\d,.]+) untuk (BILL-[\w-]+)/', $this->notes, $matches);
-
-                if (!empty($matches[1]) && !empty($matches[2])) {
-                    foreach ($matches[2] as $index => $billNumber) {
-                        $allocatedAmount = (int) str_replace(['.', ','], '', $matches[1][$index]);
-
-                        $targetBill = Bill::where('bill_number', $billNumber)->first();
-                        if ($targetBill) {
-                            $targetBill->paid_amount += $allocatedAmount;
-                            $targetBill->remaining_amount = max(0, $targetBill->total_amount - $targetBill->paid_amount);
-
-                            if ($targetBill->remaining_amount <= 0) {
-                                $targetBill->status = 'paid';
-                            } elseif ($targetBill->paid_amount > 0) {
-                                $targetBill->status = 'partial';
-                            }
-
-                            $targetBill->save();
-                        }
-                    }
-                }
-            }
-            // Individual payment
-            else {
+            if ($bill) {
                 $bill->paid_amount += $this->amount;
                 $bill->remaining_amount = max(0, $bill->total_amount - $bill->paid_amount);
 
@@ -116,78 +89,33 @@ class BillPayment extends Model
                 $bill->save();
             }
 
-            // ✅ AUTO CREATE TRANSACTION (Pemasukan dari Billing)
-            $this->createTransaction($verifiedById);
+            // Buat transaction untuk arus kas
+            $this->createTransaction();
         });
     }
 
     public function reject(string $reason, int $verifiedById): void
     {
         DB::transaction(function () use ($reason, $verifiedById) {
-            // Update status payment
             $this->update([
                 'status' => 'rejected',
                 'rejection_reason' => $reason,
                 'verified_by' => $verifiedById,
                 'verified_at' => now(),
             ]);
-
-            // Delete transaction if exists
-            $this->transaction()->delete();
         });
     }
 
-    /**
-     * Create transaction entry for verified payment
-     */
-    protected function createTransaction(int $createdById): void
-    {
-        // Skip if transaction already exists
-        if ($this->transaction()->exists()) {
-            return;
-        }
-
-        $bill = $this->bill;
-        $room = $bill->room;
-        
-        // Determine payment method
-        $paymentMethodType = $this->paymentMethod?->kind === 'cash' ? 'cash' : 'credit';
-
-        Transaction::create([
-            'type' => 'income',
-            'name' => "Pembayaran {$bill->billingType->name} - {$this->paid_by_name}",
-            'amount' => $this->amount,
-            'payment_method' => $paymentMethodType,
-            'transaction_date' => $this->payment_date,
-            'notes' => $this->is_pic_payment 
-                ? "Pembayaran PIC (Gabungan)\n{$this->notes}" 
-                : "Pembayaran Bill #{$bill->bill_number}",
-            'dorm_id' => $room?->block?->dorm_id,
-            'block_id' => $room?->block_id,
-            'bill_payment_id' => $this->id,
-            'created_by' => $createdById,
-        ]);
-    }
-
-    /**
-     * Cek apakah payment bisa diedit
-     */
     public function canBeEdited(): bool
     {
         return $this->status === 'pending';
     }
 
-    /**
-     * Cek apakah payment bisa diverifikasi
-     */
     public function canBeVerified(): bool
     {
         return $this->status === 'pending';
     }
 
-    /**
-     * Format status untuk display
-     */
     public function getStatusLabelAttribute(): string
     {
         return match ($this->status) {
@@ -198,23 +126,121 @@ class BillPayment extends Model
         };
     }
 
-    /**
-     * Get payment type label
-     */
     public function getPaymentTypeLabelAttribute(): string
     {
         return $this->is_pic_payment ? 'PIC (Gabungan)' : 'Individual';
     }
 
     /**
-     * Get proof URL
+     * Get semua payment dalam group PIC yang sama
      */
-    public function getProofUrlAttribute(): ?string
+    public function getPicGroupPayments()
     {
-        if (!$this->proof_path) {
-            return null;
+        if (!$this->is_pic_payment) {
+            return collect([$this]);
         }
-        
-        return \Illuminate\Support\Facades\Storage::url($this->proof_path);
+
+        return self::where('payment_number', $this->payment_number)
+            ->with(['bill.billingType', 'bill.user.residentProfile'])
+            ->get();
+    }
+
+    /**
+     * Get total amount untuk group PIC
+     */
+    public function getPicGroupTotalAttribute(): int
+    {
+        if (!$this->is_pic_payment) {
+            return $this->amount;
+        }
+
+        return self::where('payment_number', $this->payment_number)
+            ->sum('amount');
+    }
+
+    /**
+     * Get jumlah bills dalam group PIC
+     */
+    public function getPicGroupCountAttribute(): int
+    {
+        if (!$this->is_pic_payment) {
+            return 1;
+        }
+
+        return self::where('payment_number', $this->payment_number)->count();
+    }
+
+    /**
+     * Get payment details untuk tampilan view (khusus PIC payment)
+     */
+    public function getPaymentDetails(): array
+    {
+        if (!$this->is_pic_payment) {
+            return [];
+        }
+
+        return self::where('payment_number', $this->payment_number)
+            ->with(['bill.user.residentProfile', 'bill.billingType'])
+            ->get()
+            ->map(function ($payment) {
+                return [
+                    'resident_name' => $payment->bill->user->residentProfile->full_name ?? $payment->bill->user->name,
+                    'bill_number' => $payment->bill->bill_number,
+                    'billing_type' => $payment->bill->billingType->name,
+                    'amount' => $payment->amount,
+                ];
+            })
+            ->toArray();
+    }
+
+    /**
+     * Buat transaction untuk arus kas saat payment verified
+     */
+    protected function createTransaction(): void
+    {
+        // Jika sudah ada transaction, skip
+        if ($this->transaction()->exists()) {
+            return;
+        }
+
+        $bill = $this->bill()->with(['room.block.dorm', 'billingType'])->first();
+        if (!$bill) {
+            return;
+        }
+
+        $transactionData = [
+            'type' => 'income',
+            'name' => 'Pembayaran ' . $bill->billingType->name,
+            'amount' => $this->amount,
+            'payment_method' => $this->paymentMethod->kind === 'cash' ? 'cash' : 'credit',
+            'transaction_date' => $this->payment_date,
+            'notes' => "Pembayaran dari: {$this->paid_by_name}\nNo. Tagihan: {$bill->bill_number}\nNo. Pembayaran: {$this->payment_number}",
+            'bill_payment_id' => $this->id,
+            'created_by' => $this->verified_by,
+        ];
+
+        // Set dorm_id dan block_id jika ada
+        if ($bill->room) {
+            $transactionData['dorm_id'] = $bill->room->block->dorm_id;
+            $transactionData['block_id'] = $bill->room->block_id;
+        }
+
+        \App\Models\Transaction::create($transactionData);
+    }
+
+    /**
+     * Hapus transaction terkait saat payment dihapus
+     */
+    public function deleteTransaction(): void
+    {
+        $this->transaction()->delete();
+    }
+
+    /**
+     * Relation to transaction
+     */
+    public function transaction()
+    {
+        return $this->hasOne(\App\Models\Transaction::class, 'bill_payment_id');
     }
 }

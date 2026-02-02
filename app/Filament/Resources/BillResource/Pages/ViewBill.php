@@ -140,8 +140,8 @@ class ViewBill extends ViewRecord
                                     return 'Sudah Jatuh Tempo';
                                 }
 
-                                $days = now()->diffInDays($record->period_end);
-                                return "Sisa {$days} hari";
+                                $days = ceil(now()->diffInDays($record->period_end));
+                                return $days < 1 ? "Kurang dari 1 hari" : "Sisa {$days} hari";
                             })
                             ->badge()
                             ->color(function ($record) {
@@ -186,7 +186,6 @@ class ViewBill extends ViewRecord
                             ->columns(5)
                             ->grid(1),
 
-                        // SOLUSI: Ganti Placeholder dengan TextEntry + HTML
                         Infolists\Components\TextEntry::make('details_summary')
                             ->label('Ringkasan')
                             ->html()
@@ -216,8 +215,7 @@ class ViewBill extends ViewRecord
                     ]),
 
                 Infolists\Components\Section::make('Riwayat Pembayaran')
-                    ->description('Daftar pembayaran yang sudah dilakukan')
-                    ->visible(fn($record) => $record->payments()->exists())
+                    ->visible(fn($record) => $record->payments()->count() > 0)
                     ->schema([
                         Infolists\Components\RepeatableEntry::make('payments')
                             ->label('')
@@ -225,69 +223,38 @@ class ViewBill extends ViewRecord
                                 Infolists\Components\TextEntry::make('payment_number')
                                     ->label('No. Pembayaran')
                                     ->copyable()
-                                    ->icon('heroicon-o-clipboard-document')
                                     ->weight('bold'),
 
                                 Infolists\Components\TextEntry::make('payment_date')
                                     ->label('Tanggal')
-                                    ->date('d F Y')
-                                    ->icon('heroicon-o-calendar'),
-
-                                Infolists\Components\TextEntry::make('amount')
-                                    ->label('Jumlah')
-                                    ->money('IDR')
-                                    ->weight('bold')
-                                    ->color('success'),
-
-                                Infolists\Components\TextEntry::make('paid_by_name')
-                                    ->label('Dibayar Oleh')
-                                    ->icon('heroicon-o-user')
-                                    ->badge()
-                                    ->color('info'),
-
-                                Infolists\Components\TextEntry::make('paymentMethod.kind')
-                                    ->label('Metode')
-                                    ->badge()
-                                    ->formatStateUsing(fn($state) => match ($state) {
-                                        'transfer' => 'Transfer',
-                                        'qris' => 'QRIS',
-                                        'cash' => 'Cash',
-                                        default => $state
-                                    })
-                                    ->color('gray'),
+                                    ->date('d/m/Y'),
 
                                 Infolists\Components\TextEntry::make('status')
                                     ->label('Status')
                                     ->badge()
-                                    ->color(fn($record) => $record->status_color)
-                                    ->formatStateUsing(fn($record) => $record->status_label),
+                                    ->color(fn($state) => match ($state) {
+                                        'pending' => 'warning',
+                                        'verified' => 'success',
+                                        'rejected' => 'danger',
+                                        default => 'gray',
+                                    })
+                                    ->formatStateUsing(fn($state) => match ($state) {
+                                        'pending' => 'Menunggu Verifikasi',
+                                        'verified' => 'Terverifikasi',
+                                        'rejected' => 'Ditolak',
+                                        default => $state,
+                                    }),
 
-                                Infolists\Components\ImageEntry::make('proof_path')
-                                    ->label('Bukti Pembayaran')
-                                    ->disk('public')
-                                    ->visible(fn($state) => $state !== null)
-                                    ->height(100)
-                                    ->defaultImageUrl('/images/no-image.png'),
-
-                                Infolists\Components\TextEntry::make('verified_at')
-                                    ->label('Diverifikasi')
-                                    ->dateTime('d F Y H:i')
-                                    ->placeholder('-')
-                                    ->visible(fn($record) => $record->status === 'verified'),
-
-                                Infolists\Components\TextEntry::make('rejection_reason')
-                                    ->label('Alasan Ditolak')
-                                    ->color('danger')
-                                    ->visible(fn($record) => $record->status === 'rejected'),
-
-                                Infolists\Components\TextEntry::make('notes')
-                                    ->label('Catatan')
-                                    ->placeholder('-')
-                                    ->visible(fn($state) => $state !== null)
-                                    ->columnSpanFull(),
+                                Infolists\Components\Actions::make([
+                                    Infolists\Components\Actions\Action::make('view')
+                                        ->label('Lihat')
+                                        ->icon('heroicon-o-eye')
+                                        ->url(fn($record) => route('filament.admin.resources.pembayaran.view', $record))
+                                        ->openUrlInNewTab(),
+                                ]),
                             ])
-                            ->columns(6)
-                            ->grid(1),
+                            ->columns(4)
+                            ->state(fn($record) => $record->payments()->latest()->get()),
                     ]),
 
                 Infolists\Components\Section::make('Catatan')

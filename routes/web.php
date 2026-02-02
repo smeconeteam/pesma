@@ -76,6 +76,16 @@ Route::delete('/profile/hapus-foto', [ProfileController::class, 'deletePhoto'])
     ->name('profile.delete-photo')
     ->middleware('auth');
 
+// =====================
+// Receipt Routes
+// =====================
+Route::middleware(['auth'])->group(function () {
+    Route::get('/receipt/{payment}', [\App\Http\Controllers\ReceiptController::class, 'show'])
+        ->name('receipt.show');
+    Route::get('/receipt/{payment}/download', [\App\Http\Controllers\ReceiptController::class, 'download'])
+        ->name('receipt.download');
+});
+
 // Route untuk switch bahasa
 Route::post('/locale/switch', [LocaleController::class, 'switch'])->name('locale.switch');
 // =====================
