@@ -581,7 +581,7 @@
             <div class="rooms-grid">
                 @foreach($rooms as $room)
                     <a href="{{ route('public.registration.create') }}" class="room-card">
-                        <div class="room-image" @if($room->thumbnail) style="background-image: url('{{ url('storage/' . $room->thumbnail) }}'); background-size: cover; background-position: center;" @endif>
+                        <div class="room-image" @if($room->thumbnail) style="background-image: url('{{ asset('storage/' . $room->thumbnail) }}'); background-size: cover; background-position: center;" @endif>
                             @if(!$room->thumbnail)
                                 {{ $room->number }}
                             @endif

@@ -21,7 +21,7 @@ class LandingController extends Controller
             return Room::with(['roomType:id,name,default_monthly_rate,default_capacity', 
                             'block:id,name,dorm_id', 
                             'block.dorm:id,name'])
-                ->select('id', 'number', 'code', 'room_type_id', 'block_id', 'capacity', 'monthly_rate', 'is_active')
+                ->select('id', 'number', 'code', 'room_type_id', 'block_id', 'capacity', 'monthly_rate', 'is_active', 'thumbnail')
                 ->where('is_active', true)
                 ->latest('id')
                 ->limit(6)
@@ -49,7 +49,7 @@ class LandingController extends Controller
             return Room::with(['roomType:id,name,default_monthly_rate,default_capacity', 
                             'block:id,name,dorm_id', 
                             'block.dorm:id,name'])
-                ->select('id', 'number', 'code', 'room_type_id', 'block_id', 'capacity', 'monthly_rate', 'is_active')
+                ->select('id', 'number', 'code', 'room_type_id', 'block_id', 'capacity', 'monthly_rate', 'is_active', 'thumbnail')
                 ->where('is_active', true)
                 ->latest('id')
                 ->paginate(12);
