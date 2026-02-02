@@ -493,9 +493,9 @@
         <div class="navbar-container">
             <a href="{{ route('home') }}" class="logo">
                 @if($institution && $institution->logo_url)
-                    <img src="{{ $institution->logo_url }}" alt="{{ $institution->institution_name }}" class="logo-img">
+                    <img src="{{ $institution->logo_url }}" alt="{{ $institution->dormitory_name }}" class="logo-img">
                 @endif
-                <span>{{ $institution->institution_name ?? 'Asrama' }}</span>
+                <span>{{ $institution->dormitory_name ?? 'Asrama' }}</span>
             </a>
             <div class="nav-links">
                 <a href="{{ route('home') }}">Beranda</a>
@@ -577,8 +577,8 @@
         <div class="footer-container">
             <div class="footer-grid">
                 <div class="footer-section">
-                    <h4>{{ $institution->institution_name ?? 'Asrama' }}</h4>
-                    <p>{{ $institution->dormitory_name ?? 'Asrama Modern' }}</p>
+                    <h4>{{ $institution->dormitory_name ?? 'Asrama' }}</h4>
+                    <p>{{ $institution->institution_name ?? 'Institusi Pendidikan' }}</p>
                     @if($institution)
                         <p>{{ $institution->address }}</p>
                         <p>{{ $institution->phone }}</p>
@@ -594,13 +594,15 @@
                 </div>
                 <div class="footer-section">
                     <h4>Informasi</h4>
-                    <a href="https://elfira.id" target="_blank">Tentang Kami</a>
-                    <a href="#">Syarat & Ketentuan</a>
+                    <a href="https://ppmelfira.com/" target="_blank">Tentang Kami</a>
+                    <a href="/kebijakan" target="_blank">Syarat & Ketentuan</a>
                     <a href="#">Kontak</a>
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; {{ date('Y') }} {{ $institution->institution_name ?? 'Asrama' }}. All rights reserved.</p>
+            <div class="footer-bottom">
+                <p>&copy; {{ date('Y') }} {{ $institution->dormitory_name ?? 'Asrama' }}. All rights reserved.</p>
+            </div>
             </div>
         </div>
     </footer>
