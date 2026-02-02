@@ -281,7 +281,7 @@ class RoomResource extends Resource
                             ->label('Kapasitas')
                             ->numeric()
                             ->minValue(1)
-                            ->nullable()
+                            ->required()
                             ->disabled(function (?Room $record) {
                                 if (!$record) return false;
                                 
@@ -315,7 +315,7 @@ class RoomResource extends Resource
                             ->label('Tarif Bulanan')
                             ->numeric()
                             ->minValue(0)
-                            ->nullable()
+                            ->required()
                             ->prefix('Rp')
                             ->helperText('Otomatis terisi dari tipe kamar, dapat diubah sesuai kebutuhan.'),
                         
@@ -352,12 +352,14 @@ class RoomResource extends Resource
                             ->label('Lebar Kamar')
                             ->numeric()
                             ->suffix('m')
+                            ->required()
                             ->minValue(0),
 
                         Forms\Components\TextInput::make('length')
                             ->label('Panjang Kamar')
                             ->numeric()
                             ->suffix('m')
+                            ->required()
                             ->minValue(0),
 
                         Forms\Components\Toggle::make('is_active')
@@ -373,7 +375,6 @@ class RoomResource extends Resource
                                     ->label('Thumbnail')
                                     ->image()
                                     ->directory('room-thumbnails')
-                                    ->required()
                                     ->columnSpanFull(),
                                 FileUpload::make('images')
                                     ->label('Galeri Gambar (Maksimal 5)')
