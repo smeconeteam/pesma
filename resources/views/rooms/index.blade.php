@@ -534,14 +534,16 @@
             <div class="rooms-grid">
                 @foreach($rooms as $room)
                     <a href="{{ route('public.registration.create') }}" class="room-card">
-                        <div class="room-image">
-                            {{ $room->number }}
+                        <div class="room-image" @if($room->thumbnail) style="background-image: url('{{ url('storage/' . $room->thumbnail) }}'); background-size: cover; background-position: center;" @endif>
+                            @if(!$room->thumbnail)
+                                {{ $room->number }}
+                            @endif
                             @if($room->is_active)
                                 <div class="room-badge">Tersedia</div>
                             @endif
                         </div>
                         <div class="room-content">
-                            <div class="room-title">Kamar {{ $room->number }}</div>
+                            <div class="room-title">{{ $room->block->dorm->name }} {{ $room->roomType->name }} {{ $room->number }}</div>
                             <div class="room-type">{{ $room->roomType->name }}</div>
                             <div class="room-location">📍 {{ $room->block->name }}, {{ $room->block->dorm->name }}</div>
                             <div class="room-info">
