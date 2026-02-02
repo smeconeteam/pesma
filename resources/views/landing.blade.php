@@ -548,7 +548,7 @@
         <div class="stats">
             <div class="stats-grid">
                 <div class="stat-item">
-                    <h3>{{ $totalRooms }}+</h3>
+                    <h3>{{ $totalRooms-1 }}+</h3>
                     <p>Kamar Tersedia</p>
                 </div>
                 <div class="stat-item">
@@ -640,8 +640,8 @@
                 </div>
                 <div class="footer-section">
                     <h4>Informasi</h4>
-                    <a href="https://elfira.id" target="_blank">Tentang Kami</a>
-                    <a href="#">Syarat & Ketentuan</a>
+                    <a href="https://ppmelfira.com/" target="_blank">Tentang Kami</a>
+                    <a href="/kebijakan" target="_blank">Syarat & Ketentuan</a>
                     <a href="#">Kontak</a>
                 </div>
             </div>
