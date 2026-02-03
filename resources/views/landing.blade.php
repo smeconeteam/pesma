@@ -563,13 +563,13 @@
                                 {{ $room->number }}
                             @endif
                             @if($room->is_active)
-                                <div class="room-badge">Tersedia</div>
+                                <div class="room-badge">{{ $room->residentCategory->name ?? 'Asrama' }}</div>
                             @endif
                         </div>
                         <div class="room-content">
                             <div class="room-title">{{ $room->block->dorm->name }} Nomor {{ $room->number }} Tipe {{ $room->roomType->name }}</div>
                             <div class="room-type">{{ $room->roomType->name }}</div>
-                            <div class="room-location">📍 Komplek {{ $room->block->name }}, Cabang {{ $room->block->dorm->name }}, {{ $room->block->dorm->address }}</div>
+                            <div class="room-location">📍 Komplek {{ $room->block->name }}, Cabang {{ $room->block->dorm->name }}, {{ \Illuminate\Support\Str::words($room->block->dorm->address, 7, '...') }}</div>
                             <div class="room-info">
                                 <div class="room-price">
                                     Rp {{ number_format($room->monthly_rate ?? $room->roomType->default_monthly_rate, 0, ',', '.') }}

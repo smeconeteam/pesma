@@ -21,17 +21,21 @@ class LandingController extends Controller
         $rooms = cache()->remember('landing_rooms', 600, function () {
             return Room::with(['roomType:id,name,default_monthly_rate,default_capacity', 
                             'block:id,name,dorm_id', 
-                            'block.dorm:id,name,address'])
-                ->select('id', 'number', 'code', 'room_type_id', 'block_id', 'capacity', 'monthly_rate', 'is_active', 'thumbnail')
+                            'block.dorm:id,name,address',
+                            'residentCategory:id,name'])
+                ->select('id', 'number', 'code', 'room_type_id', 'block_id', 'resident_category_id', 'capacity', 'monthly_rate', 'is_active', 'thumbnail')
                 ->where('is_active', true)
+                ->whereRaw('(SELECT COUNT(*) FROM room_residents WHERE room_residents.room_id = rooms.id AND room_residents.check_out_date IS NULL) < COALESCE(rooms.capacity, (SELECT default_capacity FROM room_types WHERE room_types.id = rooms.room_type_id))')
                 ->latest('id')
                 ->limit(6)
                 ->get();
         });
         
         // Cache total count
-        $totalRooms = cache()->remember('total_active_rooms', 300, function () {
-            return Room::where('is_active', true)->count();
+        $totalRooms = cache()->remember('total_available_rooms_real', 300, function () {
+            return Room::where('is_active', true)
+                ->whereRaw('(SELECT COUNT(*) FROM room_residents WHERE room_residents.room_id = rooms.id AND room_residents.check_out_date IS NULL) < COALESCE(rooms.capacity, (SELECT default_capacity FROM room_types WHERE room_types.id = rooms.room_type_id))')
+                ->count();
         });
         
         return view('landing', compact('institution', 'rooms', 'totalRooms'));
@@ -52,31 +56,80 @@ class LandingController extends Controller
         $roomTypes = cache()->remember('room_types', 3600, function () {
             return RoomType::orderBy('name')->get(['id', 'name']);
         });
+
+        $residentCategories = cache()->remember('resident_categories_available', 3600, function () {
+            return \App\Models\ResidentCategory::whereHas('rooms', function ($q) {
+                $q->where('is_active', true)
+                  ->whereRaw('(SELECT COUNT(*) FROM room_residents WHERE room_residents.room_id = rooms.id AND room_residents.check_out_date IS NULL) < COALESCE(rooms.capacity, (SELECT default_capacity FROM room_types WHERE room_types.id = rooms.room_type_id))');
+            })->orderBy('name')->get(['id', 'name']);
+        });
         
         // Build query with filters
         $query = Room::with(['roomType:id,name,default_monthly_rate,default_capacity', 
                         'block:id,name,dorm_id', 
-                        'block.dorm:id,name,address'])
-            ->select('id', 'number', 'code', 'room_type_id', 'block_id', 'capacity', 'monthly_rate', 'is_active', 'thumbnail')
-            ->where('is_active', true);
+                        'block.dorm:id,name,address',
+                        'residentCategory:id,name']) // Added residentCategory for badge
+            ->select('id', 'number', 'code', 'room_type_id', 'block_id', 'resident_category_id', 'capacity', 'monthly_rate', 'is_active', 'thumbnail')
+            ->where('is_active', true)
+            ->whereRaw('(SELECT COUNT(*) FROM room_residents WHERE room_residents.room_id = rooms.id AND room_residents.check_out_date IS NULL) < COALESCE(rooms.capacity, (SELECT default_capacity FROM room_types WHERE room_types.id = rooms.room_type_id))');
         
         // Filter by search keyword
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('number', 'like', "%{$search}%")
-                  ->orWhere('code', 'like', "%{$search}%")
-                  ->orWhereHas('block', function ($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%");
-                  })
-                  ->orWhereHas('block.dorm', function ($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('address', 'like', "%{$search}%");
-                  })
-                  ->orWhereHas('roomType', function ($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%");
-                  });
-            });
+            $search = trim($request->search);
+            
+            // Try to parse format: "{dorm} Nomor {number} Tipe {type}"
+            if (preg_match('/^(.+?)\s+Nomor\s+(\d+)\s+Tipe\s+(.+)$/i', $search, $matches)) {
+                $dormName = trim($matches[1]);
+                $roomNumber = trim($matches[2]);
+                $roomType = trim($matches[3]);
+                
+                $query->where(function ($q) use ($dormName, $roomNumber, $roomType) {
+                    $q->whereHas('block.dorm', function ($q) use ($dormName) {
+                        $q->where('name', 'like', "%{$dormName}%");
+                    })
+                    ->where('number', $roomNumber)
+                    ->whereHas('roomType', function ($q) use ($roomType) {
+                        $q->where('name', 'like', "%{$roomType}%");
+                    });
+                });
+            } 
+            // Try to parse partial format: "{dorm} Nomor {number}"
+            elseif (preg_match('/^(.+?)\s+Nomor\s+(\d+)$/i', $search, $matches)) {
+                $dormName = trim($matches[1]);
+                $roomNumber = trim($matches[2]);
+                
+                $query->where(function ($q) use ($dormName, $roomNumber) {
+                    $q->whereHas('block.dorm', function ($q) use ($dormName) {
+                        $q->where('name', 'like', "%{$dormName}%");
+                    })
+                    ->where('number', $roomNumber);
+                });
+            }
+            // Fallback to original logic
+            else {
+                // Clean search term
+                $cleanSearch = trim(preg_replace('/(cabang|komplek|tipe|kamar|nomor|kategori)\s+/i', '', $search));
+                
+                if (!empty($cleanSearch)) {
+                    $query->where(function ($q) use ($cleanSearch) {
+                        $q->where('number', 'like', "%{$cleanSearch}%")
+                          ->orWhere('code', 'like', "%{$cleanSearch}%")
+                          ->orWhereHas('block', function ($q) use ($cleanSearch) {
+                              $q->where('name', 'like', "%{$cleanSearch}%");
+                          })
+                          ->orWhereHas('block.dorm', function ($q) use ($cleanSearch) {
+                              $q->where('name', 'like', "%{$cleanSearch}%")
+                                ->orWhere('address', 'like', "%{$cleanSearch}%");
+                          })
+                          ->orWhereHas('roomType', function ($q) use ($cleanSearch) {
+                              $q->where('name', 'like', "%{$cleanSearch}%");
+                          })
+                          ->orWhereHas('residentCategory', function ($q) use ($cleanSearch) {
+                              $q->where('name', 'like', "%{$cleanSearch}%");
+                          });
+                    });
+                }
+            }
         }
         
         // Filter by dorm (cabang)
@@ -90,10 +143,19 @@ class LandingController extends Controller
         if ($request->filled('room_type_id')) {
             $query->where('room_type_id', $request->room_type_id);
         }
+
+        // Filter by resident category
+        if ($request->filled('resident_category_id')) {
+            $query->where('resident_category_id', $request->resident_category_id);
+        }
         
         $rooms = $query->latest('id')->paginate(12)->withQueryString();
         
-        return view('rooms.index', compact('institution', 'rooms', 'dorms', 'roomTypes'));
+        if ($request->ajax()) {
+            return view('rooms.partials.list', compact('rooms'));
+        }
+        
+        return view('rooms.index', compact('institution', 'rooms', 'dorms', 'roomTypes', 'residentCategories'));
     }
 
     /**

@@ -717,7 +717,7 @@
                         <circle cx="11" cy="11" r="8"></circle>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
-                    <input type="text" name="search" class="search-input" placeholder="Cari kamar, nomor, cabang, tipe..." value="{{ request('search') }}">
+                    <input type="text" name="search" class="search-input" placeholder="Cari kamar, nomor, cabang, tipe..." value="{{ request('search') }}" oninput="debounceSearch()">
                 </div>
 
                 <!-- Filter Dropdowns -->
@@ -739,18 +739,20 @@
                             </option>
                         @endforeach
                     </select>
+                    <select name="resident_category_id" class="filter-select">
+                        <option value="">Semua Kategori</option>
+                        @foreach($residentCategories as $category)
+                            <option value="{{ $category->id }}" {{ request('resident_category_id') == $category->id ? 'selected' : '' }}>
+                                {{ $category->name }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <!-- Filter Buttons -->
                 <div class="filter-buttons">
-                    <button type="submit" class="btn-filter">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
-                        Cari
-                    </button>
-                    @if(request()->hasAny(['search', 'dorm_id', 'room_type_id']))
+
+                    @if(request()->hasAny(['search', 'dorm_id', 'room_type_id', 'resident_category_id']))
                         <a href="{{ route('rooms.available') }}" class="btn-reset">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -763,7 +765,7 @@
             </form>
 
             <!-- Active Filters Display -->
-            @if(request()->hasAny(['search', 'dorm_id', 'room_type_id']))
+            @if(request()->hasAny(['search', 'dorm_id', 'room_type_id', 'resident_category_id']))
                 <div class="active-filters">
                     <span class="active-filters-label">Filter aktif:</span>
                     @if(request('search'))
@@ -787,63 +789,22 @@
                             </span>
                         @endif
                     @endif
+                    @if(request('resident_category_id'))
+                        @php $selectedCategory = $residentCategories->firstWhere('id', request('resident_category_id')); @endphp
+                        @if($selectedCategory)
+                            <span class="filter-tag">
+                                🏷️ {{ $selectedCategory->name }}
+                            </span>
+                        @endif
+                    @endif
                 </div>
             @endif
         </div>
 
-        <!-- Rooms Grid -->
-        @if($rooms->count() > 0)
-            <div class="rooms-grid">
-                @foreach($rooms as $room)
-                    <a href="{{ route('rooms.show', $room->id) }}" class="room-card">
-                        <div class="room-image" @if($room->thumbnail) style="background-image: url('{{ url('storage/' . $room->thumbnail) }}'); background-size: cover; background-position: center;" @endif>
-                            @if(!$room->thumbnail)
-                                {{ $room->number }}
-                            @endif
-                            @if($room->is_active)
-                                <div class="room-badge">Tersedia</div>
-                            @endif
-                        </div>
-                        <div class="room-content">
-                            <div class="room-title">{{ $room->block->dorm->name }} Nomor {{ $room->number }} Tipe {{ $room->roomType->name }}</div>
-                            <div class="room-type">{{ $room->roomType->name }}</div>
-                            <div class="room-location">📍 Komplek {{ $room->block->name }}, Cabang {{ $room->block->dorm->name }}, {{ $room->block->dorm->address }}</div>
-                            <div class="room-info">
-                                <div class="room-price">
-                                    Rp {{ number_format($room->monthly_rate ?? $room->roomType->default_monthly_rate, 0, ',', '.') }}
-                                    <small>/bulan</small>
-                                </div>
-                                <div class="room-capacity">
-                                    👥 {{ $room->capacity ?? $room->roomType->default_capacity }} orang
-                                </div>
-                            </div>
-                        </div>
-                    </a>
-                @endforeach
-            </div>
-
-            <!-- Pagination -->
-            <div class="pagination-wrapper">
-                {{ $rooms->links('pagination::default') }}
-            </div>
-        @else
-            <div class="empty-state">
-                <div class="empty-state-icon">🏠</div>
-                <h2 class="empty-state-title">Tidak Ada Kamar Ditemukan</h2>
-                <p class="empty-state-text">
-                    @if(request()->hasAny(['search', 'dorm_id', 'room_type_id']))
-                        Coba ubah filter pencarian Anda atau reset filter untuk melihat semua kamar.
-                    @else
-                        Saat ini belum ada kamar yang tersedia untuk ditempati.
-                    @endif
-                </p>
-                @if(request()->hasAny(['search', 'dorm_id', 'room_type_id']))
-                    <a href="{{ route('rooms.available') }}" class="btn-primary">Reset Filter</a>
-                @else
-                    <a href="{{ route('home') }}" class="btn-primary">Kembali ke Beranda</a>
-                @endif
-            </div>
-        @endif
+        <!-- Rooms Container -->
+        <div id="rooms-container">
+            @include('rooms.partials.list')
+        </div>
     </div>
 
     <!-- Footer -->
@@ -874,12 +835,62 @@
                 </div>
             </div>
             <div class="footer-bottom">
-            <div class="footer-bottom">
                 <p>&copy; {{ date('Y') }} {{ $institution->dormitory_name ?? 'Asrama' }}. All rights reserved.</p>
-            </div>
             </div>
         </div>
     </footer>
 
+    <script>
+        let timeout = null;
+        
+        function debounceSearch() {
+            clearTimeout(timeout);
+            timeout = setTimeout(function() {
+                performSearch();
+            }, 500);
+        }
+
+        function performSearch() {
+            const form = document.querySelector('.filter-form');
+            const url = new URL(form.action);
+            const params = new URLSearchParams(new FormData(form));
+            
+            // Update URL parameters
+            url.search = params.toString();
+            
+            // Show loading state (optional, can add spinner overlay)
+            document.getElementById('rooms-container').style.opacity = '0.5';
+
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('rooms-container').innerHTML = html;
+                document.getElementById('rooms-container').style.opacity = '1';
+                
+                // Update URL without reloading
+                window.history.pushState({}, '', url);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('rooms-container').style.opacity = '1';
+            });
+        }
+
+        // Auto-submit on select change
+        document.querySelectorAll('.filter-select').forEach(select => {
+            select.addEventListener('change', () => {
+                performSearch();
+            });
+        });
+
+        // Handle browser back/forward buttons
+        window.addEventListener('popstate', function() {
+            window.location.reload();
+        });
+    </script>
 </body>
 </html>

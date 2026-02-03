@@ -7,8 +7,8 @@
             <span>{{ $institution->dormitory_name ?? 'Asrama' }}</span>
         </a>
         <div class="nav-links">
-            <a href="{{ route('home') }}">Beranda</a>
-            <a href="{{ route('rooms.available') }}">Kamar Tersedia</a>
+            <a href="{{ route('home') }}" class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}">Beranda</a>
+            <a href="{{ route('rooms.available') }}" class="nav-link {{ request()->routeIs('rooms.available') || request()->routeIs('rooms.show') ? 'active' : '' }}">Kamar Tersedia</a>
             @auth
                 @php
                     $isAdmin = auth()->user()->hasAnyRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']);
@@ -82,6 +82,23 @@
 
     .nav-links a:not(.btn-primary):not(.btn-secondary):hover {
         color: #10b981;
+    }
+
+    .nav-link.active {
+        color: #10b981 !important;
+        font-weight: 600;
+        position: relative;
+    }
+
+    .nav-link.active::after {
+        content: '';
+        position: absolute;
+        bottom: -8px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border-radius: 2px;
     }
 
     /* Dark Mode Toggle */
