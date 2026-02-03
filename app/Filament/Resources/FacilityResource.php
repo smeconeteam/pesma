@@ -28,6 +28,8 @@ class FacilityResource extends Resource
 
     protected static ?string $navigationLabel = 'Fasilitas';
 
+    protected static ?int $navigationSort = 7;
+
     protected static ?string $pluralLabel = 'Fasilitas';
 
    public static function form(Form $form): Form

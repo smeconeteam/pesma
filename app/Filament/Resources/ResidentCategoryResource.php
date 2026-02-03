@@ -25,7 +25,7 @@ class ResidentCategoryResource extends Resource
 
     protected static ?string $slug = 'kategori';
     protected static ?string $navigationGroup = 'Asrama';
-    protected static ?int $navigationSort = 12;
+    protected static ?int $navigationSort = 5;
     protected static ?string $navigationLabel = 'Kategori';
     protected static ?string $pluralLabel = 'Kategori';
     protected static ?string $modelLabel = 'Kategori';

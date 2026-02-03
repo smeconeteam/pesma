@@ -26,6 +26,8 @@ class RoomRuleResource extends Resource
 
     protected static ?string $navigationGroup = 'Asrama';
 
+    protected static ?int $navigationSort = 6;
+
     protected static ?string $navigationLabel = 'Peraturan Kamar';
 
     protected static ?string $pluralLabel = 'Peraturan Kamar';
