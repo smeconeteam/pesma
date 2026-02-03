@@ -97,6 +97,20 @@ class ViewRoom extends ViewRecord
 
                     ->columns(3),
 
+                InfoSection::make('Informasi Penanggung Jawab')
+                    ->schema([
+                        TextEntry::make('contact_person_name')
+                            ->label('Nama Kontak')
+                            ->placeholder('-'),
+                        TextEntry::make('contact_person_number')
+                            ->label('Nomor Kontak')
+                            ->placeholder('-')
+                            ->copyable()
+                            ->copyMessage('Nomor disalin'),
+                    ])
+                    ->columns(2)
+                    ->visible(fn ($record) => ! empty($record->contact_person_name) || ! empty($record->contact_person_number)),
+
                 InfoSection::make('Galeri')
                     ->schema([
                         Grid::make(2)

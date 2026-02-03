@@ -367,6 +367,18 @@ class RoomResource extends Resource
                             ->default(true),
                     ])
                     ->columns(2),
+
+                                Forms\Components\Section::make('Informasi Penanggung Jawab')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('contact_person_name')
+                                            ->label('Nama Kontak (Penanggung Jawab)')
+                                            ->maxLength(255),
+                                        Forms\Components\TextInput::make('contact_person_number')
+                                            ->label('Nomor Kontak (Penanggung Jawab)')
+                                            ->tel()
+                                            ->maxLength(255),
+                                    ])
+                                    ->columns(2),
                             ]),
                         
                         Tabs\Tab::make('Foto')

@@ -26,6 +26,8 @@ class Room extends Model
         'images',
         'width',
         'length',
+        'contact_person_name',
+        'contact_person_number',
     ];
 
     protected $casts = [
