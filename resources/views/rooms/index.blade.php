@@ -109,7 +109,7 @@
             transition: color 0.2s;
         }
 
-        .nav-links a:hover {
+        .nav-links a:not(.btn-primary):not(.btn-secondary):hover {
             color: #10b981;
         }
 
@@ -150,13 +150,14 @@
             padding: 10px 24px;
             border-radius: 8px;
             text-decoration: none;
-            font-weight: 600;
-            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 500;
+            transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
             border: none;
             cursor: pointer;
         }
 
         .btn-primary:hover {
+            background: #059669; /* Emerald-600 */
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         }
@@ -175,7 +176,7 @@
 
         .btn-secondary {
             background: var(--bg-secondary);
-            color: #10b981;
+            color: #1f2937; /* gray-800 */
             padding: 10px 24px;
             border-radius: 8px;
             text-decoration: none;
@@ -419,6 +420,178 @@
             margin-bottom: 24px;
         }
 
+        /* Filter Section */
+        .filter-section {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 32px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .filter-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .search-wrapper {
+            flex: 1;
+            min-width: 280px;
+            position: relative;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            color: var(--text-tertiary);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 14px 16px 14px 48px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 16px;
+            font-family: inherit;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .filter-dropdowns {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            padding: 14px 40px 14px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 15px;
+            font-family: inherit;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 18px;
+            min-width: 160px;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-filter {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-filter:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-reset {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 24px;
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-reset:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .active-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+            align-items: center;
+        }
+
+        .active-filters-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .filter-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        [data-theme="dark"] .btn-filter {
+            background: #34d399;
+            color: #022c22;
+        }
+
+        [data-theme="dark"] .btn-filter:hover {
+            background: #10b981;
+            box-shadow: 0 4px 15px rgba(52, 211, 153, 0.4);
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .nav-links {
@@ -437,6 +610,35 @@
             .pagination span {
                 padding: 8px 12px;
                 font-size: 14px;
+            }
+
+            .filter-form {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-wrapper {
+                min-width: 100%;
+            }
+
+            .filter-dropdowns {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .filter-select {
+                width: 100%;
+                min-width: 100%;
+            }
+
+            .filter-buttons {
+                width: 100%;
+            }
+
+            .btn-filter,
+            .btn-reset {
+                flex: 1;
+                justify-content: center;
             }
         }
 
@@ -489,30 +691,7 @@
 </head>
 <body>
     <!-- Navbar -->
-    <nav class="navbar">
-        <div class="navbar-container">
-            <a href="{{ route('home') }}" class="logo">
-                @if($institution && $institution->logo_url)
-                    <img src="{{ $institution->logo_url }}" alt="{{ $institution->dormitory_name }}" class="logo-img">
-                @endif
-                <span>{{ $institution->dormitory_name ?? 'Asrama' }}</span>
-            </a>
-            <div class="nav-links">
-                <a href="{{ route('home') }}">Beranda</a>
-                <a href="{{ route('rooms.available') }}">Kamar Tersedia</a>
-                <button class="dark-mode-toggle" id="darkModeToggle" aria-label="Toggle dark mode">
-                    <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                        <path d="M12 18C8.68629 18 6 15.3137 6 12C6 8.68629 8.68629 6 12 6C15.3137 6 18 8.68629 18 12C18 15.3137 15.3137 18 12 18ZM12 16C14.2091 16 16 14.2091 16 12C16 9.79086 14.2091 8 12 8C9.79086 8 8 9.79086 8 12C8 14.2091 9.79086 16 12 16ZM11 1H13V4H11V1ZM11 20H13V23H11V20ZM3.51472 4.92893L4.92893 3.51472L7.05025 5.63604L5.63604 7.05025L3.51472 4.92893ZM16.9497 18.364L18.364 16.9497L20.4853 19.0711L19.0711 20.4853L16.9497 18.364ZM19.0711 3.51472L20.4853 4.92893L18.364 7.05025L16.9497 5.63604L19.0711 3.51472ZM5.63604 16.9497L7.05025 18.364L4.92893 20.4853L3.51472 19.0711L5.63604 16.9497ZM23 11V13H20V11H23ZM4 11V13H1V11H4Z"/>
-                    </svg>
-                    <svg class="moon-icon" style="display: none;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                        <path d="M10 7C10 10.866 13.134 14 17 14C18.9584 14 20.729 13.1957 21.9995 11.8995C22 11.933 22 11.9665 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C12.0335 2 12.067 2 12.1005 2.00049C10.8043 3.27098 10 5.04157 10 7ZM4 12C4 16.4183 7.58172 20 12 20C15.0583 20 17.7158 18.2839 19.062 15.7621C18.3945 15.9187 17.7035 16 17 16C12.0294 16 8 11.9706 8 7C8 6.29648 8.08133 5.60547 8.2379 4.938C5.71611 6.28423 4 8.9417 4 12Z"/>
-                    </svg>
-                </button>
-                <a href="{{ route('public.registration.create') }}" class="btn-secondary">Daftar Sekarang</a>
-                <a href="{{ route('login') }}" class="btn-primary">Masuk</a>
-            </div>
-        </div>
-    </nav>
+    <x-public-navbar :institution="$institution" />
 
     <!-- Main Content -->
     <div class="container">
@@ -529,11 +708,94 @@
             <p class="page-subtitle">Temukan kamar impian Anda dari {{ $rooms->total() }} kamar yang tersedia</p>
         </div>
 
+        <!-- Search and Filter Section -->
+        <div class="filter-section">
+            <form method="GET" action="{{ route('rooms.available') }}" class="filter-form">
+                <!-- Search Input -->
+                <div class="search-wrapper">
+                    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" name="search" class="search-input" placeholder="Cari kamar, nomor, cabang, tipe..." value="{{ request('search') }}">
+                </div>
+
+                <!-- Filter Dropdowns -->
+                <div class="filter-dropdowns">
+                    <select name="dorm_id" class="filter-select">
+                        <option value="">Semua Cabang</option>
+                        @foreach($dorms as $dorm)
+                            <option value="{{ $dorm->id }}" {{ request('dorm_id') == $dorm->id ? 'selected' : '' }}>
+                                {{ $dorm->name }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    <select name="room_type_id" class="filter-select">
+                        <option value="">Semua Tipe Kamar</option>
+                        @foreach($roomTypes as $type)
+                            <option value="{{ $type->id }}" {{ request('room_type_id') == $type->id ? 'selected' : '' }}>
+                                {{ $type->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Filter Buttons -->
+                <div class="filter-buttons">
+                    <button type="submit" class="btn-filter">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        Cari
+                    </button>
+                    @if(request()->hasAny(['search', 'dorm_id', 'room_type_id']))
+                        <a href="{{ route('rooms.available') }}" class="btn-reset">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                            Reset
+                        </a>
+                    @endif
+                </div>
+            </form>
+
+            <!-- Active Filters Display -->
+            @if(request()->hasAny(['search', 'dorm_id', 'room_type_id']))
+                <div class="active-filters">
+                    <span class="active-filters-label">Filter aktif:</span>
+                    @if(request('search'))
+                        <span class="filter-tag">
+                            🔍 "{{ request('search') }}"
+                        </span>
+                    @endif
+                    @if(request('dorm_id'))
+                        @php $selectedDorm = $dorms->firstWhere('id', request('dorm_id')); @endphp
+                        @if($selectedDorm)
+                            <span class="filter-tag">
+                                🏢 {{ $selectedDorm->name }}
+                            </span>
+                        @endif
+                    @endif
+                    @if(request('room_type_id'))
+                        @php $selectedType = $roomTypes->firstWhere('id', request('room_type_id')); @endphp
+                        @if($selectedType)
+                            <span class="filter-tag">
+                                🏠 {{ $selectedType->name }}
+                            </span>
+                        @endif
+                    @endif
+                </div>
+            @endif
+        </div>
+
         <!-- Rooms Grid -->
         @if($rooms->count() > 0)
             <div class="rooms-grid">
                 @foreach($rooms as $room)
-                    <a href="{{ route('public.registration.create') }}" class="room-card">
+                    <a href="{{ route('rooms.show', $room->id) }}" class="room-card">
                         <div class="room-image" @if($room->thumbnail) style="background-image: url('{{ url('storage/' . $room->thumbnail) }}'); background-size: cover; background-position: center;" @endif>
                             @if(!$room->thumbnail)
                                 {{ $room->number }}
@@ -567,9 +829,19 @@
         @else
             <div class="empty-state">
                 <div class="empty-state-icon">🏠</div>
-                <h2 class="empty-state-title">Belum Ada Kamar Tersedia</h2>
-                <p class="empty-state-text">Saat ini belum ada kamar yang tersedia untuk ditempati</p>
-                <a href="{{ route('home') }}" class="btn-primary">Kembali ke Beranda</a>
+                <h2 class="empty-state-title">Tidak Ada Kamar Ditemukan</h2>
+                <p class="empty-state-text">
+                    @if(request()->hasAny(['search', 'dorm_id', 'room_type_id']))
+                        Coba ubah filter pencarian Anda atau reset filter untuk melihat semua kamar.
+                    @else
+                        Saat ini belum ada kamar yang tersedia untuk ditempati.
+                    @endif
+                </p>
+                @if(request()->hasAny(['search', 'dorm_id', 'room_type_id']))
+                    <a href="{{ route('rooms.available') }}" class="btn-primary">Reset Filter</a>
+                @else
+                    <a href="{{ route('home') }}" class="btn-primary">Kembali ke Beranda</a>
+                @endif
             </div>
         @endif
     </div>
@@ -609,40 +881,5 @@
         </div>
     </footer>
 
-    <script>
-        // Dark Mode Toggle
-        const darkModeToggle = document.getElementById('darkModeToggle');
-        const sunIcon = document.querySelector('.sun-icon');
-        const moonIcon = document.querySelector('.moon-icon');
-        const html = document.documentElement;
-
-        // Initialize icons based on current theme
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        if (currentTheme === 'dark') {
-            sunIcon.style.display = 'none';
-            moonIcon.style.display = 'block';
-        } else {
-            sunIcon.style.display = 'block';
-            moonIcon.style.display = 'none';
-        }
-
-        // Toggle dark mode
-        darkModeToggle.addEventListener('click', function() {
-            const currentTheme = html.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            
-            html.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            
-            // Toggle icons
-            if (newTheme === 'dark') {
-                sunIcon.style.display = 'none';
-                moonIcon.style.display = 'block';
-            } else {
-                sunIcon.style.display = 'block';
-                moonIcon.style.display = 'none';
-            }
-        });
-    </script>
 </body>
 </html>

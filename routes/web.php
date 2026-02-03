@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 // Landing Page for Public
 Route::get('/', [LandingController::class, 'index'])->name('home');
 Route::get('/kamar-tersedia', [LandingController::class, 'allRooms'])->name('rooms.available');
+Route::get('/kamar/{id}', [LandingController::class, 'showRoom'])->name('rooms.show');
 
 // =====================
 // Resident Routes
