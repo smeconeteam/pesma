@@ -845,7 +845,7 @@
                                 <span class="room-badge type">{{ $room->residentCategory->name }}</span>
                             @endif
                         </div>
-                        <h1 class="room-title">Cabang {{ $room->block->dorm->name }} Nomor {{ $room->number }} Tipe {{ $room->roomType->name }}</h1>
+                        <h1 class="room-title">{{ $room->block->dorm->name }} Nomor {{ $room->number }} Tipe {{ $room->roomType->name }}</h1>
                         <div class="room-location">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
@@ -1063,7 +1063,7 @@
                             @endif
                         </div>
                         <div class="room-card-content">
-                            <div class="room-card-title">Cabang {{ $similar->block->dorm->name }} Nomor {{ $similar->number }}</div>
+                            <div class="room-card-title">{{ $similar->block->dorm->name }} Nomor {{ $similar->number }}</div>
                             <div class="room-card-location">📍 {{ $similar->block->name }}, {{ $similar->roomType->name }}</div>
                             <div class="room-card-price">
                                 Rp {{ number_format($similar->monthly_rate ?? $similar->roomType->default_monthly_rate, 0, ',', '.') }}
