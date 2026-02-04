@@ -184,12 +184,10 @@ class RegistrationResource extends Resource
                             ->required(),
 
                         Forms\Components\TextInput::make('student_id')
-                            ->label('NIM/NIS')
-                            ->required(),
+                            ->label('NIM/NIS'),
 
                         Forms\Components\TextInput::make('university_school')
-                            ->label('Universitas/Sekolah')
-                            ->required(),
+                            ->label('Universitas/Sekolah'),
 
                         Forms\Components\FileUpload::make('photo_path')
                             ->label('Foto')
@@ -272,8 +270,16 @@ class RegistrationResource extends Resource
                             ->format('Y-m-d')
                             ->default(now())
                             ->helperText('Default: Hari ini. Bisa diubah untuk data historis')
-                            ->required()
-                            ->columnSpanFull(),
+                            ->required(),
+
+                        Forms\Components\DatePicker::make('planned_check_in_date')
+                            ->label('Rencana Tanggal Masuk')
+                            ->native(false)
+                            ->displayFormat('d/m/Y')
+                            ->format('Y-m-d')
+                            ->default(now()->addDays(7))
+                            ->helperText('Default: 1 minggu dari hari ini. Bisa diubah sesuai kebutuhan')
+                            ->nullable(),
 
                         Forms\Components\Select::make('preferred_dorm_id')
                             ->label('Cabang Yang Diinginkan')
@@ -310,9 +316,8 @@ class RegistrationResource extends Resource
                             })
                             ->searchable()
                             ->native(false)
-                            ->live() // ✅ Reactive saat kategori berubah
+                            ->live()
                             ->afterStateUpdated(function (Forms\Set $set) {
-                                // Reset tipe kamar saat cabang berubah
                                 $set('preferred_room_type_id', null);
                             })
                             ->disabled(fn (Forms\Get $get) => blank($get('resident_category_id')))
@@ -368,16 +373,6 @@ class RegistrationResource extends Resource
                                 return 'Hanya tipe kamar yang tersedia di cabang terpilih';
                             })
                             ->nullable(),
-
-                        Forms\Components\DatePicker::make('planned_check_in_date')
-                            ->label('Rencana Tanggal Masuk')
-                            ->native(false)
-                            ->displayFormat('d/m/Y')
-                            ->format('Y-m-d')
-                            ->default(now()->addDays(7))
-                            ->helperText('Default: 1 minggu dari hari ini. Bisa diubah sesuai kebutuhan')
-                            ->nullable()
-                            ->columnSpanFull(),
                     ]),
             ]);
     }
