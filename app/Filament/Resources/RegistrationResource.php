@@ -182,10 +182,12 @@ class RegistrationResource extends Resource
                             ->required(),
 
                         Forms\Components\TextInput::make('student_id')
-                            ->label('NIM/NIS'),
+                            ->label('NIM/NIS')
+                            ->nullable(),
 
                         Forms\Components\TextInput::make('university_school')
-                            ->label('Universitas/Sekolah'),
+                            ->label('Universitas/Sekolah')
+                            ->nullable(),
 
                         Forms\Components\FileUpload::make('photo_path')
                             ->label('Foto')

@@ -179,10 +179,12 @@ class EditResident extends EditRecord
                         ->format('Y-m-d'), // Format penyimpanan ke database
 
                     Forms\Components\TextInput::make('residentProfile.student_id')
-                        ->label('NIM'),
+                        ->label('NIM')
+                        ->nullable(),
 
                     Forms\Components\TextInput::make('residentProfile.university_school')
                         ->label('Universitas/Sekolah')
+                        ->nullable()
                         ->maxLength(255),
 
                     Forms\Components\TextInput::make('residentProfile.phone_number')
