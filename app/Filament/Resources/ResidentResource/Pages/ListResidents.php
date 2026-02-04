@@ -16,8 +16,6 @@ class ListResidents extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()
-                ->label('Tambah Penghuni'),
 
             Actions\ActionGroup::make([
                 Actions\Action::make('export_excel')
