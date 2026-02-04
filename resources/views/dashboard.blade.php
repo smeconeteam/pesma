@@ -186,14 +186,14 @@
                     </div>
 
                     {{-- Mini Statistics --}}
-                    <div class="grid grid-cols-3 gap-3 mb-6">
+                    <div class="grid grid-cols-1 gap-3 mb-6">
                         <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
                             <div class="text-xs text-blue-600 dark:text-blue-400 font-medium">Total</div>
                             <div class="text-lg font-bold text-blue-900 dark:text-blue-100 mt-1">{{ $totalPayments }}</div>
                         </div>
-                        <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
-                            <div class="text-xs text-green-600 dark:text-green-400 font-medium">{{ __('payment-history.verified_payments') }}</div>
-                            <div class="text-lg font-bold text-green-900 dark:text-green-100 mt-1">{{ $verifiedPayments }}</div>
+                        <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-800/50 dark:to-green-700/50 rounded-lg p-3 border border-green-200 dark:border-green-600">
+                            <div class="text-xs text-green-600 dark:text-green-300 font-medium">{{ __('payment-history.verified_payments') }}</div>
+                            <div class="text-lg font-bold text-green-900 dark:text-green-50 mt-1">{{ $verifiedPayments }}</div>
                         </div>
                         <div class="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 rounded-lg p-3 border border-amber-200 dark:border-amber-800">
                             <div class="text-xs text-amber-600 dark:text-amber-400 font-medium">{{ __('payment-history.pending_payments') }}</div>

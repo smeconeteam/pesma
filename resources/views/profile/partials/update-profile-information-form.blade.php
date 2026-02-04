@@ -155,6 +155,48 @@
             <x-input-error class="mt-2" :messages="$errors->get('phone_number')" />
         </div>
 
+        {{-- Address --}}
+        <div>
+            <x-input-label for="address" :value="__('profile.address')" />
+            <x-text-input
+                id="address"
+                name="address"
+                type="text"
+                class="mt-1 block w-full"
+                :value="old('address', $profile?->address)"
+                placeholder="{{ __('profile.address_placeholder') }}"
+            />
+            <x-input-error class="mt-2" :messages="$errors->get('address')" />
+        </div>
+
+        {{-- School --}}
+        <div>
+            <x-input-label for="university_school" :value="__('profile.school')" />
+            <x-text-input
+                id="university_school"
+                name="university_school"
+                type="text"
+                class="mt-1 block w-full"
+                :value="old('university_school', $profile?->university_school)"
+                placeholder="{{ __('profile.school_placeholder') }}"
+            />
+            <x-input-error class="mt-2" :messages="$errors->get('university_school')" />
+        </div>
+
+        {{-- Student ID --}}
+        <div>
+            <x-input-label for="student_id" :value="__('profile.student_id_label')" />
+            <x-text-input
+                id="student_id"
+                name="student_id"
+                type="text"
+                class="mt-1 block w-full"
+                :value="old('student_id', $profile?->student_id)"
+                placeholder="{{ __('profile.student_id_placeholder') }}"
+            />
+            <x-input-error class="mt-2" :messages="$errors->get('student_id')" />
+        </div>
+
         {{-- Submit Button --}}
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('profile.save') }}</x-primary-button>
