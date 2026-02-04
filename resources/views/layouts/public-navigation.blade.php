@@ -7,7 +7,7 @@
         document.documentElement.classList.toggle('dark', this.darkMode);
     }
 }" x-init="if (darkMode) document.documentElement.classList.add('dark');
-$watch('darkMode', val => document.documentElement.classList.toggle('dark', val));" class="sticky w-full top-0 left-0 border-b border-gray-200 bg-white transition-all duration-200 dark:border-gray-700 dark:bg-gray-900">
+$watch('darkMode', val => document.documentElement.classList.toggle('dark', val));" class="sticky left-0 top-0 w-full border-b border-gray-200 bg-white transition-all duration-200 dark:border-gray-700 dark:bg-gray-900">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 items-center justify-between">
             <!-- Logo -->
@@ -37,7 +37,7 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
 
             <!-- Desktop Right Side -->
             <div class="hidden gap-4 sm:flex sm:items-center">
-                <x-locale-switcher :short="true" select-class="text-sm rounded-md shadow-sm focus:border-green-500 focus:ring-green-500" />
+                <x-locale-switcher :short="true" class="cursor-pointer" select-class="cursor-pointer text-sm rounded-md shadow-sm focus:border-green-500 focus:ring-green-500" />
 
                 @auth
                     @if (Route::has('dashboard'))
@@ -50,7 +50,7 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
                 @guest
                     <div class="flex items-center gap-3">
                         @if (Route::has('login'))
-                            <a href="{{ route('login') }}" class="text-sm text-gray-700 transition-colors hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100">
+                            <a href="{{ route('login') }}" class="inline-flex w-full rounded-md ring-1 ring-green-600 ring-inset bg-gray-100 px-3 py-2 text-center text-sm font-medium text-green-600 transition-colors hover:bg-green-600 hover:text-white">
                                 {{ __('navigation.login') }}
                             </a>
                         @endif
@@ -77,7 +77,7 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
     </div>
 
     <!-- Mobile Menu -->
-    <div :class="{ 'h-auto block': open, 'hidden h-0': !open }" class=" hidden h-0 bg-white sm:hidden dark:bg-gray-900 transition-all duration-200">
+    <div :class="{ 'h-auto block': open, 'hidden h-0': !open }" class="hidden h-0 bg-white transition-all duration-200 sm:hidden dark:bg-gray-900">
         <div class="space-y-1 px-2 pb-3 pt-2">
             <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' }} block rounded-md px-3 py-2 text-base font-medium transition-colors">
                 {{ __('public.home') }}
@@ -98,7 +98,7 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
                 @guest
                     <div class="flex w-full items-center justify-between gap-2">
                         @if (Route::has('login'))
-                            <a href="{{ route('login') }}" class="block w-full rounded-md bg-gray-100 px-3 py-2 text-center text-base font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-800">
+                            <a href="{{ route('login') }}" class="block w-full rounded-md ring ring-green-600 ring-inset bg-gray-100 px-3 py-2 text-center text-base font-medium text-green-600 transition-colors hover:bg-green-600 hover:text-white">
                                 {{ __('navigation.login') }}
                             </a>
                         @endif
