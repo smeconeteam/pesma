@@ -17,12 +17,12 @@ use Illuminate\Support\Facades\Auth;
 class TransactionResource extends Resource
 {
     protected static ?string $model = Transaction::class;
-    protected static ?string $slug = 'arus-kas';
+    protected static ?string $slug = 'kas';
     protected static ?string $navigationGroup = 'Keuangan';
-    protected static ?string $navigationLabel = 'Arus Kas';
+    protected static ?string $navigationLabel = 'Kas';
     protected static ?string $modelLabel = 'Transaksi';
-    protected static ?string $pluralModelLabel = 'Arus Kas';
-    protected static ?int $navigationSort = 5;
+    protected static ?string $pluralModelLabel = 'Kas';
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {

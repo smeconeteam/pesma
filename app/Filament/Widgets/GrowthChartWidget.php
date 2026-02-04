@@ -5,38 +5,58 @@ namespace App\Filament\Widgets;
 use App\Models\RoomResident;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 
 class GrowthChartWidget extends ChartWidget
 {
-    protected static ?string $heading = 'Pertumbuhan Penghuni (6 Bulan Terakhir)';
+    use InteractsWithPageFilters;
+
+    protected static ?string $heading = 'Pertumbuhan Penghuni';
 
     protected static ?int $sort = 5;
 
     protected int | string | array $columnSpan = 'full';
 
+    public ?string $filter = '36'; // Default 3 tahun (36 bulan)
+
+    protected function getFilters(): ?array
+    {
+        return [
+            '6' => '6 Bulan',
+            '12' => '1 Tahun',
+            '36' => '3 Tahun',
+        ];
+    }
+
     protected function getData(): array
     {
         $user = Auth::user();
+        $monthsCount = (int) $this->filter;
 
-        // Get data untuk 6 bulan terakhir
+        // Get data untuk periode yang dipilih
         $months = collect();
-        for ($i = 5; $i >= 0; $i--) {
+        for ($i = $monthsCount - 1; $i >= 0; $i--) {
             $date = now()->subMonths($i);
             $months->push([
                 'month' => $date->format('Y-m'),
                 'label' => $date->format('M Y'),
+                'year_month' => $date->format('Y-m'),
+                'index' => $monthsCount - 1 - $i, // Index untuk menentukan gap
             ]);
         }
 
         $data = [];
+        $labels = [];
 
         foreach ($months as $month) {
+            // Ambil hari terakhir dari bulan tersebut
+            $lastDay = now()->parse($month['year_month'] . '-01')->endOfMonth()->format('Y-m-d');
+            
             $query = RoomResident::query()
-                ->where('check_in_date', '<=', $month['month'] . '-31')
-                ->where(function ($q) use ($month) {
+                ->where('check_in_date', '<=', $lastDay)
+                ->where(function ($q) use ($lastDay) {
                     $q->whereNull('check_out_date')
-                        ->orWhere('check_out_date', '>', $month['month'] . '-31');
+                        ->orWhere('check_out_date', '>', $lastDay);
                 });
 
             // Apply role-based filters
@@ -51,6 +71,16 @@ class GrowthChartWidget extends ChartWidget
             }
 
             $data[] = $query->distinct('user_id')->count('user_id');
+
+            // Logika label dengan gap untuk 3 tahun
+            if ($monthsCount == 36) {
+                // Tampilkan label setiap 4 bulan (bulan ke-0, 4, 8, 12, dst)
+                // Ini akan menampilkan sekitar 9 label untuk 36 bulan
+                $labels[] = ($month['index'] % 4 === 0) ? $month['label'] : '';
+            } else {
+                // Untuk 6 bulan dan 1 tahun, tampilkan semua label
+                $labels[] = $month['label'];
+            }
         }
 
         return [
@@ -64,7 +94,7 @@ class GrowthChartWidget extends ChartWidget
                     'tension' => 0.4,
                 ],
             ],
-            'labels' => $months->pluck('label')->toArray(),
+            'labels' => $labels,
         ];
     }
 
@@ -90,6 +120,8 @@ class GrowthChartWidget extends ChartWidget
                     ],
                 ],
             ],
+            'maintainAspectRatio' => true,
+            'responsive' => true,
         ];
     }
 }

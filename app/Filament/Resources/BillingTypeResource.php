@@ -26,6 +26,7 @@ class BillingTypeResource extends Resource
     protected static ?string $navigationLabel = 'Jenis Tagihan';
     protected static ?string $pluralLabel = 'Jenis Tagihan';
     protected static ?string $modelLabel = 'Jenis Tagihan';
+    protected static ?int $navigationSort = 4;
 
     /** =========================
      *  ACCESS CONTROL (NO POLICY)
