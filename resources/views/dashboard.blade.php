@@ -124,7 +124,7 @@
                                     </div>
 
                                     <div class="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                                        <p>{{ __('bills.bill_number') }}: <span class="font-mono text-gray-700 dark:text-gray-300">{{ $bill->invoice_number ?? '-' }}</span></p>
+                                        <p>{{ __('bills.bill_number') }}: <span class="font-mono text-gray-700 dark:text-gray-300">{{ $bill->bill_number ?? '-' }}</span></p>
                                         @if($bill->start_date && $bill->end_date)
                                         <p>{{ __('bills.period') }}: {{ \Carbon\Carbon::parse($bill->start_date)->format('d M Y') }} - {{ \Carbon\Carbon::parse($bill->end_date)->format('d M Y') }}</p>
                                         @endif
@@ -186,16 +186,16 @@
                     </div>
 
                     {{-- Mini Statistics --}}
-                    <div class="grid grid-cols-1 gap-3 mb-6">
-                        <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+                    <div class="flex flex-row gap-3 mb-6">
+                        <div class="flex-1 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800 shadow-sm">
                             <div class="text-xs text-blue-600 dark:text-blue-400 font-medium">Total</div>
                             <div class="text-lg font-bold text-blue-900 dark:text-blue-100 mt-1">{{ $totalPayments }}</div>
                         </div>
-                        <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-800/50 dark:to-green-700/50 rounded-lg p-3 border border-green-200 dark:border-green-600">
+                        <div class="flex-1 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 rounded-lg p-3 border border-green-200 dark:border-green-700 shadow-sm">
                             <div class="text-xs text-green-600 dark:text-green-300 font-medium">{{ __('payment-history.verified_payments') }}</div>
                             <div class="text-lg font-bold text-green-900 dark:text-green-50 mt-1">{{ $verifiedPayments }}</div>
                         </div>
-                        <div class="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 rounded-lg p-3 border border-amber-200 dark:border-amber-800">
+                        <div class="flex-1 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 rounded-lg p-3 border border-amber-200 dark:border-amber-800 shadow-sm">
                             <div class="text-xs text-amber-600 dark:text-amber-400 font-medium">{{ __('payment-history.pending_payments') }}</div>
                             <div class="text-lg font-bold text-amber-900 dark:text-amber-100 mt-1">{{ $pendingPayments }}</div>
                         </div>
@@ -234,7 +234,16 @@
                                         {{ __('payment-history.amount') }}: <span class="font-bold text-gray-900 dark:text-gray-100">Rp {{ number_format($payment->amount, 0, ',', '.') }}</span>
                                     </div>
                                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        {{ $payment->paymentMethod->name ?? '-' }}
+                                        @php
+                                            $methodKind = $payment->paymentMethod?->kind;
+                                            $methodLabel = match($methodKind) {
+                                                'qris' => 'QRIS',
+                                                'transfer' => 'Transfer Bank',
+                                                'cash' => 'Tunai',
+                                                default => $methodKind ?? '-'
+                                            };
+                                        @endphp
+                                        {{ $methodLabel }}
                                     </div>
                                 </div>
                             </div>
