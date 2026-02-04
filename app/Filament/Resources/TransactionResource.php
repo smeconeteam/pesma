@@ -58,7 +58,7 @@ class TransactionResource extends Resource
                             ->label('Metode Pembayaran')
                             ->options([
                                 'cash' => 'Tunai',
-                                'credit' => 'Kredit',
+                                'credit' => 'Transfer',
                             ])
                             ->required()
                             ->native(false)
@@ -134,7 +134,7 @@ class TransactionResource extends Resource
                     ->color('gray')
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'cash' => 'Tunai',
-                        'credit' => 'Kredit',
+                        'credit' => 'Transfer',
                     }),
 
                 Tables\Columns\TextColumn::make('income_amount')
@@ -194,7 +194,7 @@ class TransactionResource extends Resource
                     ->label('Metode Pembayaran')
                     ->options([
                         'cash' => 'Tunai',
-                        'credit' => 'Kredit',
+                        'credit' => 'Transfer',
                     ])
                     ->native(false),
 
