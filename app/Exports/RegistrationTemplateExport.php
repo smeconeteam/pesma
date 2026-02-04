@@ -16,17 +16,17 @@ class RegistrationTemplateExport implements FromCollection, WithHeadings
     {
         return [
             'email',
-            'full_name',
-            'nickname',
-            'gender (M/F)',
-            'phone_number',
-            'category_name',
-            'citizenship (WNI/WNA)',
-            'country_name',
+            'nama_lengkap',
+            'nama_panggilan',
+            'jenis_kelamin (L/P)',
+            'nomor_telepon',
+            'kategori_penghuni',
+            'kewarganegaraan (WNI/WNA)',
+            'negara',
             'nik',
             'nim',
-            'university',
-            'address',
+            'universitas',
+            'alamat',
         ];
     }
 }
