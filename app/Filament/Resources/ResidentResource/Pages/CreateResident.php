@@ -125,6 +125,7 @@ class CreateResident extends CreateRecord
                 'phone_number'          => $profile['phone_number'] ?? null,
                 'guardian_name'         => $profile['guardian_name'] ?? null,
                 'guardian_phone_number' => $profile['guardian_phone_number'] ?? null,
+                'address'               => $profile['address'] ?? null,
                 'photo_path'            => $profile['photo_path'] ?? null,
             ]);
 

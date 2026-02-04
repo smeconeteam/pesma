@@ -164,8 +164,6 @@ class RegistrationResource extends Resource
                             ->extraInputAttributes(['inputmode' => 'numeric', 'pattern' => '[0-9]*'])
                             ->required(),
 
-
-
                         Forms\Components\TextInput::make('birth_place')
                             ->label('Tempat Lahir')
                             ->required(),
@@ -256,6 +254,13 @@ class RegistrationResource extends Resource
                             ->rule('regex:/^\d+$/')
                             ->helperText('Hanya angka (tanpa + / spasi)')
                             ->extraInputAttributes(['inputmode' => 'numeric', 'pattern' => '[0-9]*'])
+                            ->nullable(),
+
+                        Forms\Components\Textarea::make('address')
+                            ->label('Alamat')
+                            ->rows(3)
+                            ->maxLength(500)
+                            ->helperText('Alamat lengkap penghuni')
                             ->nullable(),
                     ]),
 

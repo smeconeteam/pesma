@@ -30,6 +30,7 @@ class Registration extends Model
         'phone_number',
         'guardian_name',
         'guardian_phone_number',
+        'address',
         'photo_path',
         'preferred_dorm_id',
         'preferred_room_type_id',

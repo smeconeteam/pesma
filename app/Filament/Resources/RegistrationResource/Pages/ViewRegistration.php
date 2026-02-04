@@ -101,6 +101,10 @@ class ViewRegistration extends ViewRecord
                     TextEntry::make('phone_number')->label('No. HP')->placeholder('-'),
                     TextEntry::make('guardian_name')->label('Nama Wali')->placeholder('-'),
                     TextEntry::make('guardian_phone_number')->label('No. HP Wali')->placeholder('-'),
+                    TextEntry::make('address')
+                        ->label('Alamat')
+                        ->placeholder('-')
+                        ->columnSpanFull(),
                 ]),
 
             InfoSection::make('Preferensi Kamar')

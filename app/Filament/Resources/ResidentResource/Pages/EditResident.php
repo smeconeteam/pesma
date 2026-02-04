@@ -203,6 +203,13 @@ class EditResident extends EditRecord
                         ->helperText('Hanya angka, tanpa spasi/tanda +.')
                         ->extraInputAttributes(['inputmode' => 'numeric', 'pattern' => '[0-9]*']),
 
+                    Forms\Components\Textarea::make('residentProfile.address')
+                        ->label('Alamat')
+                        ->rows(3)
+                        ->maxLength(500)
+                        ->helperText('Alamat lengkap penghuni')
+                        ->columnSpanFull(),
+
                     Forms\Components\FileUpload::make('residentProfile.photo_path')
                         ->label('Foto')
                         ->directory('residents')
@@ -273,6 +280,7 @@ class EditResident extends EditRecord
             'phone_number'          => $profile?->phone_number,
             'guardian_name'         => $profile?->guardian_name,
             'guardian_phone_number' => $profile?->guardian_phone_number,
+            'address'               => $profile?->address,
             'photo_path'            => $profile?->photo_path,
         ];
 
@@ -328,6 +336,7 @@ class EditResident extends EditRecord
                         'phone_number'          => $profileData['phone_number'] ?? null,
                         'guardian_name'         => $profileData['guardian_name'] ?? null,
                         'guardian_phone_number' => $profileData['guardian_phone_number'] ?? null,
+                        'address'               => $profileData['address'] ?? null,
                         'photo_path'            => $profileData['photo_path'] ?? null,
                     ]
                 );
