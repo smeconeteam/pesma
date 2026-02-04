@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
+use App\Http\Requests\ProfileUpdateRequest;
+
 class ProfileController extends Controller
 {
     public function edit(Request $request): View
@@ -39,7 +41,7 @@ class ProfileController extends Controller
         ]);
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $user = $request->user();
         
@@ -56,6 +58,14 @@ class ProfileController extends Controller
         $profile = $user->residentProfile;
         
         if ($profile) {
+            // Update profile fields
+            $profile->fill($request->safe()->only([
+                'phone_number',
+                'address',
+                'university_school',
+                'student_id',
+            ]));
+
             // Handle photo upload
             if ($request->hasFile('photo')) {
                 // Delete old photo if exists
@@ -74,11 +84,6 @@ class ProfileController extends Controller
                     Storage::disk('public')->delete($profile->photo_path);
                     $profile->photo_path = null;
                 }
-            }
-
-            // Update phone number only
-            if ($request->filled('phone_number')) {
-                $profile->phone_number = $request->phone_number;
             }
 
             $profile->save();
