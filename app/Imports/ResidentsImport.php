@@ -36,11 +36,8 @@ class ResidentsImport implements ToCollection, WithHeadingRow
                      throw new \Exception("NIK '{$row['nik']}' sudah terdaftar untuk penghuni lain.");
                 }
 
-                // Cek NIM/NIS Duplikat
-                $nim = $row['nim'] ?? $row['nim_nis'] ?? null;
-                if (!empty($nim) && ResidentProfile::where('student_id', $nim)->exists()) {
-                     throw new \Exception("NIM/NIS '{$nim}' sudah terdaftar untuk penghuni lain.");
-                }
+                // Ambil NIM/NIS (tanpa validasi duplikat)
+                $nim = $row['nim'] ?? $row['nim_nis'] ?? $row['nimnis'] ?? null;
 
                 // 2. Validasi & Normalisasi Gender
                 $rawGender = $row['jenis_kelamin_lp'] ?? $row['gender_mf'] ?? null;

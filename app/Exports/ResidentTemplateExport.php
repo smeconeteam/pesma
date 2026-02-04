@@ -35,8 +35,8 @@ class ResidentTemplateExport implements FromCollection, WithHeadings, WithStyles
                 'kewarganegaraan (WNI/WNA)',
                 'negara',
                 'nik',
-                'nim_nis', // Changed from nim
-                'universitas_sekolah', // Changed from universitas
+                'nim/nis',
+                'universitas/sekolah',
                 'alamat',
             ]
         ];
