@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ResidentResource\Pages;
 
 use App\Filament\Resources\ResidentResource;
 use App\Models\User;
+use Filament\Actions;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,6 +12,43 @@ use Illuminate\Database\Eloquent\Builder;
 class ListResidents extends ListRecords
 {
     protected static string $resource = ResidentResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\CreateAction::make()
+                ->label('Tambah Penghuni'),
+
+            Actions\ActionGroup::make([
+                Actions\Action::make('export_excel')
+                    ->label('Export Excel')
+                    ->icon('heroicon-o-document-text')
+                    ->action(fn() => \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\ResidentsExport, 'data-penghuni.xlsx')),
+                    
+                Actions\Action::make('download_template')
+                    ->label('Download Template')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->action(fn() => \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\ResidentTemplateExport, 'template_import_penghuni.xlsx')),
+
+                Actions\Action::make('import')
+                    ->label('Import Data')
+                    ->icon('heroicon-o-arrow-up-tray')
+                    ->form([
+                        \Filament\Forms\Components\FileUpload::make('file')
+                            ->label('File Excel')
+                            ->acceptedFileTypes(['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'text/csv'])
+                            ->required(),
+                    ])
+                    ->action(function (array $data) {
+                        \Maatwebsite\Excel\Facades\Excel::import(new \App\Imports\ResidentsImport, $data['file']);
+                    }),
+            ])
+            ->label('Menu Data')
+            ->icon('heroicon-m-ellipsis-vertical')
+            ->color('info')
+            ->button(),
+        ];
+    }
 
     public function getTabs(): array
     {
