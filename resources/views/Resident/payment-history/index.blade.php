@@ -9,17 +9,17 @@
         <div class="mx-auto max-w-7xl space-y-4 px-4 sm:space-y-6 sm:px-6 lg:px-8">
 
             {{-- STATISTIK PEMBAYARAN --}}
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
                 {{-- Total Pembayaran --}}
-                <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-md transition-colors transition-transform duration-200 hover:scale-105 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                <div class="rounded-xl border border-gray-100 bg-white p-4 sm:p-5 shadow-md transition-colors transition-transform duration-200 hover:scale-105 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800">
                     <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ __('payment-history.total_payments') }}</p>
-                            <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{{ $totalPayments }}</p>
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('payment-history.all_payments_desc') }}</p>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">{{ __('payment-history.total_payments') }}</p>
+                            <p class="mt-1 sm:mt-2 text-xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{{ $totalPayments }}</p>
+                            <p class="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 truncate">{{ __('payment-history.all_payments_desc') }}</p>
                         </div>
-                        <div class="rounded-lg bg-blue-50 p-3 dark:bg-blue-900/30">
-                            <svg class="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="rounded-lg bg-blue-50 p-2 sm:p-3 dark:bg-blue-900/30 shrink-0 ml-2">
+                            <svg class="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
                             </svg>
                         </div>
@@ -27,15 +27,15 @@
                 </div>
 
                 {{-- Terverifikasi --}}
-                <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-md transition-colors transition-transform duration-200 hover:scale-105 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                <div class="rounded-xl border border-gray-100 bg-white p-4 sm:p-5 shadow-md transition-colors transition-transform duration-200 hover:scale-105 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800">
                     <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ __('payment-history.verified_payments') }}</p>
-                            <p class="mt-2 text-3xl font-bold text-green-600 dark:text-green-500">{{ $verifiedPayments }}</p>
-                            <p class="mt-1 text-xs text-green-600 dark:text-green-400">{{ __('payment-history.verified_desc') }}</p>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">{{ __('payment-history.verified_payments') }}</p>
+                            <p class="mt-1 sm:mt-2 text-xl sm:text-3xl font-bold text-green-600 dark:text-green-500">{{ $verifiedPayments }}</p>
+                            <p class="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-green-600 dark:text-green-400 truncate">{{ __('payment-history.verified_desc') }}</p>
                         </div>
-                        <div class="rounded-lg bg-green-50 p-3 dark:bg-green-900/30">
-                            <svg class="h-6 w-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="rounded-lg bg-green-50 p-2 sm:p-3 dark:bg-green-900/30 shrink-0 ml-2">
+                            <svg class="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                         </div>
@@ -43,15 +43,15 @@
                 </div>
 
                 {{-- Pending --}}
-                <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-md transition-colors transition-transform duration-200 hover:scale-105 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                <div class="rounded-xl border border-gray-100 bg-white p-4 sm:p-5 shadow-md transition-colors transition-transform duration-200 hover:scale-105 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800">
                     <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ __('payment-history.pending_payments') }}</p>
-                            <p class="mt-2 text-3xl font-bold text-amber-600 dark:text-amber-500">{{ $pendingPayments }}</p>
-                            <p class="mt-1 text-xs text-amber-600 dark:text-amber-400">{{ __('payment-history.pending_desc') }}</p>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">{{ __('payment-history.pending_payments') }}</p>
+                            <p class="mt-1 sm:mt-2 text-xl sm:text-3xl font-bold text-amber-600 dark:text-amber-500">{{ $pendingPayments }}</p>
+                            <p class="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-amber-600 dark:text-amber-400 truncate">{{ __('payment-history.pending_desc') }}</p>
                         </div>
-                        <div class="rounded-lg bg-amber-50 p-3 dark:bg-amber-900/30">
-                            <svg class="h-6 w-6 text-amber-600 dark:text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="rounded-lg bg-amber-50 p-2 sm:p-3 dark:bg-amber-900/30 shrink-0 ml-2">
+                            <svg class="h-5 w-5 sm:h-6 sm:w-6 text-amber-600 dark:text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                         </div>
@@ -59,15 +59,15 @@
                 </div>
 
                 {{-- Ditolak --}}
-                <div class="rounded-xl border border-gray-100 bg-white p-5 shadow-md transition-colors transition-transform duration-200 hover:scale-105 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                <div class="rounded-xl border border-gray-100 bg-white p-4 sm:p-5 shadow-md transition-colors transition-transform duration-200 hover:scale-105 hover:shadow-lg dark:border-gray-700 dark:bg-gray-800">
                     <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ __('payment-history.rejected_payments') }}</p>
-                            <p class="mt-2 text-3xl font-bold text-red-600 dark:text-red-400">{{ $rejectedPayments }}</p>
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ __('payment-history.rejected_desc') }}</p>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">{{ __('payment-history.rejected_payments') }}</p>
+                            <p class="mt-1 sm:mt-2 text-xl sm:text-3xl font-bold text-red-600 dark:text-red-400">{{ $rejectedPayments }}</p>
+                            <p class="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-red-600 dark:text-red-400 truncate">{{ __('payment-history.rejected_desc') }}</p>
                         </div>
-                        <div class="rounded-lg bg-red-50 p-3 dark:bg-red-900/30">
-                            <svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="rounded-lg bg-red-50 p-2 sm:p-3 dark:bg-red-900/30 shrink-0 ml-2">
+                            <svg class="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                         </div>
