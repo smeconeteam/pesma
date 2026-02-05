@@ -65,6 +65,7 @@ class PaymentHistoryController extends Controller
                 'status' => $payment->status,
                 'payment_date' => $payment->payment_date?->toISOString(),
                 'payment_method_name' => $payment->paymentMethod?->name ?? '-',
+                'payment_method_kind' => $payment->paymentMethod?->kind,
                 'notes' => $payment->notes,
                 'rejection_reason' => $payment->rejection_reason,
                 'verified_at' => $payment->verified_at?->toISOString(),

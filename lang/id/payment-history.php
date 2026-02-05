@@ -74,4 +74,9 @@ return [
     'notes_label' => 'Catatan',
     'rejection_reason_label' => 'Alasan Penolakan',
     'proof_of_payment' => 'Bukti Pembayaran',
+    
+    // Payment Method Names
+    'method_cash' => 'Tunai',
+    'method_transfer' => 'Transfer Bank',
+    'method_qris' => 'QRIS',
 ];

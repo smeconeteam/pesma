@@ -74,4 +74,9 @@ return [
     'notes_label' => 'Notes',
     'rejection_reason_label' => 'Rejection Reason',
     'proof_of_payment' => 'Proof of Payment',
+    
+    // Payment Method Names
+    'method_cash' => 'Cash',
+    'method_transfer' => 'Bank Transfer',
+    'method_qris' => 'QRIS',
 ];
