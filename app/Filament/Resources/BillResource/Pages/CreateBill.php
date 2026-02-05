@@ -408,6 +408,7 @@ class CreateBill extends CreateRecord
                                                         'name' => $user->residentProfile->full_name ?? $user->name,
                                                         'amount' => 100000,
                                                         'discount_percent' => 0,
+                                                        'selected' => true,
                                                     ];
                                                 })->toArray();
 
@@ -1283,6 +1284,10 @@ class CreateBill extends CreateRecord
             };
 
             DB::commit();
+
+            if ($bills->isEmpty()) {
+                throw new \Exception('Tidak ada tagihan yang berhasil dibuat. Pastikan minimal satu penghuni dipilih.');
+            }
 
             return $bills->first();
         } catch (\Exception $e) {
