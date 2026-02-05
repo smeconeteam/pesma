@@ -52,6 +52,8 @@
     $rowClass = "px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6";
     $labelClass = "text-sm font-medium text-gray-500 dark:text-gray-400";
     $valueClass = "mt-1 text-sm text-gray-900 dark:text-gray-100 sm:col-span-2 sm:mt-0";
+
+    $isInactive = in_array($status, ['inactive', 'nonaktif']);
     @endphp
 
     <div class="py-10">
@@ -136,6 +138,11 @@
                         </div>
 
                         <div class="{{ $rowClass }}">
+                            <dt class="{{ $labelClass }}">{{ __('profile.address') }}</dt>
+                            <dd class="{{ $valueClass }}">{{ $profile?->address ?? '-' }}</dd>
+                        </div>
+
+                        <div class="{{ $rowClass }}">
                             <dt class="{{ $labelClass }}">{{ __('profile.resident_category') }}</dt>
                             <dd class="{{ $valueClass }}">{{ $profile?->residentCategory?->name ?? '-' }}</dd>
                         </div>
@@ -153,6 +160,11 @@
                         <div class="{{ $rowClass }}">
                             <dt class="{{ $labelClass }}">{{ __('profile.national_id') }}l</dt>
                             <dd class="{{ $valueClass }}">{{ $profile?->national_id ?? '-' }}</dd>
+                        </div>
+
+                        <div class="{{ $rowClass }}">
+                            <dt class="{{ $labelClass }}">{{ __('profile.school') }}</dt>
+                            <dd class="{{ $valueClass }}">{{ $profile?->university_school ?? '-' }}</dd>
                         </div>
 
                         <div class="{{ $rowClass }}">
@@ -178,7 +190,7 @@
                         @else
                             <div class="{{ $rowClass }}">
                                 <dt class="{{ $labelClass }}">Tanggal Keluar</dt>
-                                <dd class="{{ $valueClass }}">{{ $checkOutLabel }}</dd>
+                                <dd class="{{ $valueClass }}">{{ $checkOutLabel ?? '-' }}</dd>
                             </div>
                         @endif
 
@@ -245,6 +257,7 @@
                         @include('profile.partials.update-profile-information-form')
                     </div>
                 </div>
+            </div>
 
             {{-- Ubah Password --}}
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
@@ -254,7 +267,7 @@
                         @include('profile.partials.update-password-form')
                     </div>
                 </div>
-            @endif
+            </div>
 
         </div>
     </div>

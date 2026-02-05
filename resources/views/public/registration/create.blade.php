@@ -170,6 +170,12 @@
                         <label class="block text-sm font-medium">No. HP Wali (Opsional)</label>
                         <input name="guardian_phone_number" inputmode="numeric" pattern="[0-9]*" value="{{ old('guardian_phone_number') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500">
                     </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium">Alamat (Opsional)</label>
+                        <textarea name="address" rows="3" maxlength="500" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" placeholder="Masukkan alamat lengkap...">{{ old('address') }}</textarea>
+                        <p class="mt-1 text-xs text-gray-500">Alamat lengkap tempat tinggal</p>
+                    </div>
                 </div>
             </section>
 

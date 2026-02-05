@@ -15,7 +15,7 @@ class PaymentMethodResource extends Resource
     protected static ?string $navigationLabel = 'Metode Pembayaran';
     protected static ?string $pluralLabel = 'Metode Pembayaran';
     protected static ?string $modelLabel = 'Metode Pembayaran';
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 5;
 
     /** =========================
      *  ACCESS CONTROL (NO POLICY)

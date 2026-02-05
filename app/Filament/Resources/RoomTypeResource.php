@@ -27,7 +27,7 @@ class RoomTypeResource extends Resource
 
     protected static ?string $slug = 'tipe-kamar';
     protected static ?string $navigationGroup = 'Asrama';
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $navigationLabel = 'Tipe Kamar';
     protected static ?string $navigationIcon = null;

@@ -31,6 +31,10 @@ class Institution extends Model
                 Storage::disk('public')->delete($institution->logo_path);
             }
         });
+
+        static::saved(function ($institution) {
+            cache()->forget('institution_data');
+        });
     }
 
     public function getLogoUrlAttribute(): ?string

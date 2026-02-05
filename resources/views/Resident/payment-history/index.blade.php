@@ -132,156 +132,59 @@
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800">
                                 <tr>
-                                    <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                                        No. Pembayaran
-                                    </th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                                        Tagihan
-                                    </th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                                        Tanggal
-                                    </th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                                        Nominal
-                                    </th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                                        Metode
-                                    </th>
-                                    <th class="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                                        Status
-                                    </th>
-                                    <th class="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                                        Aksi
-                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('payment-history.payment_number') }}</th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('payment-history.bill_number') }}</th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('payment-history.payment_type') }}</th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('payment-history.payment_date') }}</th>
+                                    <th class="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('payment-history.amount') }}</th>
+                                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('payment-history.status') }}</th>
+                                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
-                                @forelse ($payments as $payment)
-                                    <tr class="cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50" onclick="openPaymentModal({{ json_encode($payment) }})">
-                                        <td class="whitespace-nowrap px-6 py-4">
-                                            <div class="flex items-center gap-2">
-                                                <div class="rounded bg-purple-100 p-1.5 dark:bg-purple-900/30">
-                                                    <svg class="h-4 w-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path>
-                                                    </svg>
-                                                </div>
-                                                <div>
-                                                    <div class="text-sm font-bold text-gray-900 dark:text-gray-100">{{ $payment->payment_number }}</div>
-                                                    <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                        @if ($payment->is_pic_payment)
-                                                            <span class="inline-flex items-center gap-1">
-                                                                <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                                                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path>
-                                                                </svg>
-                                                                PIC Kamar
-                                                            </span>
-                                                        @else
-                                                            <span class="inline-flex items-center gap-1">
-                                                                <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                                                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
-                                                                </svg>
-                                                                Pribadi
-                                                            </span>
-                                                        @endif
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4">
-                                            <div class="text-sm">
-                                                <div class="font-semibold text-gray-900 dark:text-gray-100">{{ $payment->bill->bill_number }}</div>
-                                                <div class="text-xs text-gray-600 dark:text-gray-400">{{ $payment->bill->billingType->name }}</div>
-                                                @if ($payment->bill->room)
-                                                    <div class="text-xs font-medium text-purple-600 dark:text-purple-400">{{ $payment->bill->room->code }}</div>
-                                                @endif
-                                            </div>
-                                        </td>
-                                        <td class="whitespace-nowrap px-6 py-4">
-                                            <div class="text-sm text-gray-900 dark:text-gray-100">
-                                                {{ \Carbon\Carbon::parse($payment->payment_date)->format('d M Y') }}
-                                            </div>
-                                            <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                {{ \Carbon\Carbon::parse($payment->payment_date)->format('H:i') }}
-                                            </div>
-                                        </td>
-                                        <td class="whitespace-nowrap px-6 py-4">
-                                            <div class="text-base font-bold text-gray-900 dark:text-gray-100">
-                                                Rp {{ number_format($payment->amount, 0, ',', '.') }}
-                                            </div>
-                                        </td>
-                                        <td class="whitespace-nowrap px-6 py-4">
-                                            <span class="{{ $payment->paymentMethod->kind === 'qris' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : '' }} {{ $payment->paymentMethod->kind === 'transfer' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : '' }} {{ $payment->paymentMethod->kind === 'cash' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' : '' }} inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold">
-                                                @if ($payment->paymentMethod->kind === 'qris')
-                                                    <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 2V5h2v1H5zM3 13a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1v-4zm2 2v-1h2v1H5zM13 3a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V4a1 1 0 00-1-1h-4zm1 2v1h2V5h-2z" clip-rule="evenodd"></path>
-                                                        <path d="M11 4a1 1 0 10-2 0v1a1 1 0 002 0V4zM10 7a1 1 0 011 1v1h2a1 1 0 110 2h-3a1 1 0 01-1-1V8a1 1 0 011-1zM16 9a1 1 0 100 2 1 1 0 000-2zM9 13a1 1 0 011-1h1a1 1 0 110 2v2a1 1 0 11-2 0v-3zM7 11a1 1 0 100-2H4a1 1 0 100 2h3zM17 13a1 1 0 01-1 1h-2a1 1 0 110-2h2a1 1 0 011 1zM16 17a1 1 0 100-2h-3a1 1 0 100 2h3z"></path>
-                                                    </svg>
-                                                    QRIS
-                                                @elseif($payment->paymentMethod->kind === 'transfer')
-                                                    <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"></path>
-                                                        <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"></path>
-                                                    </svg>
-                                                    Transfer
-                                                @else
-                                                    <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
-                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
-                                                    </svg>
-                                                    Tunai
-                                                @endif
-                                            </span>
-                                        </td>
-                                        <td class="whitespace-nowrap px-6 py-4">
-                                            @if ($payment->status === 'verified')
-                                                <span class="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                                    <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                                    </svg>
-                                                    Terverifikasi
-                                                </span>
-                                            @elseif($payment->status === 'pending')
-                                                <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-                                                    <svg class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    Menunggu
-                                                </span>
-                                            @else
-                                                <span class="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                                                    <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                                                    </svg>
-                                                    Ditolak
-                                                </span>
-                                            @endif
-                                        </td>
-                                        <td class="whitespace-nowrap px-6 py-4 text-center">
-                                            <button onclick="event.stopPropagation(); openPaymentModal({{ json_encode($payment) }})" class="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 font-semibold text-white shadow-md transition-all hover:scale-105 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600">
-                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                @foreach ($paymentsCollection as $payment)
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors" onclick="openPaymentModal({{ $payment->id }})">
+                                    <td class="px-4 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">{{ $payment->payment_number }}</td>
+                                    <td class="px-4 py-4 text-sm text-gray-900 dark:text-gray-100">{{ $payment->bill->bill_number }}</td>
+                                    <td class="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
+                                        {{ $payment->bill->billingType->name }}
+                                    </td>
+                                    <td class="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
+                                        {{ $payment->payment_date->format('d M Y') }}
+                                    </td>
+                                    <td class="px-4 py-4 text-sm text-right font-semibold text-gray-900 dark:text-gray-100">Rp {{ number_format($payment->amount, 0, ',', '.') }}</td>
+                                    <td class="px-4 py-4 text-center">
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold
+                                            {{ $payment->status === 'verified' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 
+                                               ($payment->status === 'pending' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200') }}">
+                                            {{ $payment->status_label }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-4 text-center whitespace-nowrap">
+                                        <div class="flex items-center justify-center gap-2">
+                                            <button onclick="event.stopPropagation(); openPaymentModal({{ $payment->id }})" 
+                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors" 
+                                                title="Lihat Detail">
+                                                <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                 </svg>
-                                                Lihat Detail
+                                                Detail
                                             </button>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="7" class="px-6 py-12 text-center">
-                                            <div class="flex flex-col items-center justify-center space-y-3">
-                                                <div class="rounded-full bg-gray-100 p-4 dark:bg-gray-700">
-                                                    <svg class="h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                                                    </svg>
-                                                </div>
-                                                <p class="text-lg font-semibold text-gray-600 dark:text-gray-400">{{ __('payment-history.no_payments') }}</p>
-                                                <p class="text-sm text-gray-500 dark:text-gray-500">Belum ada riwayat pembayaran</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforelse
+                                            @if ($payment->status === 'verified')
+                                            <a href="{{ url('/receipt') }}/{{ $payment->id }}" target="_blank" onclick="event.stopPropagation()"
+                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors"
+                                                title="Cetak Nota">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2-4h6a2 2 0 002-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 002 2zm-6 9h6m-6 0a2 2 0 002 2h2a2 2 0 002-2m-6 0h6" />
+                                                </svg>
+                                                Nota
+                                            </a>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                                @endforeach
                             </tbody>
                         </table>
                     </div>
@@ -392,100 +295,36 @@
                                 ${status.label}
                             </span>
                         </div>
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold ${statusColor}">
+                            ${payment.status === 'verified' ? 'Terverifikasi' : (payment.status === 'pending' ? 'Menunggu Verifikasi' : 'Ditolak')}
+                        </span>
                     </div>
-
-                    {{-- Informasi Tagihan --}}
-                    <div class="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl p-6 border-2 border-purple-200 dark:border-purple-800">
-                        <h5 class="font-bold text-gray-900 dark:text-gray-100 text-lg mb-4 flex items-center gap-2">
-                            <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            Informasi Tagihan
-                        </h5>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div class="bg-white dark:bg-gray-800 rounded-lg p-4">
-                                <p class="text-xs text-gray-600 dark:text-gray-400 mb-1">No. Tagihan</p>
-                                <p class="font-bold text-gray-900 dark:text-gray-100">${payment.bill.bill_number}</p>
-                            </div>
-                            <div class="bg-white dark:bg-gray-800 rounded-lg p-4">
-                                <p class="text-xs text-gray-600 dark:text-gray-400 mb-1">Jenis Tagihan</p>
-                                <p class="font-bold text-gray-900 dark:text-gray-100">${payment.bill.billing_type.name}</p>
-                            </div>
-                            ${payment.bill.room ? `
-                                <div class="bg-white dark:bg-gray-800 rounded-lg p-4">
-                                    <p class="text-xs text-gray-600 dark:text-gray-400 mb-1">Kamar</p>
-                                    <p class="font-bold text-purple-600 dark:text-purple-400">${payment.bill.room.code}</p>
-                                </div>
-                                ` : ''}
-                            <div class="bg-white dark:bg-gray-800 rounded-lg p-4">
-                                <p class="text-xs text-gray-600 dark:text-gray-400 mb-1">Total Tagihan</p>
-                                <p class="font-bold text-gray-900 dark:text-gray-100">${formatCurrency(payment.bill.total_amount)}</p>
-                            </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <h5 class="font-bold text-gray-900 dark:text-gray-100 text-lg">{{ __('payment-history.payment_details') }}</h5>
+                    <div class="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-4 space-y-3 border border-gray-100 dark:border-gray-700">
+                        <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
+                            <span class="text-gray-700 dark:text-gray-300">{{ __('payment-history.payment_date') }}</span>
+                            <span class="font-bold text-gray-900 dark:text-gray-100">${formatDate(payment.payment_date)}</span>
                         </div>
-                    </div>
-                    
-                    {{-- Detail Pembayaran --}}
-                    <div class="space-y-4">
-                        <h5 class="font-bold text-gray-900 dark:text-gray-100 text-lg flex items-center gap-2">
-                            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                            </svg>
-                            Detail Pembayaran
-                        </h5>
-                        <div class="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-5 space-y-3 border border-gray-200 dark:border-gray-700">
-                            <div class="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-600">
-                                <span class="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                    </svg>
-                                    Tanggal Pembayaran
-                                </span>
-                                <span class="font-bold text-gray-900 dark:text-gray-100">${formatDateShort(payment.payment_date)}</span>
-                            </div>
-                            <div class="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-600">
-                                <span class="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                    Nominal Dibayar
-                                </span>
-                                <span class="font-bold text-xl text-green-600 dark:text-green-400">${formatCurrency(payment.amount)}</span>
-                            </div>
-                            <div class="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-600">
-                                <span class="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-                                    </svg>
-                                    Metode Pembayaran
-                                </span>
-                                <span class="font-bold text-gray-900 dark:text-gray-100">${
-                                    payment.payment_method ? 
-                                        (payment.payment_method.kind === 'qris' ? 'QRIS' : 
-                                        (payment.payment_method.kind === 'transfer' ? 'Transfer Bank' : 
-                                        (payment.payment_method.kind === 'cash' ? 'Tunai' : payment.payment_method.kind))) 
-                                    : '-'
-                                }</span>
-                            </div>
-                            <div class="flex items-center justify-between py-3 ${payment.verified_at ? 'border-b border-gray-200 dark:border-gray-600' : ''}">
-                                <span class="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                    </svg>
-                                    Tipe Pembayaran
-                                </span>
-                                <span class="font-bold text-gray-900 dark:text-gray-100">${payment.is_pic_payment ? '👥 PIC Kamar (Gabungan)' : '👤 Pribadi'}</span>
-                            </div>
-                            ${payment.verified_at ? `
-                                <div class="flex items-center justify-between py-3">
-                                    <span class="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                        Diverifikasi Pada
-                                    </span>
-                                    <span class="font-bold text-gray-900 dark:text-gray-100">${formatDate(payment.verified_at)}</span>
-                                </div>
-                                ` : ''}
+                        <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
+                            <span class="text-gray-700 dark:text-gray-300">{{ __('payment-history.amount') }}</span>
+                            <span class="font-bold text-gray-900 dark:text-gray-100">${formatCurrency(payment.amount)}</span>
+                        </div>
+                        <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
+                            <span class="text-gray-700 dark:text-gray-300">{{ __('payment-history.payment_method') }}</span>
+                            <span class="font-bold text-gray-900 dark:text-gray-100">${
+                                payment.payment_method ? 
+                                    (payment.payment_method.kind === 'qris' ? 'QRIS' : 
+                                    (payment.payment_method.kind === 'transfer' ? 'Transfer Bank' : 
+                                    (payment.payment_method.kind === 'cash' ? 'Tunai' : payment.payment_method.kind))) 
+                                : '-'
+                            }</span>
+                        </div>
+                        <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
+                            <span class="text-gray-700 dark:text-gray-300">{{ __('payment-history.payment_type') }}</span>
+                            <span class="font-bold text-gray-900 dark:text-gray-100">${payment.is_pic_payment ? 'PIC (Gabungan)' : 'Pribadi'}</span>
                         </div>
                     </div>
                     
@@ -544,6 +383,21 @@
                             Tutup
                         </button>
                     </div>
+                </div>
+                ` : ''}
+                
+                <div class="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700 gap-3">
+                    ${payment.status === 'verified' ? `
+                    <a href="{{ url('/receipt') }}/${payment.id}" target="_blank" class="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg font-semibold transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2-4h6a2 2 0 002-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 002 2zm-6 9h6m-6 0a2 2 0 002 2h2a2 2 0 002-2m-6 0h6"></path>
+                        </svg>
+                        Cetak Nota
+                    </a>
+                    ` : ''}
+                    <button onclick="closePaymentModal()" class="px-6 py-2.5 bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors">
+                        {{ __('payment-history.close') }}
+                    </button>
                 </div>
             `;
 

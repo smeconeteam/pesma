@@ -108,7 +108,7 @@ class Transaction extends Model
     {
         return match($this->payment_method) {
             'cash' => 'Tunai',
-            'credit' => 'Kredit',
+            'credit' => 'Transfer',
             default => '-',
         };
     }

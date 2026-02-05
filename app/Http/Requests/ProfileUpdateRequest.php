@@ -28,6 +28,9 @@ class ProfileUpdateRequest extends FormRequest
             'photo' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif', 'max:2048'], // max 2MB
             'remove_photo' => ['nullable', 'boolean'],
             'phone_number' => ['nullable', 'string', 'max:20'],
+            'address' => ['nullable', 'string', 'max:500'],
+            'university_school' => ['nullable', 'string', 'max:255'],
+            'student_id' => ['nullable', 'string', 'max:50'],
         ];
     }
 
@@ -43,6 +46,9 @@ class ProfileUpdateRequest extends FormRequest
             'email' => 'alamat email',
             'photo' => 'foto profil',
             'phone_number' => 'nomor HP',
+            'address' => 'alamat',
+            'university_school' => 'sekolah / universitas',
+            'student_id' => 'NIM / NIS',
         ];
     }
 

@@ -8,8 +8,12 @@ use App\Models\Dorm;
 use App\Models\Room;
 use App\Models\RoomResident;
 use App\Models\RoomType;
+use App\Models\Facility;
+use App\Models\RoomRule;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Tabs;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Forms\Components\Select;
@@ -42,8 +46,12 @@ class RoomResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Informasi Kamar')
-                    ->schema([
+                Tabs::make('Tabs')
+                    ->tabs([
+                        Tabs\Tab::make('Informasi Utama')
+                            ->schema([
+                                Forms\Components\Section::make('Informasi Kamar')
+                                    ->schema([
                         Select::make('dorm_id')
                             ->label('Cabang')
                             ->dehydrated(false)
@@ -273,7 +281,7 @@ class RoomResource extends Resource
                             ->label('Kapasitas')
                             ->numeric()
                             ->minValue(1)
-                            ->nullable()
+                            ->required()
                             ->disabled(function (?Room $record) {
                                 if (!$record) return false;
                                 
@@ -307,16 +315,20 @@ class RoomResource extends Resource
                             ->label('Tarif Bulanan')
                             ->numeric()
                             ->minValue(0)
-                            ->nullable()
+                            ->required()
                             ->prefix('Rp')
                             ->helperText('Otomatis terisi dari tipe kamar, dapat diubah sesuai kebutuhan.'),
-
+                        
                         Select::make('resident_category_id')
                             ->label('Kategori Kamar')
                             ->relationship('residentCategory', 'name')
+                            ->required()
                             ->searchable()
                             ->preload()
-                            ->helperText('Kategori hanya bisa diubah jika kamar kosong (tidak ada penghuni aktif).')
+                            ->helperText(function (?Room $record) {
+                                if (!$record) return null;
+                                return 'Kategori hanya bisa diubah jika kamar kosong (tidak ada penghuni aktif).';
+                            })
                             ->disabled(function (?Room $record) {
                                 if (!$record) return false;
                                 return !$record->isEmpty();
@@ -336,13 +348,348 @@ class RoomResource extends Resource
                                 return \App\Models\ResidentCategory::create($data)->id;
                             }),
 
+                        Forms\Components\TextInput::make('width')
+                            ->label('Lebar Kamar')
+                            ->numeric()
+                            ->suffix('m')
+                            ->required()
+                            ->minValue(0),
+
+                        Forms\Components\TextInput::make('length')
+                            ->label('Panjang Kamar')
+                            ->numeric()
+                            ->suffix('m')
+                            ->required()
+                            ->minValue(0),
+
                         Forms\Components\Toggle::make('is_active')
                             ->label('Aktif')
                             ->default(true),
                     ])
                     ->columns(2),
+
+                                Forms\Components\Section::make('Informasi Penanggung Jawab')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('contact_person_name')
+                                            ->label('Nama Kontak (Penanggung Jawab)')
+                                            ->maxLength(255),
+                                        Forms\Components\TextInput::make('contact_person_number')
+                                            ->label('Nomor Kontak (Penanggung Jawab)')
+                                            ->tel()
+                                            ->maxLength(255),
+                                    ])
+                                    ->columns(2),
+                            ]),
+                        
+                        Tabs\Tab::make('Foto')
+                            ->schema([
+                                FileUpload::make('thumbnail')
+                                    ->label('Thumbnail')
+                                    ->image()
+                                    ->directory('room-thumbnails')
+                                    ->columnSpanFull(),
+                                FileUpload::make('images')
+                                    ->label('Galeri Gambar (Maksimal 5)')
+                                    ->image()
+                                    ->multiple()
+                                    ->maxFiles(5)
+                                    ->directory('room-images')
+                                    ->reorderable()
+                                    ->columnSpanFull()
+                                    ->helperText('Maksimal 5 gambar. Jika Anda memilih lebih dari 5, sistem akan menolak file tambahan.')
+                                    ->validationMessages([
+                                        'max' => 'Anda hanya dapat mengunggah maksimal 5 gambar.',
+                                    ]),
+                            ]),
+
+                        Tabs\Tab::make('Fasilitas & Peraturan')
+                            ->schema([
+                                Select::make('roomRules')
+                                    ->label('Peraturan Kamar')
+                                    ->relationship('roomRules', 'name')
+                                    ->multiple()
+                                    ->preload()
+                                    ->allowHtml()
+                                    ->getOptionLabelFromRecordUsing(fn ($record) => 
+                                        '<div class="flex items-center gap-2">' .
+                                            ($record->icon ? svg($record->icon, 'w-5 h-5')->toHtml() : '') .
+                                            '<span>' . $record->name . '</span>' .
+                                        '</div>'
+                                    )
+                                    ->createOptionForm([
+                                        Forms\Components\TextInput::make('name')
+                                            ->label('Nama Peraturan')
+                                            ->required(),
+                                        Select::make('icon')
+                                            ->label('Icon')
+                                            ->options(static::getIconOptions())
+                                            ->allowHtml()
+                                            ->searchable()
+                                            ->getSearchResultsUsing(function (string $search) {
+                                                if (empty($search)) {
+                                                    return static::getIconOptions();
+                                                }
+                                                
+                                                $icons = static::getAvailableIcons();
+                                                
+                                                return collect($icons)
+                                                    ->filter(fn ($label, $icon) => 
+                                                        stripos($label, $search) !== false || 
+                                                        stripos($icon, $search) !== false
+                                                    )
+                                                    ->mapWithKeys(fn ($label, $icon) => [
+                                                        $icon => '<div class="flex items-center gap-2">' .
+                                                            svg($icon, 'w-5 h-5')->toHtml() .
+                                                            '<span>' . $label . '</span>' .
+                                                            '</div>'
+                                                    ])
+                                                    ->toArray();
+                                            })
+                                            ->getOptionLabelUsing(function ($value) {
+                                                if (!$value) return null;
+                                                $label = static::getAvailableIcons()[$value] ?? $value;
+                                                return new \Illuminate\Support\HtmlString(
+                                                    '<div class="flex items-center gap-2">' .
+                                                    svg($value, 'w-5 h-5')->toHtml() .
+                                                    '<span>' . $label . '</span>' .
+                                                    '</div>'
+                                                );
+                                            }),
+                                    ]),
+                                    
+                                Select::make('facility_parkir')
+                                    ->label('Fasilitas Parkir')
+                                    ->multiple()
+                                    ->allowHtml()
+                                    ->searchable()
+                                    ->options(fn() => Facility::where('type', 'parkir')->get()->mapWithKeys(fn ($f) => [
+                                        $f->id => '<div class="flex items-center gap-2">' .
+                                            ($f->icon ? svg($f->icon, 'w-5 h-5')->toHtml() : '') .
+                                            '<span>' . $f->name . '</span></div>'
+                                    ]))
+                                    ->default(fn ($record) => $record ? $record->facilities()->where('type', 'parkir')->pluck('facilities.id')->toArray() : [])
+                                    ->afterStateHydrated(function (Select $component, $state, $record) {
+                                        if ($record) {
+                                            $component->state($record->facilities()->where('type', 'parkir')->pluck('facilities.id')->toArray());
+                                        }
+                                    })
+                                    ->createOptionForm([
+                                        Forms\Components\TextInput::make('name')->required()->label('Nama Fasilitas'),
+                                        Forms\Components\Hidden::make('type')->default('parkir'),
+                                        Select::make('icon')
+                                            ->label('Icon')
+                                            ->options(static::getIconOptions())
+                                            ->allowHtml()
+                                            ->searchable()
+                                            ->getSearchResultsUsing(function (string $search) {
+                                                if (empty($search)) {
+                                                    return static::getIconOptions();
+                                                }
+                                                
+                                                $icons = static::getAvailableIcons();
+                                                
+                                                return collect($icons)
+                                                    ->filter(fn ($label, $icon) => 
+                                                        stripos($label, $search) !== false || 
+                                                        stripos($icon, $search) !== false
+                                                    )
+                                                    ->mapWithKeys(fn ($label, $icon) => [
+                                                        $icon => '<div class="flex items-center gap-2">' .
+                                                            svg($icon, 'w-5 h-5')->toHtml() .
+                                                            '<span>' . $label . '</span>' .
+                                                            '</div>'
+                                                    ])
+                                                    ->toArray();
+                                            })
+                                            ->getOptionLabelUsing(function ($value) {
+                                                if (!$value) return null;
+                                                $label = static::getAvailableIcons()[$value] ?? $value;
+                                                return new \Illuminate\Support\HtmlString(
+                                                    '<div class="flex items-center gap-2">' .
+                                                    svg($value, 'w-5 h-5')->toHtml() .
+                                                    '<span>' . $label . '</span>' .
+                                                    '</div>'
+                                                );
+                                            }),
+                                    ])
+                                    ->createOptionUsing(fn ($data) => Facility::create($data)->id),
+
+                                Select::make('facility_umum')
+                                    ->label('Fasilitas Umum')
+                                    ->multiple()
+                                    ->allowHtml()
+                                    ->searchable()
+                                    ->options(fn() => Facility::where('type', 'umum')->get()->mapWithKeys(fn ($f) => [
+                                        $f->id => '<div class="flex items-center gap-2">' .
+                                            ($f->icon ? svg($f->icon, 'w-5 h-5')->toHtml() : '') .
+                                            '<span>' . $f->name . '</span></div>'
+                                    ]))
+                                    ->default(fn ($record) => $record ? $record->facilities()->where('type', 'umum')->pluck('facilities.id')->toArray() : [])
+                                    ->afterStateHydrated(function (Select $component, $state, $record) {
+                                        if ($record) {
+                                            $component->state($record->facilities()->where('type', 'umum')->pluck('facilities.id')->toArray());
+                                        }
+                                    })
+                                    ->createOptionForm([
+                                        Forms\Components\TextInput::make('name')->required()->label('Nama Fasilitas'),
+                                        Forms\Components\Hidden::make('type')->default('umum'),
+                                        Select::make('icon')
+                                            ->label('Icon')
+                                            ->options(static::getIconOptions())
+                                            ->allowHtml()
+                                            ->searchable()
+                                            ->getSearchResultsUsing(function (string $search) {
+                                                if (empty($search)) {
+                                                    return static::getIconOptions();
+                                                }
+                                                
+                                                $icons = static::getAvailableIcons();
+                                                
+                                                return collect($icons)
+                                                    ->filter(fn ($label, $icon) => 
+                                                        stripos($label, $search) !== false || 
+                                                        stripos($icon, $search) !== false
+                                                    )
+                                                    ->mapWithKeys(fn ($label, $icon) => [
+                                                        $icon => '<div class="flex items-center gap-2">' .
+                                                            svg($icon, 'w-5 h-5')->toHtml() .
+                                                            '<span>' . $label . '</span>' .
+                                                            '</div>'
+                                                    ])
+                                                    ->toArray();
+                                            })
+                                            ->getOptionLabelUsing(function ($value) {
+                                                if (!$value) return null;
+                                                $label = static::getAvailableIcons()[$value] ?? $value;
+                                                return new \Illuminate\Support\HtmlString(
+                                                    '<div class="flex items-center gap-2">' .
+                                                    svg($value, 'w-5 h-5')->toHtml() .
+                                                    '<span>' . $label . '</span>' .
+                                                    '</div>'
+                                                );
+                                            }),
+                                    ])
+                                    ->createOptionUsing(fn ($data) => Facility::create($data)->id),
+
+                                Select::make('facility_kamar_mandi')
+                                    ->label('Fasilitas Kamar Mandi')
+                                    ->multiple()
+                                    ->allowHtml()
+                                    ->searchable()
+                                    ->options(fn() => Facility::where('type', 'kamar_mandi')->get()->mapWithKeys(fn ($f) => [
+                                        $f->id => '<div class="flex items-center gap-2">' .
+                                            ($f->icon ? svg($f->icon, 'w-5 h-5')->toHtml() : '') .
+                                            '<span>' . $f->name . '</span></div>'
+                                    ]))
+                                    ->default(fn ($record) => $record ? $record->facilities()->where('type', 'kamar_mandi')->pluck('facilities.id')->toArray() : [])
+                                    ->afterStateHydrated(function (Select $component, $state, $record) {
+                                        if ($record) {
+                                            $component->state($record->facilities()->where('type', 'kamar_mandi')->pluck('facilities.id')->toArray());
+                                        }
+                                    })
+                                    ->createOptionForm([
+                                        Forms\Components\TextInput::make('name')->required()->label('Nama Fasilitas'),
+                                        Forms\Components\Hidden::make('type')->default('kamar_mandi'),
+                                        Select::make('icon')
+                                            ->label('Icon')
+                                            ->options(static::getIconOptions())
+                                            ->allowHtml()
+                                            ->searchable()
+                                            ->getSearchResultsUsing(function (string $search) {
+                                                if (empty($search)) {
+                                                    return static::getIconOptions();
+                                                }
+                                                
+                                                $icons = static::getAvailableIcons();
+                                                
+                                                return collect($icons)
+                                                    ->filter(fn ($label, $icon) => 
+                                                        stripos($label, $search) !== false || 
+                                                        stripos($icon, $search) !== false
+                                                    )
+                                                    ->mapWithKeys(fn ($label, $icon) => [
+                                                        $icon => '<div class="flex items-center gap-2">' .
+                                                            svg($icon, 'w-5 h-5')->toHtml() .
+                                                            '<span>' . $label . '</span>' .
+                                                            '</div>'
+                                                    ])
+                                                    ->toArray();
+                                            })
+                                            ->getOptionLabelUsing(function ($value) {
+                                                if (!$value) return null;
+                                                $label = static::getAvailableIcons()[$value] ?? $value;
+                                                return new \Illuminate\Support\HtmlString(
+                                                    '<div class="flex items-center gap-2">' .
+                                                    svg($value, 'w-5 h-5')->toHtml() .
+                                                    '<span>' . $label . '</span>' .
+                                                    '</div>'
+                                                );
+                                            }),
+                                    ])
+                                    ->createOptionUsing(fn ($data) => Facility::create($data)->id),
+
+                                Select::make('facility_kamar')
+                                    ->label('Fasilitas Kamar')
+                                    ->multiple()
+                                    ->allowHtml()
+                                    ->searchable()
+                                    ->options(fn() => Facility::where('type', 'kamar')->get()->mapWithKeys(fn ($f) => [
+                                        $f->id => '<div class="flex items-center gap-2">' .
+                                            ($f->icon ? svg($f->icon, 'w-5 h-5')->toHtml() : '') .
+                                            '<span>' . $f->name . '</span></div>'
+                                    ]))
+                                    ->default(fn ($record) => $record ? $record->facilities()->where('type', 'kamar')->pluck('facilities.id')->toArray() : [])
+                                    ->afterStateHydrated(function (Select $component, $state, $record) {
+                                        if ($record) {
+                                            $component->state($record->facilities()->where('type', 'kamar')->pluck('facilities.id')->toArray());
+                                        }
+                                    })
+                                    ->createOptionForm([
+                                        Forms\Components\TextInput::make('name')->required()->label('Nama Fasilitas'),
+                                        Forms\Components\Hidden::make('type')->default('kamar'),
+                                        Select::make('icon')
+                                            ->label('Icon')
+                                            ->options(static::getIconOptions())
+                                            ->allowHtml()
+                                            ->searchable()
+                                            ->getSearchResultsUsing(function (string $search) {
+                                                if (empty($search)) {
+                                                    return static::getIconOptions();
+                                                }
+                                                
+                                                $icons = static::getAvailableIcons();
+                                                
+                                                return collect($icons)
+                                                    ->filter(fn ($label, $icon) => 
+                                                        stripos($label, $search) !== false || 
+                                                        stripos($icon, $search) !== false
+                                                    )
+                                                    ->mapWithKeys(fn ($label, $icon) => [
+                                                        $icon => '<div class="flex items-center gap-2">' .
+                                                            svg($icon, 'w-5 h-5')->toHtml() .
+                                                            '<span>' . $label . '</span>' .
+                                                            '</div>'
+                                                    ])
+                                                    ->toArray();
+                                            })
+                                            ->getOptionLabelUsing(function ($value) {
+                                                if (!$value) return null;
+                                                $label = static::getAvailableIcons()[$value] ?? $value;
+                                                return new \Illuminate\Support\HtmlString(
+                                                    '<div class="flex items-center gap-2">' .
+                                                    svg($value, 'w-5 h-5')->toHtml() .
+                                                    '<span>' . $label . '</span>' .
+                                                    '</div>'
+                                                );
+                                            }),
+                                    ])
+                                    ->createOptionUsing(fn ($data) => Facility::create($data)->id),
+                            ]),
+                    ])->columnSpanFull(),
             ]);
     }
+
+
 
     public static function table(Table $table): Table
     {
@@ -930,6 +1277,119 @@ class RoomResource extends Resource
             ]);
     }
 
+    public static function infolist( \Filament\Infolists\Infolist $infolist): \Filament\Infolists\Infolist
+    {
+        return $infolist
+            ->schema([
+                \Filament\Infolists\Components\Section::make('Informasi Utama')
+                    ->schema([
+                        \Filament\Infolists\Components\TextEntry::make('code')->label('Kode Kamar'),
+                        \Filament\Infolists\Components\TextEntry::make('number')->label('Nomor'),
+                        \Filament\Infolists\Components\TextEntry::make('roomType.name')->label('Tipe'),
+                        \Filament\Infolists\Components\TextEntry::make('residentCategory.name')->label('Kategori'),
+                        \Filament\Infolists\Components\TextEntry::make('capacity')->label('Kapasitas'),
+                        \Filament\Infolists\Components\TextEntry::make('monthly_rate')->label('Tarif')->money('IDR'),
+                        \Filament\Infolists\Components\TextEntry::make('width')->label('Lebar')->suffix(' m'),
+                        \Filament\Infolists\Components\TextEntry::make('length')->label('Panjang')->suffix(' m'),
+                    ])->columns(4),
+
+                \Filament\Infolists\Components\Section::make('Galeri')
+                    ->schema([
+                        \Filament\Infolists\Components\ImageEntry::make('thumbnail')
+                            ->label('Thumbnail')
+                            ->extraImgAttributes(['class' => 'rounded-lg shadow-md aspect-video object-cover w-full']),
+                        \Filament\Infolists\Components\ImageEntry::make('images')
+                            ->label('Galeri')
+                            ->simpleLightbox()
+                            ->columnSpanFull(),
+                    ]),
+
+                \Filament\Infolists\Components\Section::make('Fasilitas & Aturan')
+                    ->schema([
+                        \Filament\Infolists\Components\RepeatableEntry::make('roomRules')
+                            ->label('Peraturan Kamar')
+                            ->schema([
+                                \Filament\Infolists\Components\TextEntry::make('name')
+                                    ->formatStateUsing(function ($state, $record) {
+                                        $icon = $record->icon ? svg($record->icon, 'w-5 h-5 text-primary-500 inline mr-2')->toHtml() : '';
+                                        return new \Illuminate\Support\HtmlString($icon . $state);
+                                    }),
+                            ])->grid(3),
+
+                        \Filament\Infolists\Components\Grid::make(3)
+                            ->schema([
+                                \Filament\Infolists\Components\Section::make('Parkir')
+                                    ->icon('heroicon-o-truck')
+                                    ->schema([
+                                        \Filament\Infolists\Components\TextEntry::make('facilitiesParkir_list')
+                                            ->hiddenLabel()
+                                            ->state(fn ($record) => $record->facilitiesParkir)
+                                            ->formatStateUsing(function ($state) {
+                                                return $state->map(function ($facility) {
+                                                     $icon = $facility->icon ? svg($facility->icon, 'w-5 h-5 text-info-500 inline mr-2')->toHtml() : '';
+                                                     return '<div class="flex items-center mb-1">' . $icon . '<span>' . e($facility->name) . '</span></div>';
+                                                })->implode('');
+                                            })
+                                            ->html(),
+                                    ])
+                                    ->visible(fn ($record) => $record->facilitiesParkir()->exists())
+                                    ->compact(),
+
+                                \Filament\Infolists\Components\Section::make('Umum')
+                                    ->icon('heroicon-o-building-storefront')
+                                    ->schema([
+                                        \Filament\Infolists\Components\TextEntry::make('facilitiesUmum_list')
+                                            ->hiddenLabel()
+                                            ->state(fn ($record) => $record->facilitiesUmum)
+                                            ->formatStateUsing(function ($state) {
+                                                return $state->map(function ($facility) {
+                                                     $icon = $facility->icon ? svg($facility->icon, 'w-5 h-5 text-success-500 inline mr-2')->toHtml() : '';
+                                                     return '<div class="flex items-center mb-1">' . $icon . '<span>' . e($facility->name) . '</span></div>';
+                                                })->implode('');
+                                            })
+                                            ->html(),
+                                    ])
+                                    ->visible(fn ($record) => $record->facilitiesUmum()->exists())
+                                    ->compact(),
+
+                                \Filament\Infolists\Components\Section::make('Kamar Mandi')
+                                    ->icon('heroicon-o-sparkles')
+                                    ->schema([
+                                        \Filament\Infolists\Components\TextEntry::make('facilitiesKamarMandi_list')
+                                            ->hiddenLabel()
+                                            ->state(fn ($record) => $record->facilitiesKamarMandi)
+                                            ->formatStateUsing(function ($state) {
+                                                return $state->map(function ($facility) {
+                                                     $icon = $facility->icon ? svg($facility->icon, 'w-5 h-5 text-warning-500 inline mr-2')->toHtml() : '';
+                                                     return '<div class="flex items-center mb-1">' . $icon . '<span>' . e($facility->name) . '</span></div>';
+                                                })->implode('');
+                                            })
+                                            ->html(),
+                                    ])
+                                    ->visible(fn ($record) => $record->facilitiesKamarMandi()->exists())
+                                    ->compact(),
+
+                                \Filament\Infolists\Components\Section::make('Kamar')
+                                    ->icon('heroicon-o-home')
+                                    ->schema([
+                                        \Filament\Infolists\Components\TextEntry::make('facilitiesKamar_list')
+                                            ->hiddenLabel()
+                                            ->state(fn ($record) => $record->facilitiesKamar)
+                                            ->formatStateUsing(function ($state) {
+                                                return $state->map(function ($facility) {
+                                                     $icon = $facility->icon ? svg($facility->icon, 'w-5 h-5 text-primary-500 inline mr-2')->toHtml() : '';
+                                                     return '<div class="flex items-center mb-1">' . $icon . '<span>' . e($facility->name) . '</span></div>';
+                                                })->implode('');
+                                            })
+                                            ->html(),
+                                    ])
+                                    ->visible(fn ($record) => $record->facilitiesKamar()->exists())
+                                    ->compact(),
+                            ]),
+                    ]),
+            ]);
+    }
+
     public static function getRelations(): array
     {
         return [];
@@ -944,6 +1404,8 @@ class RoomResource extends Resource
             ->with([
                 'block.dorm',
                 'roomType',
+                'facilities',
+                'roomRules',
                 'residentCategory',
                 'activeRoomResidents.user.residentProfile',
                 'roomResidents.user.residentProfile'
@@ -1083,5 +1545,105 @@ class RoomResource extends Resource
     protected static function extractOriginalCode(string $code): string
     {
         return Str::before($code, '__trashed__');
+    }
+
+    public static function getAvailableIcons(): array
+    {
+        return [
+            'heroicon-o-home' => 'Rumah',
+            'heroicon-o-building-office' => 'Gedung Kantor',
+            'heroicon-o-building-library' => 'Perpustakaan',
+            'heroicon-o-academic-cap' => 'Topi Akademik',
+            'heroicon-o-users' => 'Pengguna',
+            'heroicon-o-user-group' => 'Grup Pengguna',
+            'heroicon-o-wifi' => 'WiFi',
+            'heroicon-o-tv' => 'TV',
+            'heroicon-o-computer-desktop' => 'Komputer Desktop',
+            'heroicon-o-device-phone-mobile' => 'HP',
+            'heroicon-o-device-tablet' => 'Tablet',
+            'heroicon-o-printer' => 'Printer',
+            'heroicon-o-light-bulb' => 'Lampu',
+            'heroicon-o-fire' => 'Api',
+            'heroicon-o-bolt' => 'Petir',
+            'heroicon-o-sun' => 'Matahari',
+            'heroicon-o-moon' => 'Bulan',
+            'heroicon-o-sparkles' => 'Kilauan',
+            'heroicon-o-star' => 'Bintang',
+            'heroicon-o-heart' => 'Hati',
+            'heroicon-o-shield-check' => 'Perisai Centang',
+            'heroicon-o-lock-closed' => 'Kunci Tertutup',
+            'heroicon-o-lock-open' => 'Kunci Terbuka',
+            'heroicon-o-key' => 'Kunci',
+            'heroicon-o-bell' => 'Lonceng',
+            'heroicon-o-book-open' => 'Buku Terbuka',
+            'heroicon-o-newspaper' => 'Koran',
+            'heroicon-o-document' => 'Dokumen',
+            'heroicon-o-folder' => 'Folder',
+            'heroicon-o-clipboard' => 'Clipboard',
+            'heroicon-o-calendar' => 'Kalender',
+            'heroicon-o-clock' => 'Jam',
+            'heroicon-o-beaker' => 'Gelas Kimia',
+            'heroicon-o-wrench-screwdriver' => 'Kunci dan Obeng',
+            'heroicon-o-cog-6-tooth' => 'Pengaturan',
+            'heroicon-o-shopping-bag' => 'Tas Belanja',
+            'heroicon-o-shopping-cart' => 'Keranjang Belanja',
+            'heroicon-o-gift' => 'Hadiah',
+            'heroicon-o-truck' => 'Truk',
+            'heroicon-o-map' => 'Peta',
+            'heroicon-o-map-pin' => 'Pin Peta',
+            'heroicon-o-globe-alt' => 'Bola Dunia',
+            'heroicon-o-flag' => 'Bendera',
+            'heroicon-o-camera' => 'Kamera',
+            'heroicon-o-video-camera' => 'Video Kamera',
+            'heroicon-o-musical-note' => 'Not Musik',
+            'heroicon-o-microphone' => 'Mikrofon',
+            'heroicon-o-phone' => 'Telepon',
+            'heroicon-o-envelope' => 'Amplop',
+            'heroicon-o-chat-bubble-left-right' => 'Chat',
+            'heroicon-o-inbox' => 'Inbox',
+            'heroicon-o-archive-box' => 'Kotak Arsip',
+            'heroicon-o-trash' => 'Tempat Sampah',
+            'heroicon-o-credit-card' => 'Kartu Kredit',
+            'heroicon-o-banknotes' => 'Uang Kertas',
+            'heroicon-o-cloud' => 'Awan',
+            'heroicon-o-arrow-path' => 'Panah Melingkar',
+            'heroicon-o-arrow-up-tray' => 'Unggah',
+            'heroicon-o-arrow-down-tray' => 'Unduh',
+            'heroicon-o-magnifying-glass' => 'Kaca Pembesar',
+            'heroicon-o-funnel' => 'Filter',
+            'heroicon-o-bars-3' => 'Menu',
+            'heroicon-o-squares-2x2' => 'Kotak',
+            'heroicon-o-squares-plus' => 'Tambah Kotak',
+            'heroicon-o-square-3-stack-3d' => 'Tumpukan 3D',
+            'heroicon-o-cube' => 'Kubus',
+            'heroicon-o-rectangle-stack' => 'Tumpukan',
+            'heroicon-o-window' => 'Jendela',
+            'heroicon-o-check' => 'Centang',
+            'heroicon-o-check-circle' => 'Centang Lingkaran',
+            'heroicon-o-x-mark' => 'Silang',
+            'heroicon-o-x-circle' => 'Silang Lingkaran',
+            'heroicon-o-exclamation-circle' => 'Seru Lingkaran',
+            'heroicon-o-exclamation-triangle' => 'Seru Segitiga',
+            'heroicon-o-information-circle' => 'Info Lingkaran',
+            'heroicon-o-question-mark-circle' => 'Tanya Lingkaran',
+            'heroicon-o-plus' => 'Plus',
+            'heroicon-o-minus' => 'Minus',
+            'heroicon-o-ellipsis-horizontal' => 'Titik Tiga',
+            'heroicon-o-no-symbol' => 'Dilarang',
+            'heroicon-o-hand-raised' => 'Tangan Terangkat',
+            'heroicon-o-shield-exclamation' => 'Peringatan',
+        ];
+    }
+
+    public static function getIconOptions(): array
+    {
+        return collect(static::getAvailableIcons())
+            ->mapWithKeys(function ($label, $icon) {
+                return [$icon => '<div class="flex items-center gap-2">' .
+                        svg($icon, 'w-5 h-5')->toHtml() .
+                        '<span>' . $label . '</span>' .
+                        '</div>'];
+            })
+            ->toArray();
     }
 }

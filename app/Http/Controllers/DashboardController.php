@@ -64,6 +64,42 @@ class DashboardController extends Controller
                 $checkoutReason = $lastHistory->notes;
             }
         }
+
+        // DATA PIC KAMAR
+        $picInfo = null;
+        $isYouPic = false;
+
+        if ($room?->id) {
+            // Logic 1: Cari Resident yang jadi PIC
+            $picAssignment = \App\Models\RoomResident::query()
+                ->where('room_id', $room->id)
+                ->whereNull('check_out_date')
+                ->where('is_pic', true)
+                ->with(['user.residentProfile'])
+                ->first();
+
+            if ($picAssignment) {
+                $picUser = $picAssignment->user;
+                $picProfile = $picUser?->residentProfile;
+                
+                $picInfo = [
+                    'name'      => $picProfile?->full_name ?? $picUser?->name ?? '-',
+                    'phone'     => $picProfile?->phone_number ?? '-',
+                    'photo_url' => ($picProfile?->photo_path) ? Storage::url($picProfile->photo_path) : null,
+                ];
+
+                $isYouPic = ($user->id === $picUser?->id);
+            } 
+            // Logic 2: Kalau tidak ada Resident PIC, ambil dari Penanggung Jawab Kamar (Staf)
+            elseif ($room->contact_person_name) {
+                $picInfo = [
+                    'name'      => $room->contact_person_name . ' (Staf)',
+                    'phone'     => $room->contact_person_number ?? '-',
+                    'photo_url' => null,
+                ];
+                $isYouPic = false;
+            }
+        }
         
         // Data kontak
         $contacts = Contact::where('is_active', true)
@@ -91,6 +127,17 @@ class DashboardController extends Controller
             })
             ->orderBy('display_name')
             ->get();
+
+        // Prepend room contact person ke daftar kontak
+        if ($room?->contact_person_name && $room?->contact_person_number) {
+            $roomContact = (object) [
+                'display_name' => $room->contact_person_name . ' (Penanggung Jawab)',
+                'name'         => $room->contact_person_name,
+                'phone'        => $room->contact_person_number,
+                'auto_message' => null,
+            ];
+            $contacts->prepend($roomContact);
+        }
         
         // ==========================================
         // 3. DATA TAGIHAN (BILLS)
@@ -153,7 +200,9 @@ class DashboardController extends Controller
             'verifiedPayments',
             'pendingPayments',
             'totalVerifiedAmount',
-            'recentPayments'
+            'recentPayments',
+            'picInfo',
+            'isYouPic'
         ));
     }
 }

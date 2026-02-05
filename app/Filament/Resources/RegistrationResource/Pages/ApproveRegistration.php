@@ -495,6 +495,7 @@ class ApproveRegistration extends Page
                 'phone_number' => $registration->phone_number,
                 'guardian_name' => $registration->guardian_name,
                 'guardian_phone_number' => $registration->guardian_phone_number,
+                'address' => $registration->address,
                 'photo_path' => $registration->photo_path,
             ];
 
