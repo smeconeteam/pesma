@@ -190,9 +190,21 @@
                     </div>
 
                     {{-- Pagination --}}
-                    @if ($payments->hasPages())
-                        <div class="mt-6">
-                            {{ $payments->links() }}
+                    @if ($totalPages > 1)
+                        <div class="mt-6 flex items-center justify-center gap-2">
+                            @if ($currentPage > 1)
+                                <a href="{{ request()->fullUrlWithQuery(['page' => $currentPage - 1]) }}" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600">
+                                    &laquo; Sebelumnya
+                                </a>
+                            @endif
+                            <span class="px-3 py-2 text-sm text-gray-700 dark:text-gray-300">
+                                Halaman {{ $currentPage }} dari {{ $totalPages }}
+                            </span>
+                            @if ($currentPage < $totalPages)
+                                <a href="{{ request()->fullUrlWithQuery(['page' => $currentPage + 1]) }}" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600">
+                                    Selanjutnya &raquo;
+                                </a>
+                            @endif
                         </div>
                     @endif
                 </div>
@@ -208,7 +220,7 @@
     </div>
 
     <script>
-        const payments = @json($payments->items());
+        const payments = @json($paymentsCollection->values());
 
         function formatCurrency(amount) {
             return new Intl.NumberFormat('id-ID', {
@@ -237,7 +249,10 @@
             });
         }
 
-        function openPaymentModal(payment) {
+        function openPaymentModal(paymentId) {
+            const payment = payments.find(p => p.id === paymentId);
+            if (!payment) return;
+            
             const modal = document.getElementById('paymentModal');
             const modalContent = document.getElementById('modalContent');
 
