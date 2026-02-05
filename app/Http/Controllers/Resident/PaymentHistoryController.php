@@ -56,6 +56,32 @@ class PaymentHistoryController extends Controller
         
         $totalPages = ceil($filteredPayments->count() / $perPage);
         
+        // Transform payments for JavaScript (simplified data)
+        $paymentsJson = $paymentsCollection->map(function($payment) {
+            return [
+                'id' => $payment->id,
+                'payment_number' => $payment->payment_number,
+                'amount' => $payment->amount,
+                'status' => $payment->status,
+                'payment_date' => $payment->payment_date?->toISOString(),
+                'payment_method_name' => $payment->paymentMethod?->name ?? '-',
+                'notes' => $payment->notes,
+                'rejection_reason' => $payment->rejection_reason,
+                'verified_at' => $payment->verified_at?->toISOString(),
+                'proof_of_payment' => $payment->proof_of_payment,
+                'bill' => [
+                    'bill_number' => $payment->bill?->bill_number,
+                    'billing_type_name' => $payment->bill?->billingType?->name ?? '-',
+                    'total_amount' => $payment->bill?->total_amount ?? 0,
+                    'remaining_amount' => $payment->bill?->remaining_amount ?? 0,
+                    'period_start' => $payment->bill?->period_start?->toISOString(),
+                    'period_end' => $payment->bill?->period_end?->toISOString(),
+                ],
+                'paid_by_user_name' => $payment->paidByUser?->name ?? '-',
+                'verified_by_name' => $payment->verifiedBy?->name ?? null,
+            ];
+        })->values();
+        
         return view('resident.payment-history.index', compact(
             'totalPayments',
             'verifiedPayments',
@@ -64,6 +90,7 @@ class PaymentHistoryController extends Controller
             'totalVerified',
             'totalPending',
             'paymentsCollection',
+            'paymentsJson',
             'statusFilter',
             'yearFilter',
             'availableYears',
