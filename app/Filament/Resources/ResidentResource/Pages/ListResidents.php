@@ -38,7 +38,7 @@ class ListResidents extends ListRecords
                             ->required(),
                     ])
                     ->action(function (array $data) {
-                        \Maatwebsite\Excel\Facades\Excel::import(new \App\Imports\ResidentsImport, $data['file']);
+                        \Maatwebsite\Excel\Facades\Excel::import(new \App\Imports\ResidentsImport, $data['file'], 'public');
                     }),
             ])
             ->label('Menu Data')
