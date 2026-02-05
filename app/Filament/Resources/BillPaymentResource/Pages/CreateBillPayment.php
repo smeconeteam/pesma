@@ -55,6 +55,9 @@ class CreateBillPayment extends CreateRecord
                                             ->options(function () use ($user) {
                                                 $query = User::query()
                                                     ->whereHas('residentProfile')
+                                                    ->whereHas('bills', function ($q) {
+                                                        $q->whereIn('status', ['issued', 'partial', 'overdue']);
+                                                    })
                                                     ->with(['residentProfile', 'activeRoomResident.room.block.dorm']);
 
                                                 if ($user->hasRole('branch_admin')) {
