@@ -13,4 +13,5 @@ return [
     'register' => 'Daftar',
     'language' => 'Bahasa',
     'dark_mode' => 'Mode Gelap',
+    'settings' => 'Pengaturan',
 ];

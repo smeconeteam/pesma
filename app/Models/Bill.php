@@ -48,6 +48,18 @@ class Bill extends Model
         'updated_at' => 'date',  // ✅ Ubah ke date
     ];
 
+    // Appends for JSON serialization
+    protected $appends = [
+        'type_name',
+        'status_label',
+    ];
+
+    // Accessor for billing type name
+    public function getTypeNameAttribute(): string
+    {
+        return $this->billingType?->name ?? 'Tagihan';
+    }
+
     // Boot method untuk auto-generate bill_number
     protected static function boot()
     {
@@ -253,10 +265,10 @@ class Bill extends Model
     public function getStatusLabelAttribute(): string
     {
         return match ($this->status) {
-            'issued' => 'Tertagih',
-            'partial' => 'Dibayar Sebagian',
-            'paid' => 'Lunas',
-            'overdue' => 'Jatuh Tempo',
+            'issued' => __('bills.status_issued'),
+            'partial' => __('bills.status_partial'),
+            'paid' => __('bills.status_paid'),
+            'overdue' => __('bills.status_overdue'),
             default => '-',
         };
     }

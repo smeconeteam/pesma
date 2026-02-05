@@ -13,4 +13,5 @@ return [
     'register' => 'Register',
     'language' => 'Language',
     'dark_mode' => 'Dark Mode',
+    'settings' => 'Settings',
 ];
