@@ -16,7 +16,7 @@
                         <div class="flex-1">
                             <p class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ __('payment-history.total_payments') }}</p>
                             <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{{ $totalPayments }}</p>
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Semua pembayaran</p>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('payment-history.all_payments_desc') }}</p>
                         </div>
                         <div class="rounded-lg bg-blue-50 p-3 dark:bg-blue-900/30">
                             <svg class="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,7 +32,7 @@
                         <div class="flex-1">
                             <p class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ __('payment-history.verified_payments') }}</p>
                             <p class="mt-2 text-3xl font-bold text-green-600 dark:text-green-500">{{ $verifiedPayments }}</p>
-                            <p class="mt-1 text-xs text-green-600 dark:text-green-400">Sudah diverifikasi</p>
+                            <p class="mt-1 text-xs text-green-600 dark:text-green-400">{{ __('payment-history.verified_desc') }}</p>
                         </div>
                         <div class="rounded-lg bg-green-50 p-3 dark:bg-green-900/30">
                             <svg class="h-6 w-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,7 +48,7 @@
                         <div class="flex-1">
                             <p class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ __('payment-history.pending_payments') }}</p>
                             <p class="mt-2 text-3xl font-bold text-amber-600 dark:text-amber-500">{{ $pendingPayments }}</p>
-                            <p class="mt-1 text-xs text-amber-600 dark:text-amber-400">Menunggu verifikasi</p>
+                            <p class="mt-1 text-xs text-amber-600 dark:text-amber-400">{{ __('payment-history.pending_desc') }}</p>
                         </div>
                         <div class="rounded-lg bg-amber-50 p-3 dark:bg-amber-900/30">
                             <svg class="h-6 w-6 text-amber-600 dark:text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,7 +64,7 @@
                         <div class="flex-1">
                             <p class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ __('payment-history.rejected_payments') }}</p>
                             <p class="mt-2 text-3xl font-bold text-red-600 dark:text-red-400">{{ $rejectedPayments }}</p>
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">Pembayaran ditolak</p>
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ __('payment-history.rejected_desc') }}</p>
                         </div>
                         <div class="rounded-lg bg-red-50 p-3 dark:bg-red-900/30">
                             <svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,7 +138,7 @@
                                     <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('payment-history.payment_date') }}</th>
                                     <th class="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('payment-history.amount') }}</th>
                                     <th class="px-4 py-3 text-center text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('payment-history.status') }}</th>
-                                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Aksi</th>
+                                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('payment-history.actions') }}</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -164,21 +164,21 @@
                                         <div class="flex items-center justify-center gap-2">
                                             <button onclick="event.stopPropagation(); openPaymentModal({{ $payment->id }})" 
                                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors" 
-                                                title="Lihat Detail">
+                                                title="{{ __('payment-history.view_detail') }}">
                                                 <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                 </svg>
-                                                Detail
+                                                {{ __('payment-history.detail') }}
                                             </button>
                                             @if ($payment->status === 'verified')
                                             <a href="{{ url('/receipt') }}/{{ $payment->id }}" target="_blank" onclick="event.stopPropagation()"
                                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors"
-                                                title="Cetak Nota">
+                                                title="{{ __('payment-history.print_receipt') }}">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2-4h6a2 2 0 002-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 002 2zm-6 9h6m-6 0a2 2 0 002 2h2a2 2 0 002-2m-6 0h6" />
                                                 </svg>
-                                                Nota
+                                                {{ __('payment-history.receipt') }}
                                             </a>
                                             @endif
                                         </div>
@@ -194,15 +194,15 @@
                         <div class="mt-6 flex items-center justify-center gap-2">
                             @if ($currentPage > 1)
                                 <a href="{{ request()->fullUrlWithQuery(['page' => $currentPage - 1]) }}" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600">
-                                    &laquo; Sebelumnya
+                                    &laquo; {{ __('payment-history.previous') }}
                                 </a>
                             @endif
                             <span class="px-3 py-2 text-sm text-gray-700 dark:text-gray-300">
-                                Halaman {{ $currentPage }} dari {{ $totalPages }}
+                                {{ __('payment-history.page') }} {{ $currentPage }} {{ __('payment-history.of') }} {{ $totalPages }}
                             </span>
                             @if ($currentPage < $totalPages)
                                 <a href="{{ request()->fullUrlWithQuery(['page' => $currentPage + 1]) }}" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600">
-                                    Selanjutnya &raquo;
+                                    {{ __('payment-history.next') }} &raquo;
                                 </a>
                             @endif
                         </div>
@@ -269,17 +269,17 @@
                 verified: {
                     bg: 'bg-green-100 dark:bg-green-900/30',
                     text: 'text-green-800 dark:text-green-300',
-                    label: 'Terverifikasi'
+                    label: '{{ __('payment-history.status_verified') }}'
                 },
                 pending: {
                     bg: 'bg-amber-100 dark:bg-amber-900/30',
                     text: 'text-amber-800 dark:text-amber-300',
-                    label: 'Menunggu Verifikasi'
+                    label: '{{ __('payment-history.status_pending') }}'
                 },
                 rejected: {
                     bg: 'bg-red-100 dark:bg-red-900/30',
                     text: 'text-red-800 dark:text-red-300',
-                    label: 'Ditolak'
+                    label: '{{ __('payment-history.status_rejected') }}'
                 }
             };
 
@@ -297,7 +297,7 @@
                                     </svg>
                                 </div>
                                 <div>
-                                    <h4 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Detail Pembayaran</h4>
+                                    <h4 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ __('payment-history.payment_details') }}</h4>
                                     <p class="text-sm text-gray-600 dark:text-gray-400">${payment.payment_number}</p>
                                 </div>
                             </div>
@@ -337,11 +337,11 @@
                                 <span class="font-bold text-gray-900 dark:text-gray-100">${payment.payment_method_name}</span>
                             </div>
                             <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
-                                <span class="text-gray-700 dark:text-gray-300">No. Tagihan</span>
+                                <span class="text-gray-700 dark:text-gray-300">{{ __('payment-history.bill_no_label') }}</span>
                                 <span class="font-bold text-gray-900 dark:text-gray-100">${payment.bill?.bill_number || '-'}</span>
                             </div>
                             <div class="flex items-center justify-between py-2">
-                                <span class="text-gray-700 dark:text-gray-300">Jenis Tagihan</span>
+                                <span class="text-gray-700 dark:text-gray-300">{{ __('payment-history.billing_type_label') }}</span>
                                 <span class="font-bold text-gray-900 dark:text-gray-100">${payment.bill?.billing_type_name || '-'}</span>
                             </div>
                         </div>
@@ -353,7 +353,7 @@
                                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                                     </svg>
                                     <div class="flex-1">
-                                        <h6 class="font-bold text-blue-900 dark:text-blue-200 mb-2">Catatan</h6>
+                                        <h6 class="font-bold text-blue-900 dark:text-blue-200 mb-2">{{ __('payment-history.notes_label') }}</h6>
                                         <p class="text-sm text-blue-800 dark:text-blue-300 whitespace-pre-wrap leading-relaxed">${payment.notes}</p>
                                     </div>
                                 </div>
@@ -367,7 +367,7 @@
                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
                                     </svg>
                                     <div class="flex-1">
-                                        <h6 class="font-bold text-red-900 dark:text-red-200 mb-2">Alasan Penolakan</h6>
+                                        <h6 class="font-bold text-red-900 dark:text-red-200 mb-2">{{ __('payment-history.rejection_reason_label') }}</h6>
                                         <p class="text-sm text-red-800 dark:text-red-300 leading-relaxed">${payment.rejection_reason}</p>
                                     </div>
                                 </div>
@@ -380,10 +380,10 @@
                                     <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                     </svg>
-                                    Bukti Pembayaran
+                                    {{ __('payment-history.proof_of_payment') }}
                                 </h6>
                                 <div class="border-2 border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-lg">
-                                    <img src="/storage/${payment.proof_of_payment}" alt="Bukti Pembayaran" class="w-full h-auto">
+                                    <img src="/storage/${payment.proof_of_payment}" alt="{{ __('payment-history.proof_of_payment') }}" class="w-full h-auto">
                                 </div>
                             </div>
                         ` : ''}
@@ -395,7 +395,7 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2-4h6a2 2 0 002-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 002 2zm-6 9h6m-6 0a2 2 0 002 2h2a2 2 0 002-2m-6 0h6"></path>
                             </svg>
-                            Cetak Nota
+                            {{ __('payment-history.print_receipt') }}
                         </a>
                         ` : ''}
                         <button onclick="closePaymentModal()" class="px-6 py-2.5 bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors">

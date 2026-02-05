@@ -54,4 +54,24 @@ return [
     'payment_details' => 'Payment Details',
     'close' => 'Close',
     'view_proof' => 'View Proof',
+    'print_receipt' => 'Print Receipt',
+    
+    // Statistics Descriptions
+    'all_payments_desc' => 'All payments',
+    'verified_desc' => 'Already verified',
+    'pending_desc' => 'Awaiting verification',
+    'rejected_desc' => 'Payment rejected',
+    
+    // Actions
+    'actions' => 'Actions',
+    'view_detail' => 'View Detail',
+    'detail' => 'Detail',
+    'receipt' => 'Receipt',
+    
+    // Modal Labels
+    'bill_no_label' => 'Bill No.',
+    'billing_type_label' => 'Billing Type',
+    'notes_label' => 'Notes',
+    'rejection_reason_label' => 'Rejection Reason',
+    'proof_of_payment' => 'Proof of Payment',
 ];
