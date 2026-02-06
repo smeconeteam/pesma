@@ -13,4 +13,6 @@ return [
     'register' => 'Register',
     'language' => 'Language',
     'dark_mode' => 'Dark Mode',
+    'home' => 'Home',
+    'available_rooms' => 'Available Rooms',
 ];

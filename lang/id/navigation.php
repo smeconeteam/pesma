@@ -13,4 +13,7 @@ return [
     'register' => 'Daftar',
     'language' => 'Bahasa',
     'dark_mode' => 'Mode Gelap',
+    'home' => 'Beranda',
+    'available_rooms' => 'Kamar Tersedia',
+
 ];

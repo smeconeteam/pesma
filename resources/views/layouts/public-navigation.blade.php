@@ -7,7 +7,7 @@
         document.documentElement.classList.toggle('dark', this.darkMode);
     }
 }" x-init="if (darkMode) document.documentElement.classList.add('dark');
-$watch('darkMode', val => document.documentElement.classList.toggle('dark', val));" class="sticky left-0 top-0 w-full border-b border-gray-200 bg-white transition-all duration-200 dark:border-gray-700 dark:bg-gray-900">
+$watch('darkMode', val => document.documentElement.classList.toggle('dark', val));" class="sticky z-500 left-0 top-0 w-full border-b border-gray-200 bg-white transition-all duration-200 dark:border-gray-700 dark:bg-gray-900">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 items-center justify-between">
             <!-- Logo -->
@@ -28,10 +28,10 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
             <!-- Desktop Navigation Links -->
             <div class="hidden space-x-8 sm:flex">
                 <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'border-green-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600' }} inline-flex items-center border-b-2 px-1 pt-1 transition-colors">
-                    {{ __('public.home') }}
+                    {{ __('navigation.home') }}
                 </a>
                 <a href="{{ route('rooms.available') }}" class="{{ request()->routeIs('rooms.available') || request()->routeIs('rooms.show') ? 'border-green-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600' }} inline-flex items-center border-b-2 px-1 pt-1 transition-colors">
-                    {{ __('public.available_rooms') }}
+                    {{ __('navigation.available_rooms') }}
                 </a>
             </div>
 
@@ -80,10 +80,10 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
     <div :class="{ 'h-auto block': open, 'hidden h-0': !open }" class="hidden h-0 bg-white transition-all duration-200 sm:hidden dark:bg-gray-900">
         <div class="space-y-1 px-2 pb-3 pt-2">
             <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' }} block rounded-md px-3 py-2 text-base font-medium transition-colors">
-                {{ __('public.home') }}
+                {{ __('navigation.home') }}
             </a>
             <a href="{{ route('rooms.available') }}" class="{{ request()->routeIs('rooms.available') || request()->routeIs('rooms.show') ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' }} block rounded-md px-3 py-2 text-base font-medium transition-colors">
-                {{ __('public.available_rooms') }}
+                {{ __('navigation.available_rooms') }}
             </a>
 
             <div class="mt-2 border-t border-gray-200 pt-2 dark:border-gray-700">

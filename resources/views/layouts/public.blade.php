@@ -43,7 +43,7 @@
     </head>
 
     <body class="font-sans antialiased">
-        <div class="min-h-screen bg-white dark:bg-gray-950">
+        <div class="min-h-screen bg-gray-100 dark:bg-gray-950">
             @include('layouts.public-navigation')
 
             <!-- Page Content -->
@@ -54,6 +54,7 @@
             <!-- Stack untuk scripts tambahan -->
             @stack('scripts')
         </div>
+        @include('layouts.footer')
     </body>
 
     </html>
