@@ -286,7 +286,21 @@ class="border-b bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 t
                     </x-responsive-nav-link>
                 @endif
 
-                <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+                {{-- MENU PROFIL (MOBILE) --}}
+                @if (\Illuminate\Support\Facades\Route::has('profile.edit'))
+                    <x-responsive-nav-link :href="route('profile.edit')" :active="request()->routeIs('profile.edit')">
+                        {{ __('navigation.profile') }}
+                    </x-responsive-nav-link>
+                @endif
+
+                {{-- PENGATURAN SECTION --}}
+                <div class="pt-3 mt-2 border-t border-gray-200 dark:border-gray-700">
+                    <div class="px-3 pb-1">
+                        <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('navigation.settings') ?? 'Pengaturan' }}</span>
+                    </div>
+                </div>
+
+                <div class="px-4 py-3">
                     <button @click="toggleTheme()"
                             type="button"
                             class="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150">
@@ -307,28 +321,24 @@ class="border-b bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 t
                     </button>
                 </div>
 
-                @if (\Illuminate\Support\Facades\Route::has('profile.edit'))
-                    <x-responsive-nav-link :href="route('profile.edit')" :active="request()->routeIs('profile.edit')">
-                        {{ __('navigation.profile') }}
-                    </x-responsive-nav-link>
-                @endif
-
                 {{-- Language Switcher Mobile --}}
-                <div class="px-4 py-2 border-t border-gray-200">
-                    <label class="block text-xs font-medium text-gray-700 mb-2">{{ __('navigation.language') ?? 'Language' }}</label>
+                <div class="px-4 py-3">
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{{ __('navigation.language') ?? 'Language' }}</label>
                     <x-locale-switcher
                         :short="false"
-                        select-class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-green-500 focus:ring-green-500" />
+                        select-class="w-full text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 rounded-md shadow-sm focus:border-green-500 focus:ring-green-500" />
                 </div>
 
                 @if (\Illuminate\Support\Facades\Route::has('logout'))
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <x-responsive-nav-link :href="route('logout')"
-                            onclick="event.preventDefault(); this.closest('form').submit();">
-                            {{ __('navigation.logout') }}
-                        </x-responsive-nav-link>
-                    </form>
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-2">
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit"
+                                class="block w-full ps-3 pe-4 py-2.5 border-l-4 border-transparent text-start text-base font-medium text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 dark:hover:border-red-700 transition duration-150 ease-in-out">
+                                {{ __('navigation.logout') }}
+                            </button>
+                        </form>
+                    </div>
                 @endif
             @endauth
 

@@ -119,9 +119,9 @@ class BillPayment extends Model
     public function getStatusLabelAttribute(): string
     {
         return match ($this->status) {
-            'pending' => 'Menunggu Verifikasi',
-            'verified' => 'Terverifikasi',
-            'rejected' => 'Ditolak',
+            'pending' => __('payment-history.status_pending'),
+            'verified' => __('payment-history.status_verified'),
+            'rejected' => __('payment-history.status_rejected'),
             default => $this->status,
         };
     }

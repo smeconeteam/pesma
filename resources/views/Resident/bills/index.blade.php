@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
-            {{ __('Tagihan Saya') }}
+            {{ __('bills.my_bills') }}
         </h2>
     </x-slot>
 
@@ -9,16 +9,16 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4 sm:space-y-6">
 
             {{-- STATISTIK TAGIHAN --}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
                 {{-- Total Tagihan --}}
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 p-5 transition-colors">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 p-4 sm:p-5 transition-colors">
                     <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Tagihan</p>
-                            <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $totalBills }}</p>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">{{ __('bills.total_bills') }}</p>
+                            <p class="mt-1 sm:mt-2 text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $totalBills }}</p>
                         </div>
-                        <div class="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
-                            <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="p-2 sm:p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg shrink-0 ml-2">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                             </svg>
                         </div>
@@ -26,14 +26,14 @@
                 </div>
 
                 {{-- Belum Lunas --}}
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 p-5 transition-colors">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 p-4 sm:p-5 transition-colors">
                     <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Belum Lunas</p>
-                            <p class="mt-2 text-2xl font-bold text-amber-600 dark:text-amber-500">{{ $unpaidBills }}</p>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">{{ __('bills.unpaid') }}</p>
+                            <p class="mt-1 sm:mt-2 text-lg sm:text-2xl font-bold text-amber-600 dark:text-amber-500">{{ $unpaidBills }}</p>
                         </div>
-                        <div class="p-3 bg-amber-50 dark:bg-amber-900/30 rounded-lg">
-                            <svg class="w-6 h-6 text-amber-600 dark:text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="p-2 sm:p-3 bg-amber-50 dark:bg-amber-900/30 rounded-lg shrink-0 ml-2">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 dark:text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                         </div>
@@ -41,14 +41,14 @@
                 </div>
 
                 {{-- Total Belum Dibayar --}}
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 p-5 transition-colors">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 p-4 sm:p-5 transition-colors">
                     <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Belum Dibayar</p>
-                            <p class="mt-2 text-xl font-bold text-red-600 dark:text-red-400">Rp {{ number_format($totalUnpaid, 0, ',', '.') }}</p>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">{{ __('bills.total_unpaid') }}</p>
+                            <p class="mt-1 sm:mt-2 text-base sm:text-xl font-bold text-red-600 dark:text-red-400 truncate">Rp {{ number_format($totalUnpaid, 0, ',', '.') }}</p>
                         </div>
-                        <div class="p-3 bg-red-50 dark:bg-red-900/30 rounded-lg">
-                            <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="p-2 sm:p-3 bg-red-50 dark:bg-red-900/30 rounded-lg shrink-0 ml-2">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                         </div>
@@ -56,14 +56,14 @@
                 </div>
 
                 {{-- Total Sudah Dibayar --}}
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 p-5 transition-colors">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 p-4 sm:p-5 transition-colors">
                     <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Sudah Dibayar</p>
-                            <p class="mt-2 text-xl font-bold text-green-600 dark:text-green-400">Rp {{ number_format($totalPaid, 0, ',', '.') }}</p>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">{{ __('bills.total_paid') }}</p>
+                            <p class="mt-1 sm:mt-2 text-base sm:text-xl font-bold text-green-600 dark:text-green-400 truncate">Rp {{ number_format($totalPaid, 0, ',', '.') }}</p>
                         </div>
-                        <div class="p-3 bg-green-50 dark:bg-green-900/30 rounded-lg">
-                            <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="p-2 sm:p-3 bg-green-50 dark:bg-green-900/30 rounded-lg shrink-0 ml-2">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                         </div>
@@ -82,8 +82,8 @@
                             </svg>
                         </div>
                         <div class="flex-1">
-                            <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">Tagihan yang Perlu Dibayar</h3>
-                            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">Segera lakukan pembayaran untuk tagihan berikut</p>
+                            <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">{{ __('bills.urgent_bills') }}</h3>
+                            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">{{ __('bills.urgent_bills_desc') }}</p>
                         </div>
                     </div>
 
@@ -104,24 +104,24 @@
                                     </div>
                                     
                                     <div class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                                        <div>No. Tagihan: <span class="font-semibold text-gray-900 dark:text-gray-200">{{ $bill->bill_number }}</span></div>
+                                        <div>{{ __('bills.bill_number') }}: <span class="font-semibold text-gray-900 dark:text-gray-200">{{ $bill->bill_number }}</span></div>
                                         @if ($bill->period_start && $bill->period_end)
-                                        <div>Periode: {{ $bill->period_start->format('d M Y') }} - {{ $bill->period_end->format('d M Y') }}</div>
+                                        <div>{{ __('bills.period') }}: {{ $bill->period_start->format('d M Y') }} - {{ $bill->period_end->format('d M Y') }}</div>
                                         @endif
                                     </div>
 
                                     <div class="mt-3 flex items-center gap-4 text-sm flex-wrap">
                                         <div>
-                                            <span class="text-gray-600 dark:text-gray-400">Total:</span>
+                                            <span class="text-gray-600 dark:text-gray-400">{{ __('bills.total') }}:</span>
                                             <span class="font-bold text-gray-900 dark:text-gray-100">Rp {{ number_format($bill->total_amount, 0, ',', '.') }}</span>
                                         </div>
                                         <div>
-                                            <span class="text-gray-600 dark:text-gray-400">Terbayar:</span>
+                                            <span class="text-gray-600 dark:text-gray-400">{{ __('bills.paid') }}:</span>
                                             <span class="font-bold text-green-600 dark:text-green-400">Rp {{ number_format($bill->paid_amount, 0, ',', '.') }}</span>
                                         </div>
                                         @if ($bill->remaining_amount > 0)
                                         <div>
-                                            <span class="text-gray-600 dark:text-gray-400">Sisa:</span>
+                                            <span class="text-gray-600 dark:text-gray-400">{{ __('bills.remaining') }}:</span>
                                             <span class="font-bold text-red-600 dark:text-red-400">Rp {{ number_format($bill->remaining_amount, 0, ',', '.') }}</span>
                                         </div>
                                         @endif
@@ -162,8 +162,8 @@
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">Daftar Tagihan</h3>
-                                <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">Riwayat lengkap tagihan Anda</p>
+                                <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">{{ __('bills.bills_list') }}</h3>
+                                <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">{{ __('bills.bills_list_desc') }}</p>
                             </div>
                         </div>
                     </div>
@@ -172,21 +172,21 @@
                     <form method="GET" action="{{ route('resident.bills') }}" class="mb-6">
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ __('bills.status') }}</label>
                                 <select name="status" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300 focus:border-blue-500 focus:ring-blue-500">
-                                    <option value="all" {{ $statusFilter === 'all' ? 'selected' : '' }}>Semua Status</option>
-                                    <option value="unpaid" {{ $statusFilter === 'unpaid' ? 'selected' : '' }}>Belum Lunas</option>
-                                    <option value="issued" {{ $statusFilter === 'issued' ? 'selected' : '' }}>Tertagih</option>
-                                    <option value="partial" {{ $statusFilter === 'partial' ? 'selected' : '' }}>Dibayar Sebagian</option>
-                                    <option value="paid" {{ $statusFilter === 'paid' ? 'selected' : '' }}>Lunas</option>
-                                    <option value="overdue" {{ $statusFilter === 'overdue' ? 'selected' : '' }}>Jatuh Tempo</option>
+                                    <option value="all" {{ $statusFilter === 'all' ? 'selected' : '' }}>{{ __('bills.all_status') }}</option>
+                                    <option value="unpaid" {{ $statusFilter === 'unpaid' ? 'selected' : '' }}>{{ __('bills.unpaid') }}</option>
+                                    <option value="issued" {{ $statusFilter === 'issued' ? 'selected' : '' }}>{{ __('bills.status_issued') }}</option>
+                                    <option value="partial" {{ $statusFilter === 'partial' ? 'selected' : '' }}>{{ __('bills.status_partial') }}</option>
+                                    <option value="paid" {{ $statusFilter === 'paid' ? 'selected' : '' }}>{{ __('bills.status_paid') }}</option>
+                                    <option value="overdue" {{ $statusFilter === 'overdue' ? 'selected' : '' }}>{{ __('bills.status_overdue') }}</option>
                                 </select>
                             </div>
                             
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tahun</label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ __('bills.year') }}</label>
                                 <select name="year" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300 focus:border-blue-500 focus:ring-blue-500">
-                                    <option value="all" {{ $yearFilter === 'all' ? 'selected' : '' }}>Semua Tahun</option>
+                                    <option value="all" {{ $yearFilter === 'all' ? 'selected' : '' }}>{{ __('bills.all_years') }}</option>
                                     @foreach ($availableYears as $year)
                                     <option value="{{ $year }}" {{ $yearFilter == $year ? 'selected' : '' }}>{{ $year }}</option>
                                     @endforeach
@@ -201,13 +201,13 @@
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-700/50">
                                 <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">No. Tagihan</th>
-                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Jenis</th>
-                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Periode</th>
-                                    <th class="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Total</th>
-                                    <th class="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Terbayar</th>
-                                    <th class="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Sisa</th>
-                                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('bills.bill_number') }}</th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('bills.type') }}</th>
+                                    <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('bills.period') }}</th>
+                                    <th class="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('bills.total') }}</th>
+                                    <th class="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('bills.paid') }}</th>
+                                    <th class="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('bills.remaining') }}</th>
+                                    <th class="px-4 py-3 text-center text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('bills.status') }}</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -245,20 +245,20 @@
                     @if ($totalPages > 1)
                     <div class="mt-6 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-4">
                         <div class="text-sm text-gray-700 dark:text-gray-300">
-                            Halaman <span class="font-semibold">{{ $currentPage }}</span> dari <span class="font-semibold">{{ $totalPages }}</span>
+                            {{ __('bills.page') }} <span class="font-semibold">{{ $currentPage }}</span> {{ __('bills.of') }} <span class="font-semibold">{{ $totalPages }}</span>
                         </div>
                         <div class="flex gap-2">
                             @if ($currentPage > 1)
                             <a href="{{ route('resident.bills', array_merge(request()->except('page'), ['page' => $currentPage - 1])) }}" 
                                class="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                Sebelumnya
+                                {{ __('bills.previous') }}
                             </a>
                             @endif
                             
                             @if ($currentPage < $totalPages)
                             <a href="{{ route('resident.bills', array_merge(request()->except('page'), ['page' => $currentPage + 1])) }}" 
                                class="px-4 py-2 bg-blue-600 border border-blue-600 rounded-lg text-sm font-medium text-white hover:bg-blue-700">
-                                Selanjutnya
+                                {{ __('bills.next') }}
                             </a>
                             @endif
                         </div>
@@ -270,8 +270,8 @@
                         <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                         </svg>
-                        <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">Tidak ada tagihan</h3>
-                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Belum ada tagihan yang sesuai dengan filter yang dipilih.</p>
+                        <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">{{ __('bills.no_bills') }}</h3>
+                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('bills.no_bills_desc') }}</p>
                     </div>
                     @endif
                 </div>
@@ -286,7 +286,7 @@
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full transition-colors" onclick="event.stopPropagation()">
                 <div class="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-500 to-indigo-600">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-xl font-bold text-white">Detail Tagihan</h3>
+                        <h3 class="text-xl font-bold text-white">{{ __('bills.bill_detail') }}</h3>
                         <button onclick="closeBillModal()" class="text-white hover:text-gray-200 transition-colors">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -305,6 +305,21 @@
 
     <script>
         const billsData = @json($billsCollection->merge($urgentBills)->unique('id')->values());
+        
+        // Translation strings for JavaScript
+        const translations = {
+            bill_number: "{{ __('bills.bill_number') }}",
+            period: "{{ __('bills.period') }}",
+            payment_details: "{{ __('bills.payment_details') }}",
+            bill_amount: "{{ __('bills.bill_amount') }}",
+            discount: "{{ __('bills.discount') }}",
+            total_bill: "{{ __('bills.total_bill') }}",
+            paid: "{{ __('bills.paid') }}",
+            remaining: "{{ __('bills.remaining') }}",
+            payment_progress: "{{ __('bills.payment_progress') }}",
+            notes: "{{ __('bills.notes') }}",
+            close: "{{ __('bills.close') }}"
+        };
 
         function openBillModal(billId) {
             const bill = billsData.find(b => b.id === billId);
@@ -331,15 +346,19 @@
             };
 
             // PERHATIKAN: Saya menambahkan class 'dark:...' di dalam string HTML ini
+            // FIX: Added null checks for billing_type and other fields
+            const billingTypeName = bill.billing_type?.name || bill.type_name || 'Tagihan';
+            const statusLabel = bill.status_label || bill.status || '-';
+            
             content.innerHTML = `
                 <div class="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-800 dark:to-gray-900 rounded-xl p-5 border-2 border-gray-200 dark:border-gray-700">
                     <div class="flex items-start justify-between gap-3 mb-4">
                         <div>
-                            <h4 class="text-2xl font-bold text-gray-900 dark:text-gray-100">${bill.billing_type.name}</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">No. Tagihan: <span class="font-semibold text-gray-900 dark:text-gray-200">${bill.bill_number}</span></p>
+                            <h4 class="text-2xl font-bold text-gray-900 dark:text-gray-100">${billingTypeName}</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${translations.bill_number}: <span class="font-semibold text-gray-900 dark:text-gray-200">${bill.bill_number || '-'}</span></p>
                         </div>
                         <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold ${statusColor}">
-                            ${bill.status_label}
+                            ${statusLabel}
                         </span>
                     </div>
                     ${bill.period_start && bill.period_end ? `
@@ -347,34 +366,34 @@
                         <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                         </svg>
-                        <span class="font-medium">Periode:</span>
+                        <span class="font-medium">${translations.period}:</span>
                         <span class="font-bold">${formatDate(bill.period_start)} - ${formatDate(bill.period_end)}</span>
                     </div>
                     ` : ''}
                 </div>
                 <div class="space-y-4">
-                    <h5 class="font-bold text-gray-900 dark:text-gray-100 text-lg">Rincian Pembayaran</h5>
+                    <h5 class="font-bold text-gray-900 dark:text-gray-100 text-lg">${translations.payment_details}</h5>
                     <div class="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-4 space-y-3 border border-gray-100 dark:border-gray-700">
                         <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
-                            <span class="text-gray-700 dark:text-gray-300">Jumlah Tagihan</span>
+                            <span class="text-gray-700 dark:text-gray-300">${translations.bill_amount}</span>
                             <span class="font-bold text-gray-900 dark:text-gray-100">${formatCurrency(bill.base_amount)}</span>
                         </div>
                         ${bill.discount_amount > 0 ? `
                         <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
-                            <span class="text-gray-700 dark:text-gray-300">Diskon (${parseFloat(bill.discount_percent)}%)</span>
+                            <span class="text-gray-700 dark:text-gray-300">${translations.discount} (${parseFloat(bill.discount_percent)}%)</span>
                             <span class="font-bold text-green-600 dark:text-green-400">- ${formatCurrency(bill.discount_amount)}</span>
                         </div>
                         ` : ''}
                         <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
-                            <span class="text-lg font-bold text-gray-900 dark:text-gray-100">Total Tagihan</span>
+                            <span class="text-lg font-bold text-gray-900 dark:text-gray-100">${translations.total_bill}</span>
                             <span class="text-lg font-bold text-blue-600 dark:text-blue-400">${formatCurrency(bill.total_amount)}</span>
                         </div>
                         <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
-                            <span class="text-gray-700 dark:text-gray-300">Terbayar</span>
+                            <span class="text-gray-700 dark:text-gray-300">${translations.paid}</span>
                             <span class="font-bold text-green-600 dark:text-green-400">${formatCurrency(bill.paid_amount)}</span>
                         </div>
                         <div class="flex items-center justify-between py-3 bg-white dark:bg-gray-800 rounded-lg px-4 ${bill.remaining_amount > 0 ? 'border-2 border-red-200 dark:border-red-900/50' : 'border border-gray-200 dark:border-gray-700'}">
-                            <span class="text-lg font-bold text-gray-900 dark:text-gray-100">Sisa</span>
+                            <span class="text-lg font-bold text-gray-900 dark:text-gray-100">${translations.remaining}</span>
                             <span class="text-lg font-bold ${bill.remaining_amount > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'}">${formatCurrency(bill.remaining_amount)}</span>
                         </div>
                     </div>
@@ -382,7 +401,7 @@
                 ${bill.total_amount > 0 ? `
                 <div class="space-y-2">
                     <div class="flex items-center justify-between text-sm">
-                        <span class="font-medium text-gray-700 dark:text-gray-300">Progress Pembayaran</span>
+                        <span class="font-medium text-gray-700 dark:text-gray-300">${translations.payment_progress}</span>
                         <span class="font-bold text-blue-600 dark:text-blue-400">${Math.round((bill.paid_amount / bill.total_amount) * 100)}%</span>
                     </div>
                     <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
@@ -397,7 +416,7 @@
                             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                         </svg>
                         <div class="flex-1">
-                            <h6 class="font-bold text-amber-900 dark:text-amber-200 mb-1">Catatan</h6>
+                            <h6 class="font-bold text-amber-900 dark:text-amber-200 mb-1">${translations.notes}</h6>
                             <p class="text-sm text-amber-800 dark:text-amber-300">${bill.notes}</p>
                         </div>
                     </div>
@@ -405,7 +424,7 @@
                 ` : ''}
                 <div class="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
                     <button onclick="closeBillModal()" class="px-6 py-2.5 bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors">
-                        Tutup
+                        ${translations.close}
                     </button>
                 </div>
             `;

@@ -237,9 +237,9 @@
                                         @php
                                             $methodKind = $payment->paymentMethod?->kind;
                                             $methodLabel = match($methodKind) {
-                                                'qris' => 'QRIS',
-                                                'transfer' => 'Transfer Bank',
-                                                'cash' => 'Tunai',
+                                                'qris' => __('payment-history.method_qris'),
+                                                'transfer' => __('payment-history.method_transfer'),
+                                                'cash' => __('payment-history.method_cash'),
                                                 default => $methodKind ?? '-'
                                             };
                                         @endphp
@@ -274,7 +274,7 @@
                             </div>
                             <div class="flex-1">
                                 <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 transition-colors duration-200">{{ __('dashboard.pic_title') }}</h3>
-                                <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">Hubungi PIC untuk koordinasi kebutuhan kamar</p>
+                                <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">{{ __('dashboard.pic_description') }}</p>
                             </div>
                         </div>
 
@@ -314,14 +314,14 @@
                                 <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
                             </div>
                             <div class="flex-1">
-                                <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">PIC Kamar</h3>
-                                <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">Hubungi PIC untuk koordinasi kebutuhan kamar</p>
+                                <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">{{ __('dashboard.pic_title') }}</h3>
+                                <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">{{ __('dashboard.pic_description') }}</p>
                             </div>
                         </div>
                         <div class="flex items-center justify-center py-8 text-center">
                             <div class="text-gray-500 dark:text-gray-400">
                                 <svg class="w-12 h-12 mx-auto mb-3 text-gray-400 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">PIC akan muncul setelah kamu ditempatkan ke kamar</p>
+                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ __('dashboard.pic_after_placement') }}</p>
                             </div>
                         </div>
                     </div>
@@ -337,8 +337,8 @@
                                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
                             </div>
                             <div class="flex-1">
-                                <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 transition-colors duration-200">Kontak Penting</h3>
-                                <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">Hubungi admin untuk bantuan dan informasi</p>
+                                <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 transition-colors duration-200">{{ __('dashboard.important_contacts') }}</h3>
+                                <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">{{ __('dashboard.contacts_description') }}</p>
                             </div>
                         </div>
                         <div class="space-y-3">
