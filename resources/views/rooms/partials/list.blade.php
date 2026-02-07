@@ -1,52 +1,29 @@
-@if($rooms->count() > 0)
-    <div class="rooms-grid">
-        @foreach($rooms as $room)
-            <a href="{{ route('rooms.show', $room->id) }}" class="room-card">
-                <div class="room-image" @if($room->thumbnail) style="background-image: url('{{ url('storage/' . $room->thumbnail) }}'); background-size: cover; background-position: center;" @endif>
-                    @if(!$room->thumbnail)
-                        {{ $room->number }}
-                    @endif
-                    @if($room->is_active)
-                        <div class="room-badge">{{ $room->residentCategory->name ?? 'Asrama' }}</div>
-                    @endif
-                </div>
-                <div class="room-content">
-                    <div class="room-title">{{ $room->block->dorm->name }} Nomor {{ $room->number }} Tipe {{ $room->roomType->name }}</div>
-                    <div class="room-type">{{ $room->roomType->name }}</div>
-                    <div class="room-location">📍 Komplek {{ $room->block->name }}, Cabang {{ $room->block->dorm->name }}, {{ \Illuminate\Support\Str::words($room->block->dorm->address, 7, '...') }}</div>
-                    <div class="room-info">
-                        <div class="room-price">
-                            Rp {{ number_format($room->monthly_rate ?? $room->roomType->default_monthly_rate, 0, ',', '.') }}
-                            <small>/bulan</small>
-                        </div>
-                        <div class="room-capacity">
-                            👥 {{ $room->capacity ?? $room->roomType->default_capacity }} orang
-                        </div>
-                    </div>
-                </div>
-            </a>
+@if ($rooms->count() > 0)
+    <div class="grid w-full grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        @foreach ($rooms as $room)
+            <x-room-card :room="$room" />
         @endforeach
     </div>
 
     <!-- Pagination -->
-    <div class="pagination-wrapper">
+    <div class="mt-8 w-full">
         {{ $rooms->links('pagination::default') }}
     </div>
 @else
     <div class="empty-state">
         <div class="empty-state-icon">🏠</div>
-        <h2 class="empty-state-title">Tidak Ada Kamar Ditemukan</h2>
+        <h2 class="empty-state-title">{{ __('public.no_rooms_found') }}</h2>
         <p class="empty-state-text">
-            @if(request()->hasAny(['search', 'dorm_id', 'room_type_id', 'resident_category_id']))
-                Coba ubah filter pencarian Anda atau reset filter untuk melihat semua kamar.
+            @if (request()->hasAny(['search', 'dorm_id', 'room_type_id', 'resident_category_id']))
+                {{ __('public.try_different_filters') }}
             @else
-                Saat ini belum ada kamar yang tersedia untuk ditempati.
+                {{ __('public.no_rooms_currently') }}
             @endif
         </p>
-        @if(request()->hasAny(['search', 'dorm_id', 'room_type_id', 'resident_category_id']))
-            <a href="{{ route('rooms.available') }}" class="btn-primary">Reset Filter</a>
+        @if (request()->hasAny(['search', 'dorm_id', 'room_type_id', 'resident_category_id']))
+            <a href="{{ route('rooms.available') }}" class="btn-primary">{{ __('public.reset_filter') }}</a>
         @else
-            <a href="{{ route('home') }}" class="btn-primary">Kembali ke Beranda</a>
+            <a href="{{ route('home') }}" class="btn-primary">{{ __('public.back_to_home') }}</a>
         @endif
     </div>
 @endif
