@@ -1,6 +1,6 @@
 @props(['room'])
 
-<a href="{{ route('rooms.show', $room->id) }}" class="overflow-hidden rounded-2xl bg-gray-100 shadow-md transition-shadow duration-200 ease-in hover:scale-[1.02] hover:shadow-lg">
+<a href="{{ route('rooms.show', $room->code) }}" class="overflow-hidden rounded-2xl bg-gray-100 shadow-md transition-shadow duration-200 ease-in hover:scale-[1.02] hover:shadow-lg">
     <div class="relative h-[200px] w-full" @if ($room->thumbnail) style="background-image: url('{{ asset('storage/' . $room->thumbnail) }}'); background-size: cover; background-position: center;" @else style="background-image: url('https://placehold.net/600x400.png');  background-size: cover; background-position: center;" @endif>
         @if ($room->is_active)
             <div class="absolute right-2 top-2 rounded-xl bg-green-500 px-3 py-1 text-white">{{ $room->residentCategory->name ?? __('public.active') }}</div>
