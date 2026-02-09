@@ -619,7 +619,7 @@
                 </div>
                 <div class="footer-section">
                     <h4>Informasi</h4>
-                    <a href="https://ppmelfira.com/" target="_blank">Tentang Kami</a>
+                    <a href="{{ route('about') }}">Tentang Kami</a>
                     <a href="/kebijakan" target="_blank">Syarat & Ketentuan</a>
                     <a href="#">Kontak</a>
                 </div>
