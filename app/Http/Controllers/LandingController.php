@@ -178,10 +178,10 @@ class LandingController extends Controller
             'block.dorm',
             'residentCategory',
             'facilities',
-            'facilitiesParkir',
-            'facilitiesUmum',
-            'facilitiesKamarMandi',
-            'facilitiesKamar',
+            'parkingFacilities',
+            'generalFacilities',
+            'bathroomFacilities',
+            'roomFacilities',
             'roomRules',
         ])->where('code', $code)->firstOrFail();
 

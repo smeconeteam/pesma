@@ -1,7 +1,7 @@
 <x-public-layout>
     <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div class="flex flex-col items-center justify-center gap-4 text-center md:gap-6">
-            <h1 class="text-3xl font-bold md:text-4xl lg:text-5xl">{{ __('public.landing-headline') }}</h1>
+            <h1 class="text-3xl max-w-4xl font-bold md:text-4xl lg:text-5xl">{{ __('public.landing-headline', ['name' => $institution->dormitory_name ?? config('app.name', 'Laravel')]) }}</h1>
 
             <p class="text-base">{{ $institution->dormitory_name ?? __('public.modern_dormitory') }} {{ __('public.landing-description') }}</p>
 

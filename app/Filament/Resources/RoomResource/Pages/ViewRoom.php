@@ -60,7 +60,7 @@ class ViewRoom extends ViewRecord
                         TextEntry::make('monthly_rate')
                             ->label('Tarif Bulanan')
                             ->money('IDR', true),
-                        
+
                         TextEntry::make('width')
                             ->label('Lebar Kamar')
                             ->suffix(' m')
@@ -109,7 +109,7 @@ class ViewRoom extends ViewRecord
                             ->copyMessage('Nomor disalin'),
                     ])
                     ->columns(2)
-                    ->visible(fn ($record) => ! empty($record->contact_person_name) || ! empty($record->contact_person_number)),
+                    ->visible(fn($record) => ! empty($record->contact_person_name) || ! empty($record->contact_person_number)),
 
                 InfoSection::make('Galeri')
                     ->schema([
@@ -159,7 +159,7 @@ class ViewRoom extends ViewRecord
                                             '<div class="flex items-center gap-2">' .
                                                 $icon .
                                                 '<span>' . $state . '</span>' .
-                                            '</div>'
+                                                '</div>'
                                         );
                                     }),
                             ])
@@ -181,10 +181,10 @@ class ViewRoom extends ViewRecord
                             ->schema([
                                 InfoSection::make('Parkir')
                                     ->schema([
-                                        TextEntry::make('facilitiesParkir_list')
+                                        TextEntry::make('parkingFacilities_list')
                                             ->hiddenLabel()
                                             ->getStateUsing(function ($record) {
-                                                $facilities = $record->facilitiesParkir;
+                                                $facilities = $record->parkingFacilities;
                                                 if ($facilities->isEmpty()) return '';
                                                 return $facilities->map(function ($facility) {
                                                     $iconHtml = '';
@@ -200,15 +200,15 @@ class ViewRoom extends ViewRecord
                                             })
                                             ->html(),
                                     ])
-                                    ->visible(fn ($record) => $record->facilitiesParkir()->exists())
+                                    ->visible(fn($record) => $record->parkingFacilities()->exists())
                                     ->compact(),
 
                                 InfoSection::make('Umum')
                                     ->schema([
-                                        TextEntry::make('facilitiesUmum_list')
+                                        TextEntry::make('generalFacilities_list')
                                             ->hiddenLabel()
                                             ->getStateUsing(function ($record) {
-                                                $facilities = $record->facilitiesUmum;
+                                                $facilities = $record->generalFacilities;
                                                 if ($facilities->isEmpty()) return '';
                                                 return $facilities->map(function ($facility) {
                                                     $iconHtml = '';
@@ -224,15 +224,15 @@ class ViewRoom extends ViewRecord
                                             })
                                             ->html(),
                                     ])
-                                    ->visible(fn ($record) => $record->facilitiesUmum()->exists())
+                                    ->visible(fn($record) => $record->generalFacilities()->exists())
                                     ->compact(),
 
                                 InfoSection::make('Kamar Mandi')
                                     ->schema([
-                                        TextEntry::make('facilitiesKamarMandi_list')
+                                        TextEntry::make('bathroomFacilities_list')
                                             ->hiddenLabel()
                                             ->getStateUsing(function ($record) {
-                                                $facilities = $record->facilitiesKamarMandi;
+                                                $facilities = $record->bathroomFacilities;
                                                 if ($facilities->isEmpty()) return '';
                                                 return $facilities->map(function ($facility) {
                                                     $iconHtml = '';
@@ -248,15 +248,15 @@ class ViewRoom extends ViewRecord
                                             })
                                             ->html(),
                                     ])
-                                    ->visible(fn ($record) => $record->facilitiesKamarMandi()->exists())
+                                    ->visible(fn($record) => $record->bathroomFacilities()->exists())
                                     ->compact(),
 
                                 InfoSection::make('Kamar')
                                     ->schema([
-                                        TextEntry::make('facilitiesKamar_list')
+                                        TextEntry::make('roomFacilities_list')
                                             ->hiddenLabel()
                                             ->getStateUsing(function ($record) {
-                                                $facilities = $record->facilitiesKamar;
+                                                $facilities = $record->roomFacilities;
                                                 if ($facilities->isEmpty()) return '';
                                                 return $facilities->map(function ($facility) {
                                                     $iconHtml = '';
@@ -272,7 +272,7 @@ class ViewRoom extends ViewRecord
                                             })
                                             ->html(),
                                     ])
-                                    ->visible(fn ($record) => $record->facilitiesKamar()->exists())
+                                    ->visible(fn($record) => $record->roomFacilities()->exists())
                                     ->compact(),
                             ]),
                     ])

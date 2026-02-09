@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'landing-headline' => 'Temukan Kamar Impian Anda',
+    'landing-headline' => 'Bisa Kuliah Sambil Mondok atau Kos aja, Tetap di :name',
     'landing-description' => 'menyediakan berbagai pilihan kamar dengan fasilitas lengkap dan harga terjangkau',
     'view_rooms' => 'Lihat Kamar',
     'register_now' => 'Daftar Sekarang',
@@ -46,7 +46,7 @@ return [
     'description' => 'Deskripsi',
     'rental_price' => 'Harga Sewa',
     'room_type' => 'Tipe Kamar',
-    'submit_booking' => 'Ajukan Pemesanan',
+    'submit_booking' => 'Daftar',
     'contact_manager' => 'Hubungi Pengelola',
     'whatsapp' => 'WhatsApp',
     'similar_rooms' => 'Kamar Serupa',

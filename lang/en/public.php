@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'landing-headline' => 'Discover Your Dream Room',
+    'landing-headline' => 'Pursue Your Studies at :name: Choose Between Islamic Boarding or Private Housing.',
     'landing-description' => 'offers a wide selection of rooms with comprehensive facilities at affordable prices',
     'view_rooms' => 'View Rooms',
     'register_now' => 'Register Now',
@@ -46,7 +46,7 @@ return [
     'description' => 'Description',
     'rental_price' => 'Rental Price',
     'room_type' => 'Room Type',
-    'submit_booking' => 'Submit Booking',
+    'submit_booking' => 'Register',
     'contact_manager' => 'Contact Manager',
     'whatsapp' => 'WhatsApp',
     'similar_rooms' => 'Similar Rooms',

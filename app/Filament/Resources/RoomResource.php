@@ -52,321 +52,321 @@ class RoomResource extends Resource
                             ->schema([
                                 Forms\Components\Section::make('Informasi Kamar')
                                     ->schema([
-                        Select::make('dorm_id')
-                            ->label('Cabang')
-                            ->dehydrated(false)
-                            ->options(function (?Room $record) {
-                                $user = auth()->user();
+                                        Select::make('dorm_id')
+                                            ->label('Cabang')
+                                            ->dehydrated(false)
+                                            ->options(function (?Room $record) {
+                                                $user = auth()->user();
 
-                                $query = Dorm::query()
-                                    ->whereNull('deleted_at')
-                                    ->orderBy('name');
+                                                $query = Dorm::query()
+                                                    ->whereNull('deleted_at')
+                                                    ->orderBy('name');
 
-                                // Batasi pilihan berdasarkan role
-                                if ($user?->hasRole('branch_admin')) {
-                                    $query->whereIn('id', $user->branchDormIds());
-                                } elseif ($user?->hasRole('block_admin')) {
-                                    $blockDormIds = Block::query()
-                                        ->whereIn('id', $user->blockIds())
-                                        ->pluck('dorm_id')
-                                        ->unique()
-                                        ->values()
-                                        ->all();
+                                                // Batasi pilihan berdasarkan role
+                                                if ($user?->hasRole('branch_admin')) {
+                                                    $query->whereIn('id', $user->branchDormIds());
+                                                } elseif ($user?->hasRole('block_admin')) {
+                                                    $blockDormIds = Block::query()
+                                                        ->whereIn('id', $user->blockIds())
+                                                        ->pluck('dorm_id')
+                                                        ->unique()
+                                                        ->values()
+                                                        ->all();
 
-                                    $query->whereIn('id', $blockDormIds);
-                                }
+                                                    $query->whereIn('id', $blockDormIds);
+                                                }
 
-                                // Tampilkan hanya yang aktif, tapi tetap izinkan nilai existing (meskipun nonaktif)
-                                $currentDormId = $record?->block?->dorm_id;
+                                                // Tampilkan hanya yang aktif, tapi tetap izinkan nilai existing (meskipun nonaktif)
+                                                $currentDormId = $record?->block?->dorm_id;
 
-                                if ($currentDormId) {
-                                    $query->where(function ($q) use ($currentDormId) {
-                                        $q->where('is_active', true)
-                                            ->orWhere('id', $currentDormId);
-                                    });
-                                } else {
-                                    $query->where('is_active', true);
-                                }
+                                                if ($currentDormId) {
+                                                    $query->where(function ($q) use ($currentDormId) {
+                                                        $q->where('is_active', true)
+                                                            ->orWhere('id', $currentDormId);
+                                                    });
+                                                } else {
+                                                    $query->where('is_active', true);
+                                                }
 
-                                return $query->pluck('name', 'id')->toArray();
-                            })
-                            ->searchable()
-                            ->native(false)
-                            ->required()
-                            ->live()
-                            ->afterStateHydrated(function (Forms\Components\Select $component, $state, $record) {
-                                if ($record?->block?->dorm_id) {
-                                    $component->state($record->block->dorm_id);
-                                }
-                            })
-                            ->afterStateUpdated(function (Set $set) {
-                                $set('block_id', null);
-                                $set('code', null);
-                            })
-                            ->disabled(function ($record) {
-                                $user = auth()->user();
+                                                return $query->pluck('name', 'id')->toArray();
+                                            })
+                                            ->searchable()
+                                            ->native(false)
+                                            ->required()
+                                            ->live()
+                                            ->afterStateHydrated(function (Forms\Components\Select $component, $state, $record) {
+                                                if ($record?->block?->dorm_id) {
+                                                    $component->state($record->block->dorm_id);
+                                                }
+                                            })
+                                            ->afterStateUpdated(function (Set $set) {
+                                                $set('block_id', null);
+                                                $set('code', null);
+                                            })
+                                            ->disabled(function ($record) {
+                                                $user = auth()->user();
 
-                                // Admin komplek tidak boleh mengubah cabang
-                                if ($user?->hasRole('block_admin')) {
-                                    return true;
-                                }
+                                                // Admin komplek tidak boleh mengubah cabang
+                                                if ($user?->hasRole('block_admin')) {
+                                                    return true;
+                                                }
 
-                                if (!$record) return false;
+                                                if (!$record) return false;
 
-                                return RoomResident::query()
-                                    ->where('room_id', $record->id)
-                                    ->whereNull('check_out_date')
-                                    ->exists();
-                            })
-                            ->helperText(function ($record) {
-                                $user = auth()->user();
+                                                return RoomResident::query()
+                                                    ->where('room_id', $record->id)
+                                                    ->whereNull('check_out_date')
+                                                    ->exists();
+                                            })
+                                            ->helperText(function ($record) {
+                                                $user = auth()->user();
 
-                                if (!$record) {
-                                    return 'Pilih cabang terlebih dahulu untuk memuat daftar komplek.';
-                                }
+                                                if (!$record) {
+                                                    return 'Pilih cabang terlebih dahulu untuk memuat daftar komplek.';
+                                                }
 
-                                if ($user?->hasRole('block_admin')) {
-                                    return 'Cabang dikunci untuk akun admin komplek.';
-                                }
+                                                if ($user?->hasRole('block_admin')) {
+                                                    return 'Cabang dikunci untuk akun admin komplek.';
+                                                }
 
-                                $hasActiveResidents = RoomResident::query()
-                                    ->where('room_id', $record->id)
-                                    ->whereNull('check_out_date')
-                                    ->exists();
+                                                $hasActiveResidents = RoomResident::query()
+                                                    ->where('room_id', $record->id)
+                                                    ->whereNull('check_out_date')
+                                                    ->exists();
 
-                                return $hasActiveResidents
-                                    ? 'Cabang tidak dapat diubah karena kamar ini masih memiliki penghuni aktif.'
-                                    : 'Pilih cabang terlebih dahulu untuk memuat daftar komplek.';
-                            }),
+                                                return $hasActiveResidents
+                                                    ? 'Cabang tidak dapat diubah karena kamar ini masih memiliki penghuni aktif.'
+                                                    : 'Pilih cabang terlebih dahulu untuk memuat daftar komplek.';
+                                            }),
 
-                        Select::make('block_id')
-                            ->label('Komplek')
-                            ->live()
-                            ->afterStateUpdated(fn(Set $set, Get $get) => static::generateRoomCode($set, $get))
-                            ->options(function (Get $get, ?Room $record) {
-                                $user = auth()->user();
-                                $dormId = $get('dorm_id');
+                                        Select::make('block_id')
+                                            ->label('Komplek')
+                                            ->live()
+                                            ->afterStateUpdated(fn(Set $set, Get $get) => static::generateRoomCode($set, $get))
+                                            ->options(function (Get $get, ?Room $record) {
+                                                $user = auth()->user();
+                                                $dormId = $get('dorm_id');
 
-                                // Selain block_admin, komplek baru muncul setelah cabang dipilih
-                                if (!($user?->hasRole('block_admin') ?? false) && !$dormId) {
-                                    return [];
-                                }
+                                                // Selain block_admin, komplek baru muncul setelah cabang dipilih
+                                                if (!($user?->hasRole('block_admin') ?? false) && !$dormId) {
+                                                    return [];
+                                                }
 
-                                $query = Block::query()->orderBy('name');
+                                                $query = Block::query()->orderBy('name');
 
-                                if (!($user?->hasRole('block_admin') ?? false)) {
-                                    $query->where('dorm_id', $dormId);
-                                }
+                                                if (!($user?->hasRole('block_admin') ?? false)) {
+                                                    $query->where('dorm_id', $dormId);
+                                                }
 
-                                // Batasi pilihan berdasarkan role
-                                if ($user?->hasRole('branch_admin')) {
-                                    $allowedDormIds = $user->branchDormIds()->toArray();
-                                    if ($dormId && !in_array((int) $dormId, array_map('intval', $allowedDormIds), true)) {
-                                        return [];
-                                    }
-                                    $query->whereIn('dorm_id', $allowedDormIds);
-                                } elseif ($user?->hasRole('block_admin')) {
-                                    $query->whereIn('id', $user->blockIds());
-                                }
+                                                // Batasi pilihan berdasarkan role
+                                                if ($user?->hasRole('branch_admin')) {
+                                                    $allowedDormIds = $user->branchDormIds()->toArray();
+                                                    if ($dormId && !in_array((int) $dormId, array_map('intval', $allowedDormIds), true)) {
+                                                        return [];
+                                                    }
+                                                    $query->whereIn('dorm_id', $allowedDormIds);
+                                                } elseif ($user?->hasRole('block_admin')) {
+                                                    $query->whereIn('id', $user->blockIds());
+                                                }
 
-                                // Tampilkan hanya yang aktif, tapi tetap izinkan nilai existing (meskipun nonaktif)
-                                $currentBlockId = $record?->block_id;
+                                                // Tampilkan hanya yang aktif, tapi tetap izinkan nilai existing (meskipun nonaktif)
+                                                $currentBlockId = $record?->block_id;
 
-                                if ($currentBlockId) {
-                                    $query->where(function ($q) use ($currentBlockId) {
-                                        $q->where('is_active', true)
-                                            ->orWhere('id', $currentBlockId);
-                                    });
-                                } else {
-                                    $query->where('is_active', true);
-                                }
+                                                if ($currentBlockId) {
+                                                    $query->where(function ($q) use ($currentBlockId) {
+                                                        $q->where('is_active', true)
+                                                            ->orWhere('id', $currentBlockId);
+                                                    });
+                                                } else {
+                                                    $query->where('is_active', true);
+                                                }
 
-                                return $query->pluck('name', 'id')->toArray();
-                            })
-                            ->searchable()
-                            ->native(false)
-                            ->required()
-                            ->disabled(function (Get $get, $record) {
-                                $user = auth()->user();
+                                                return $query->pluck('name', 'id')->toArray();
+                                            })
+                                            ->searchable()
+                                            ->native(false)
+                                            ->required()
+                                            ->disabled(function (Get $get, $record) {
+                                                $user = auth()->user();
 
-                                // Create: disable sampai cabang dipilih (kecuali block_admin)
-                                if (!$record) {
-                                    if ($user?->hasRole('block_admin')) {
-                                        return false;
-                                    }
-                                    return blank($get('dorm_id'));
-                                }
+                                                // Create: disable sampai cabang dipilih (kecuali block_admin)
+                                                if (!$record) {
+                                                    if ($user?->hasRole('block_admin')) {
+                                                        return false;
+                                                    }
+                                                    return blank($get('dorm_id'));
+                                                }
 
-                                // Edit: kunci jika ada penghuni aktif
-                                $hasActiveResidents = RoomResident::query()
-                                    ->where('room_id', $record->id)
-                                    ->whereNull('check_out_date')
-                                    ->exists();
+                                                // Edit: kunci jika ada penghuni aktif
+                                                $hasActiveResidents = RoomResident::query()
+                                                    ->where('room_id', $record->id)
+                                                    ->whereNull('check_out_date')
+                                                    ->exists();
 
-                                return $hasActiveResidents;
-                            })
-                            ->helperText(function (Get $get, $record) {
-                                $user = auth()->user();
+                                                return $hasActiveResidents;
+                                            })
+                                            ->helperText(function (Get $get, $record) {
+                                                $user = auth()->user();
 
-                                if (!$record) {
-                                    return blank($get('dorm_id')) && !($user?->hasRole('block_admin') ?? false)
-                                        ? 'Pilih cabang terlebih dahulu untuk memuat daftar komplek.'
-                                        : null;
-                                }
+                                                if (!$record) {
+                                                    return blank($get('dorm_id')) && !($user?->hasRole('block_admin') ?? false)
+                                                        ? 'Pilih cabang terlebih dahulu untuk memuat daftar komplek.'
+                                                        : null;
+                                                }
 
-                                $hasActiveResidents = RoomResident::query()
-                                    ->where('room_id', $record->id)
-                                    ->whereNull('check_out_date')
-                                    ->exists();
+                                                $hasActiveResidents = RoomResident::query()
+                                                    ->where('room_id', $record->id)
+                                                    ->whereNull('check_out_date')
+                                                    ->exists();
 
-                                return $hasActiveResidents
-                                    ? 'Komplek tidak dapat diubah karena kamar ini masih memiliki penghuni aktif.'
-                                    : null;
-                            }),
+                                                return $hasActiveResidents
+                                                    ? 'Komplek tidak dapat diubah karena kamar ini masih memiliki penghuni aktif.'
+                                                    : null;
+                                            }),
 
-                        Select::make('room_type_id')
-                            ->label('Tipe Kamar')
-                            ->options(function (?Room $record) {
-                                $query = RoomType::query()->orderBy('name');
+                                        Select::make('room_type_id')
+                                            ->label('Tipe Kamar')
+                                            ->options(function (?Room $record) {
+                                                $query = RoomType::query()->orderBy('name');
 
-                                if ($record && $record->exists && $record->room_type_id) {
-                                    $query->where(function ($q) use ($record) {
-                                        $q->where('is_active', true)
-                                            ->orWhere('id', $record->room_type_id);
-                                    });
-                                } else {
-                                    $query->where('is_active', true);
-                                }
+                                                if ($record && $record->exists && $record->room_type_id) {
+                                                    $query->where(function ($q) use ($record) {
+                                                        $q->where('is_active', true)
+                                                            ->orWhere('id', $record->room_type_id);
+                                                    });
+                                                } else {
+                                                    $query->where('is_active', true);
+                                                }
 
-                                return $query->pluck('name', 'id')->toArray();
-                            })
-                            ->searchable()
-                            ->native(false)
-                            ->required()
-                            ->live()
-                            ->afterStateUpdated(function (Set $set, Get $get, $state) {
-                                // HAPUS pemanggilan generateRoomCode dari sini
+                                                return $query->pluck('name', 'id')->toArray();
+                                            })
+                                            ->searchable()
+                                            ->native(false)
+                                            ->required()
+                                            ->live()
+                                            ->afterStateUpdated(function (Set $set, Get $get, $state) {
+                                                // HAPUS pemanggilan generateRoomCode dari sini
 
-                                // Auto-fill capacity dan monthly_rate dari room type
-                                if ($state) {
-                                    $roomType = RoomType::find($state);
-                                    if ($roomType) {
-                                        $set('capacity', $roomType->default_capacity);
-                                        $set('monthly_rate', $roomType->default_monthly_rate);
-                                    }
-                                }
-                            }),
+                                                // Auto-fill capacity dan monthly_rate dari room type
+                                                if ($state) {
+                                                    $roomType = RoomType::find($state);
+                                                    if ($roomType) {
+                                                        $set('capacity', $roomType->default_capacity);
+                                                        $set('monthly_rate', $roomType->default_monthly_rate);
+                                                    }
+                                                }
+                                            }),
 
-                        Forms\Components\TextInput::make('number')
-                            ->label('Nomor Kamar')
-                            ->required()
-                            ->maxLength(20)
-                            ->live()
-                            ->afterStateUpdated(fn(Set $set, Get $get) => static::generateRoomCode($set, $get))
-                            ->helperText('Contoh: 01, 02, 101, dst.'),
+                                        Forms\Components\TextInput::make('number')
+                                            ->label('Nomor Kamar')
+                                            ->required()
+                                            ->maxLength(20)
+                                            ->live()
+                                            ->afterStateUpdated(fn(Set $set, Get $get) => static::generateRoomCode($set, $get))
+                                            ->helperText('Contoh: 01, 02, 101, dst.'),
 
-                        Forms\Components\TextInput::make('code')
-                            ->label('Kode Kamar')
-                            ->disabled()
-                            ->required()
-                            ->maxLength(100)
-                            ->unique(
-                                ignoreRecord: true,
-                                modifyRuleUsing: fn($rule) => $rule->whereNull('deleted_at')
-                            )
-                            ->dehydrated(true)
-                            ->readonly(),
+                                        Forms\Components\TextInput::make('code')
+                                            ->label('Kode Kamar')
+                                            ->disabled()
+                                            ->required()
+                                            ->maxLength(100)
+                                            ->unique(
+                                                ignoreRecord: true,
+                                                modifyRuleUsing: fn($rule) => $rule->whereNull('deleted_at')
+                                            )
+                                            ->dehydrated(true)
+                                            ->readonly(),
 
-                        Forms\Components\TextInput::make('capacity')
-                            ->label('Kapasitas')
-                            ->numeric()
-                            ->minValue(1)
-                            ->required()
-                            ->disabled(function (?Room $record) {
-                                if (!$record) return false;
-                                
-                                $activeCount = RoomResident::query()
-                                    ->where('room_id', $record->id)
-                                    ->whereNull('check_out_date')
-                                    ->count();
-                                
-                                // Disable jika ada penghuni aktif (untuk mencegah user ubah kapasitas)
-                                // Tapi tetap bisa dinaikkan lewat validasi di mutate
-                                return false; // Tetap enable, validasi ada di backend
-                            })
-                            ->helperText(function (?Room $record) {
-                                if (!$record) {
-                                    return 'Otomatis terisi dari tipe kamar, dapat diubah sesuai kebutuhan.';
-                                }
-                                
-                                $activeCount = RoomResident::query()
-                                    ->where('room_id', $record->id)
-                                    ->whereNull('check_out_date')
-                                    ->count();
-                                
-                                if ($activeCount > 0) {
-                                    return "Saat ini ada {$activeCount} penghuni aktif. Kapasitas tidak boleh kurang dari jumlah penghuni aktif.";
-                                }
-                                
-                                return 'Otomatis terisi dari tipe kamar, dapat diubah sesuai kebutuhan.';
-                            }),
+                                        Forms\Components\TextInput::make('capacity')
+                                            ->label('Kapasitas')
+                                            ->numeric()
+                                            ->minValue(1)
+                                            ->required()
+                                            ->disabled(function (?Room $record) {
+                                                if (!$record) return false;
 
-                        Forms\Components\TextInput::make('monthly_rate')
-                            ->label('Tarif Bulanan')
-                            ->numeric()
-                            ->minValue(0)
-                            ->required()
-                            ->prefix('Rp')
-                            ->helperText('Otomatis terisi dari tipe kamar, dapat diubah sesuai kebutuhan.'),
-                        
-                        Select::make('resident_category_id')
-                            ->label('Kategori Kamar')
-                            ->relationship('residentCategory', 'name')
-                            ->required()
-                            ->searchable()
-                            ->preload()
-                            ->helperText(function (?Room $record) {
-                                if (!$record) return null;
-                                return 'Kategori hanya bisa diubah jika kamar kosong (tidak ada penghuni aktif).';
-                            })
-                            ->disabled(function (?Room $record) {
-                                if (!$record) return false;
-                                return !$record->isEmpty();
-                            })
-                            ->createOptionForm([
-                                Forms\Components\TextInput::make('name')
-                                    ->label('Nama Kategori')
-                                    ->required()
-                                    ->unique(ignoreRecord: true)
-                                    ->maxLength(255),
-                                Forms\Components\Textarea::make('description')
-                                    ->label('Deskripsi')
-                                    ->rows(3)
-                                    ->maxLength(500),
-                            ])
-                            ->createOptionUsing(function (array $data) {
-                                return \App\Models\ResidentCategory::create($data)->id;
-                            }),
+                                                $activeCount = RoomResident::query()
+                                                    ->where('room_id', $record->id)
+                                                    ->whereNull('check_out_date')
+                                                    ->count();
 
-                        Forms\Components\TextInput::make('width')
-                            ->label('Lebar Kamar')
-                            ->numeric()
-                            ->suffix('m')
-                            ->required()
-                            ->minValue(0),
+                                                // Disable jika ada penghuni aktif (untuk mencegah user ubah kapasitas)
+                                                // Tapi tetap bisa dinaikkan lewat validasi di mutate
+                                                return false; // Tetap enable, validasi ada di backend
+                                            })
+                                            ->helperText(function (?Room $record) {
+                                                if (!$record) {
+                                                    return 'Otomatis terisi dari tipe kamar, dapat diubah sesuai kebutuhan.';
+                                                }
 
-                        Forms\Components\TextInput::make('length')
-                            ->label('Panjang Kamar')
-                            ->numeric()
-                            ->suffix('m')
-                            ->required()
-                            ->minValue(0),
+                                                $activeCount = RoomResident::query()
+                                                    ->where('room_id', $record->id)
+                                                    ->whereNull('check_out_date')
+                                                    ->count();
 
-                        Forms\Components\Toggle::make('is_active')
-                            ->label('Aktif')
-                            ->default(true),
-                    ])
-                    ->columns(2),
+                                                if ($activeCount > 0) {
+                                                    return "Saat ini ada {$activeCount} penghuni aktif. Kapasitas tidak boleh kurang dari jumlah penghuni aktif.";
+                                                }
+
+                                                return 'Otomatis terisi dari tipe kamar, dapat diubah sesuai kebutuhan.';
+                                            }),
+
+                                        Forms\Components\TextInput::make('monthly_rate')
+                                            ->label('Tarif Bulanan')
+                                            ->numeric()
+                                            ->minValue(0)
+                                            ->required()
+                                            ->prefix('Rp')
+                                            ->helperText('Otomatis terisi dari tipe kamar, dapat diubah sesuai kebutuhan.'),
+
+                                        Select::make('resident_category_id')
+                                            ->label('Kategori Kamar')
+                                            ->relationship('residentCategory', 'name')
+                                            ->required()
+                                            ->searchable()
+                                            ->preload()
+                                            ->helperText(function (?Room $record) {
+                                                if (!$record) return null;
+                                                return 'Kategori hanya bisa diubah jika kamar kosong (tidak ada penghuni aktif).';
+                                            })
+                                            ->disabled(function (?Room $record) {
+                                                if (!$record) return false;
+                                                return !$record->isEmpty();
+                                            })
+                                            ->createOptionForm([
+                                                Forms\Components\TextInput::make('name')
+                                                    ->label('Nama Kategori')
+                                                    ->required()
+                                                    ->unique(ignoreRecord: true)
+                                                    ->maxLength(255),
+                                                Forms\Components\Textarea::make('description')
+                                                    ->label('Deskripsi')
+                                                    ->rows(3)
+                                                    ->maxLength(500),
+                                            ])
+                                            ->createOptionUsing(function (array $data) {
+                                                return \App\Models\ResidentCategory::create($data)->id;
+                                            }),
+
+                                        Forms\Components\TextInput::make('width')
+                                            ->label('Lebar Kamar')
+                                            ->numeric()
+                                            ->suffix('m')
+                                            ->required()
+                                            ->minValue(0),
+
+                                        Forms\Components\TextInput::make('length')
+                                            ->label('Panjang Kamar')
+                                            ->numeric()
+                                            ->suffix('m')
+                                            ->required()
+                                            ->minValue(0),
+
+                                        Forms\Components\Toggle::make('is_active')
+                                            ->label('Aktif')
+                                            ->default(true),
+                                    ])
+                                    ->columns(2),
 
                                 Forms\Components\Section::make('Informasi Penanggung Jawab')
                                     ->schema([
@@ -380,7 +380,7 @@ class RoomResource extends Resource
                                     ])
                                     ->columns(2),
                             ]),
-                        
+
                         Tabs\Tab::make('Foto')
                             ->schema([
                                 FileUpload::make('thumbnail')
@@ -410,11 +410,12 @@ class RoomResource extends Resource
                                     ->multiple()
                                     ->preload()
                                     ->allowHtml()
-                                    ->getOptionLabelFromRecordUsing(fn ($record) => 
+                                    ->getOptionLabelFromRecordUsing(
+                                        fn($record) =>
                                         '<div class="flex items-center gap-2">' .
                                             ($record->icon ? svg($record->icon, 'w-5 h-5')->toHtml() : '') .
                                             '<span>' . $record->name . '</span>' .
-                                        '</div>'
+                                            '</div>'
                                     )
                                     ->createOptionForm([
                                         Forms\Components\TextInput::make('name')
@@ -429,15 +430,16 @@ class RoomResource extends Resource
                                                 if (empty($search)) {
                                                     return static::getIconOptions();
                                                 }
-                                                
+
                                                 $icons = static::getAvailableIcons();
-                                                
+
                                                 return collect($icons)
-                                                    ->filter(fn ($label, $icon) => 
-                                                        stripos($label, $search) !== false || 
-                                                        stripos($icon, $search) !== false
+                                                    ->filter(
+                                                        fn($label, $icon) =>
+                                                        stripos($label, $search) !== false ||
+                                                            stripos($icon, $search) !== false
                                                     )
-                                                    ->mapWithKeys(fn ($label, $icon) => [
+                                                    ->mapWithKeys(fn($label, $icon) => [
                                                         $icon => '<div class="flex items-center gap-2">' .
                                                             svg($icon, 'w-5 h-5')->toHtml() .
                                                             '<span>' . $label . '</span>' .
@@ -450,24 +452,24 @@ class RoomResource extends Resource
                                                 $label = static::getAvailableIcons()[$value] ?? $value;
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<div class="flex items-center gap-2">' .
-                                                    svg($value, 'w-5 h-5')->toHtml() .
-                                                    '<span>' . $label . '</span>' .
-                                                    '</div>'
+                                                        svg($value, 'w-5 h-5')->toHtml() .
+                                                        '<span>' . $label . '</span>' .
+                                                        '</div>'
                                                 );
                                             }),
                                     ]),
-                                    
+
                                 Select::make('facility_parkir')
                                     ->label('Fasilitas Parkir')
                                     ->multiple()
                                     ->allowHtml()
                                     ->searchable()
-                                    ->options(fn() => Facility::where('type', 'parkir')->get()->mapWithKeys(fn ($f) => [
+                                    ->options(fn() => Facility::where('type', 'parkir')->get()->mapWithKeys(fn($f) => [
                                         $f->id => '<div class="flex items-center gap-2">' .
                                             ($f->icon ? svg($f->icon, 'w-5 h-5')->toHtml() : '') .
                                             '<span>' . $f->name . '</span></div>'
                                     ]))
-                                    ->default(fn ($record) => $record ? $record->facilities()->where('type', 'parkir')->pluck('facilities.id')->toArray() : [])
+                                    ->default(fn($record) => $record ? $record->facilities()->where('type', 'parkir')->pluck('facilities.id')->toArray() : [])
                                     ->afterStateHydrated(function (Select $component, $state, $record) {
                                         if ($record) {
                                             $component->state($record->facilities()->where('type', 'parkir')->pluck('facilities.id')->toArray());
@@ -485,15 +487,16 @@ class RoomResource extends Resource
                                                 if (empty($search)) {
                                                     return static::getIconOptions();
                                                 }
-                                                
+
                                                 $icons = static::getAvailableIcons();
-                                                
+
                                                 return collect($icons)
-                                                    ->filter(fn ($label, $icon) => 
-                                                        stripos($label, $search) !== false || 
-                                                        stripos($icon, $search) !== false
+                                                    ->filter(
+                                                        fn($label, $icon) =>
+                                                        stripos($label, $search) !== false ||
+                                                            stripos($icon, $search) !== false
                                                     )
-                                                    ->mapWithKeys(fn ($label, $icon) => [
+                                                    ->mapWithKeys(fn($label, $icon) => [
                                                         $icon => '<div class="flex items-center gap-2">' .
                                                             svg($icon, 'w-5 h-5')->toHtml() .
                                                             '<span>' . $label . '</span>' .
@@ -506,25 +509,25 @@ class RoomResource extends Resource
                                                 $label = static::getAvailableIcons()[$value] ?? $value;
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<div class="flex items-center gap-2">' .
-                                                    svg($value, 'w-5 h-5')->toHtml() .
-                                                    '<span>' . $label . '</span>' .
-                                                    '</div>'
+                                                        svg($value, 'w-5 h-5')->toHtml() .
+                                                        '<span>' . $label . '</span>' .
+                                                        '</div>'
                                                 );
                                             }),
                                     ])
-                                    ->createOptionUsing(fn ($data) => Facility::create($data)->id),
+                                    ->createOptionUsing(fn($data) => Facility::create($data)->id),
 
                                 Select::make('facility_umum')
                                     ->label('Fasilitas Umum')
                                     ->multiple()
                                     ->allowHtml()
                                     ->searchable()
-                                    ->options(fn() => Facility::where('type', 'umum')->get()->mapWithKeys(fn ($f) => [
+                                    ->options(fn() => Facility::where('type', 'umum')->get()->mapWithKeys(fn($f) => [
                                         $f->id => '<div class="flex items-center gap-2">' .
                                             ($f->icon ? svg($f->icon, 'w-5 h-5')->toHtml() : '') .
                                             '<span>' . $f->name . '</span></div>'
                                     ]))
-                                    ->default(fn ($record) => $record ? $record->facilities()->where('type', 'umum')->pluck('facilities.id')->toArray() : [])
+                                    ->default(fn($record) => $record ? $record->facilities()->where('type', 'umum')->pluck('facilities.id')->toArray() : [])
                                     ->afterStateHydrated(function (Select $component, $state, $record) {
                                         if ($record) {
                                             $component->state($record->facilities()->where('type', 'umum')->pluck('facilities.id')->toArray());
@@ -542,15 +545,16 @@ class RoomResource extends Resource
                                                 if (empty($search)) {
                                                     return static::getIconOptions();
                                                 }
-                                                
+
                                                 $icons = static::getAvailableIcons();
-                                                
+
                                                 return collect($icons)
-                                                    ->filter(fn ($label, $icon) => 
-                                                        stripos($label, $search) !== false || 
-                                                        stripos($icon, $search) !== false
+                                                    ->filter(
+                                                        fn($label, $icon) =>
+                                                        stripos($label, $search) !== false ||
+                                                            stripos($icon, $search) !== false
                                                     )
-                                                    ->mapWithKeys(fn ($label, $icon) => [
+                                                    ->mapWithKeys(fn($label, $icon) => [
                                                         $icon => '<div class="flex items-center gap-2">' .
                                                             svg($icon, 'w-5 h-5')->toHtml() .
                                                             '<span>' . $label . '</span>' .
@@ -563,25 +567,25 @@ class RoomResource extends Resource
                                                 $label = static::getAvailableIcons()[$value] ?? $value;
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<div class="flex items-center gap-2">' .
-                                                    svg($value, 'w-5 h-5')->toHtml() .
-                                                    '<span>' . $label . '</span>' .
-                                                    '</div>'
+                                                        svg($value, 'w-5 h-5')->toHtml() .
+                                                        '<span>' . $label . '</span>' .
+                                                        '</div>'
                                                 );
                                             }),
                                     ])
-                                    ->createOptionUsing(fn ($data) => Facility::create($data)->id),
+                                    ->createOptionUsing(fn($data) => Facility::create($data)->id),
 
                                 Select::make('facility_kamar_mandi')
                                     ->label('Fasilitas Kamar Mandi')
                                     ->multiple()
                                     ->allowHtml()
                                     ->searchable()
-                                    ->options(fn() => Facility::where('type', 'kamar_mandi')->get()->mapWithKeys(fn ($f) => [
+                                    ->options(fn() => Facility::where('type', 'kamar_mandi')->get()->mapWithKeys(fn($f) => [
                                         $f->id => '<div class="flex items-center gap-2">' .
                                             ($f->icon ? svg($f->icon, 'w-5 h-5')->toHtml() : '') .
                                             '<span>' . $f->name . '</span></div>'
                                     ]))
-                                    ->default(fn ($record) => $record ? $record->facilities()->where('type', 'kamar_mandi')->pluck('facilities.id')->toArray() : [])
+                                    ->default(fn($record) => $record ? $record->facilities()->where('type', 'kamar_mandi')->pluck('facilities.id')->toArray() : [])
                                     ->afterStateHydrated(function (Select $component, $state, $record) {
                                         if ($record) {
                                             $component->state($record->facilities()->where('type', 'kamar_mandi')->pluck('facilities.id')->toArray());
@@ -599,15 +603,16 @@ class RoomResource extends Resource
                                                 if (empty($search)) {
                                                     return static::getIconOptions();
                                                 }
-                                                
+
                                                 $icons = static::getAvailableIcons();
-                                                
+
                                                 return collect($icons)
-                                                    ->filter(fn ($label, $icon) => 
-                                                        stripos($label, $search) !== false || 
-                                                        stripos($icon, $search) !== false
+                                                    ->filter(
+                                                        fn($label, $icon) =>
+                                                        stripos($label, $search) !== false ||
+                                                            stripos($icon, $search) !== false
                                                     )
-                                                    ->mapWithKeys(fn ($label, $icon) => [
+                                                    ->mapWithKeys(fn($label, $icon) => [
                                                         $icon => '<div class="flex items-center gap-2">' .
                                                             svg($icon, 'w-5 h-5')->toHtml() .
                                                             '<span>' . $label . '</span>' .
@@ -620,25 +625,25 @@ class RoomResource extends Resource
                                                 $label = static::getAvailableIcons()[$value] ?? $value;
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<div class="flex items-center gap-2">' .
-                                                    svg($value, 'w-5 h-5')->toHtml() .
-                                                    '<span>' . $label . '</span>' .
-                                                    '</div>'
+                                                        svg($value, 'w-5 h-5')->toHtml() .
+                                                        '<span>' . $label . '</span>' .
+                                                        '</div>'
                                                 );
                                             }),
                                     ])
-                                    ->createOptionUsing(fn ($data) => Facility::create($data)->id),
+                                    ->createOptionUsing(fn($data) => Facility::create($data)->id),
 
                                 Select::make('facility_kamar')
                                     ->label('Fasilitas Kamar')
                                     ->multiple()
                                     ->allowHtml()
                                     ->searchable()
-                                    ->options(fn() => Facility::where('type', 'kamar')->get()->mapWithKeys(fn ($f) => [
+                                    ->options(fn() => Facility::where('type', 'kamar')->get()->mapWithKeys(fn($f) => [
                                         $f->id => '<div class="flex items-center gap-2">' .
                                             ($f->icon ? svg($f->icon, 'w-5 h-5')->toHtml() : '') .
                                             '<span>' . $f->name . '</span></div>'
                                     ]))
-                                    ->default(fn ($record) => $record ? $record->facilities()->where('type', 'kamar')->pluck('facilities.id')->toArray() : [])
+                                    ->default(fn($record) => $record ? $record->facilities()->where('type', 'kamar')->pluck('facilities.id')->toArray() : [])
                                     ->afterStateHydrated(function (Select $component, $state, $record) {
                                         if ($record) {
                                             $component->state($record->facilities()->where('type', 'kamar')->pluck('facilities.id')->toArray());
@@ -656,15 +661,16 @@ class RoomResource extends Resource
                                                 if (empty($search)) {
                                                     return static::getIconOptions();
                                                 }
-                                                
+
                                                 $icons = static::getAvailableIcons();
-                                                
+
                                                 return collect($icons)
-                                                    ->filter(fn ($label, $icon) => 
-                                                        stripos($label, $search) !== false || 
-                                                        stripos($icon, $search) !== false
+                                                    ->filter(
+                                                        fn($label, $icon) =>
+                                                        stripos($label, $search) !== false ||
+                                                            stripos($icon, $search) !== false
                                                     )
-                                                    ->mapWithKeys(fn ($label, $icon) => [
+                                                    ->mapWithKeys(fn($label, $icon) => [
                                                         $icon => '<div class="flex items-center gap-2">' .
                                                             svg($icon, 'w-5 h-5')->toHtml() .
                                                             '<span>' . $label . '</span>' .
@@ -677,13 +683,13 @@ class RoomResource extends Resource
                                                 $label = static::getAvailableIcons()[$value] ?? $value;
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<div class="flex items-center gap-2">' .
-                                                    svg($value, 'w-5 h-5')->toHtml() .
-                                                    '<span>' . $label . '</span>' .
-                                                    '</div>'
+                                                        svg($value, 'w-5 h-5')->toHtml() .
+                                                        '<span>' . $label . '</span>' .
+                                                        '</div>'
                                                 );
                                             }),
                                     ])
-                                    ->createOptionUsing(fn ($data) => Facility::create($data)->id),
+                                    ->createOptionUsing(fn($data) => Facility::create($data)->id),
                             ]),
                     ])->columnSpanFull(),
             ]);
@@ -1277,7 +1283,7 @@ class RoomResource extends Resource
             ]);
     }
 
-    public static function infolist( \Filament\Infolists\Infolist $infolist): \Filament\Infolists\Infolist
+    public static function infolist(\Filament\Infolists\Infolist $infolist): \Filament\Infolists\Infolist
     {
         return $infolist
             ->schema([
@@ -1321,69 +1327,69 @@ class RoomResource extends Resource
                                 \Filament\Infolists\Components\Section::make('Parkir')
                                     ->icon('heroicon-o-truck')
                                     ->schema([
-                                        \Filament\Infolists\Components\TextEntry::make('facilitiesParkir_list')
+                                        \Filament\Infolists\Components\TextEntry::make('parkingFacilities_list')
                                             ->hiddenLabel()
-                                            ->state(fn ($record) => $record->facilitiesParkir)
+                                            ->state(fn($record) => $record->parkingFacilities)
                                             ->formatStateUsing(function ($state) {
                                                 return $state->map(function ($facility) {
-                                                     $icon = $facility->icon ? svg($facility->icon, 'w-5 h-5 text-info-500 inline mr-2')->toHtml() : '';
-                                                     return '<div class="flex items-center mb-1">' . $icon . '<span>' . e($facility->name) . '</span></div>';
+                                                    $icon = $facility->icon ? svg($facility->icon, 'w-5 h-5 text-info-500 inline mr-2')->toHtml() : '';
+                                                    return '<div class="flex items-center mb-1">' . $icon . '<span>' . e($facility->name) . '</span></div>';
                                                 })->implode('');
                                             })
                                             ->html(),
                                     ])
-                                    ->visible(fn ($record) => $record->facilitiesParkir()->exists())
+                                    ->visible(fn($record) => $record->parkingFacilities()->exists())
                                     ->compact(),
 
                                 \Filament\Infolists\Components\Section::make('Umum')
                                     ->icon('heroicon-o-building-storefront')
                                     ->schema([
-                                        \Filament\Infolists\Components\TextEntry::make('facilitiesUmum_list')
+                                        \Filament\Infolists\Components\TextEntry::make('generalFacilities_list')
                                             ->hiddenLabel()
-                                            ->state(fn ($record) => $record->facilitiesUmum)
+                                            ->state(fn($record) => $record->generalFacilities)
                                             ->formatStateUsing(function ($state) {
                                                 return $state->map(function ($facility) {
-                                                     $icon = $facility->icon ? svg($facility->icon, 'w-5 h-5 text-success-500 inline mr-2')->toHtml() : '';
-                                                     return '<div class="flex items-center mb-1">' . $icon . '<span>' . e($facility->name) . '</span></div>';
+                                                    $icon = $facility->icon ? svg($facility->icon, 'w-5 h-5 text-success-500 inline mr-2')->toHtml() : '';
+                                                    return '<div class="flex items-center mb-1">' . $icon . '<span>' . e($facility->name) . '</span></div>';
                                                 })->implode('');
                                             })
                                             ->html(),
                                     ])
-                                    ->visible(fn ($record) => $record->facilitiesUmum()->exists())
+                                    ->visible(fn($record) => $record->generalFacilities()->exists())
                                     ->compact(),
 
                                 \Filament\Infolists\Components\Section::make('Kamar Mandi')
                                     ->icon('heroicon-o-sparkles')
                                     ->schema([
-                                        \Filament\Infolists\Components\TextEntry::make('facilitiesKamarMandi_list')
+                                        \Filament\Infolists\Components\TextEntry::make('bathroomFacilities_list')
                                             ->hiddenLabel()
-                                            ->state(fn ($record) => $record->facilitiesKamarMandi)
+                                            ->state(fn($record) => $record->bathroomFacilities)
                                             ->formatStateUsing(function ($state) {
                                                 return $state->map(function ($facility) {
-                                                     $icon = $facility->icon ? svg($facility->icon, 'w-5 h-5 text-warning-500 inline mr-2')->toHtml() : '';
-                                                     return '<div class="flex items-center mb-1">' . $icon . '<span>' . e($facility->name) . '</span></div>';
+                                                    $icon = $facility->icon ? svg($facility->icon, 'w-5 h-5 text-warning-500 inline mr-2')->toHtml() : '';
+                                                    return '<div class="flex items-center mb-1">' . $icon . '<span>' . e($facility->name) . '</span></div>';
                                                 })->implode('');
                                             })
                                             ->html(),
                                     ])
-                                    ->visible(fn ($record) => $record->facilitiesKamarMandi()->exists())
+                                    ->visible(fn($record) => $record->bathroomFacilities()->exists())
                                     ->compact(),
 
                                 \Filament\Infolists\Components\Section::make('Kamar')
                                     ->icon('heroicon-o-home')
                                     ->schema([
-                                        \Filament\Infolists\Components\TextEntry::make('facilitiesKamar_list')
+                                        \Filament\Infolists\Components\TextEntry::make('roomFacilities_list')
                                             ->hiddenLabel()
-                                            ->state(fn ($record) => $record->facilitiesKamar)
+                                            ->state(fn($record) => $record->roomFacilities)
                                             ->formatStateUsing(function ($state) {
                                                 return $state->map(function ($facility) {
-                                                     $icon = $facility->icon ? svg($facility->icon, 'w-5 h-5 text-primary-500 inline mr-2')->toHtml() : '';
-                                                     return '<div class="flex items-center mb-1">' . $icon . '<span>' . e($facility->name) . '</span></div>';
+                                                    $icon = $facility->icon ? svg($facility->icon, 'w-5 h-5 text-primary-500 inline mr-2')->toHtml() : '';
+                                                    return '<div class="flex items-center mb-1">' . $icon . '<span>' . e($facility->name) . '</span></div>';
                                                 })->implode('');
                                             })
                                             ->html(),
                                     ])
-                                    ->visible(fn ($record) => $record->facilitiesKamar()->exists())
+                                    ->visible(fn($record) => $record->roomFacilities()->exists())
                                     ->compact(),
                             ]),
                     ]),
@@ -1640,9 +1646,9 @@ class RoomResource extends Resource
         return collect(static::getAvailableIcons())
             ->mapWithKeys(function ($label, $icon) {
                 return [$icon => '<div class="flex items-center gap-2">' .
-                        svg($icon, 'w-5 h-5')->toHtml() .
-                        '<span>' . $label . '</span>' .
-                        '</div>'];
+                    svg($icon, 'w-5 h-5')->toHtml() .
+                    '<span>' . $label . '</span>' .
+                    '</div>'];
             })
             ->toArray();
     }

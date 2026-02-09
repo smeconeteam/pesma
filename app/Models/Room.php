@@ -87,22 +87,22 @@ class Room extends Model
         return $this->belongsToMany(Facility::class);
     }
 
-    public function facilitiesParkir(): BelongsToMany
+    public function parkingFacilities(): BelongsToMany
     {
         return $this->facilities()->where('type', 'parkir');
     }
 
-    public function facilitiesUmum(): BelongsToMany
+    public function generalFacilities(): BelongsToMany
     {
         return $this->facilities()->where('type', 'umum');
     }
 
-    public function facilitiesKamarMandi(): BelongsToMany
+    public function bathroomFacilities(): BelongsToMany
     {
         return $this->facilities()->where('type', 'kamar_mandi');
     }
 
-    public function facilitiesKamar(): BelongsToMany
+    public function roomFacilities(): BelongsToMany
     {
         return $this->facilities()->where('type', 'kamar');
     }
@@ -154,7 +154,7 @@ class Room extends Model
         // Format: cabang-komplek-nomor
         // Contoh: coba-komplek-01
         $code = Str::slug($dormName) . '-' . Str::slug($blockName) . '-' . $number;
-        
+
         return strtolower($code);
     }
 }
