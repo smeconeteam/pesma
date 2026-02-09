@@ -48,7 +48,7 @@
                 </div>
             </div>
 
-            <button class="absolute bottom-2 right-1 inline-flex cursor-pointer items-center rounded-md bg-white px-3 py-2 text-sm font-medium text-black">{{ __('public.view_all') }}</button>
+            <button class="absolute bottom-2 right-1 inline-flex cursor-pointer items-center rounded-md bg-white px-3 py-2 text-sm font-medium text-black" onclick="openGallery()">{{ __('public.view_all') }}</button>
         </div>
 
         <!-- Main Layout -->
@@ -258,55 +258,32 @@
     </div>
 
     <!-- Image Modal -->
-    {{-- <div id="imageModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/95 backdrop-blur-sm transition-opacity" aria-modal="true" role="dialog">
+    <div id="imageModal" class="z-500 fixed inset-0 left-0 top-0 hidden overflow-y-auto bg-white" aria-modal="true" role="dialog">
         <!-- Close Button -->
-        <button class="absolute right-6 top-6 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 focus:outline-none" onclick="closeGallery()" aria-label="Close gallery">
-            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+        <button class="absolute right-2 top-2 flex h-12 w-12 cursor-pointer items-center justify-center" onclick="closeGallery()" aria-label="Close gallery">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
             </svg>
         </button>
 
-        <!-- Navigation Buttons -->
-        <button class="absolute left-6 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 focus:outline-none" onclick="prevImage()" aria-label="Previous image">
-            <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
-            </svg>
-        </button>
+        <div class="mx-auto mt-16 flex max-w-xl flex-col items-center gap-4 overflow-y-auto p-4">
+            @if ($room->thumbnail)
+                <img src="{{ url('storage/' . $room->thumbnail) }}" alt="Foto Kamar {{ $room->number }}">
+            @endif
 
-        <button class="absolute right-6 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 focus:outline-none" onclick="nextImage()" aria-label="Next image">
-            <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
-            </svg>
-        </button>
-
-        <!-- Image Container -->
-        <div class="relative flex max-h-[90vh] max-w-[90vw] items-center justify-center" onclick="event.stopPropagation()">
-            <img src="" alt="Gallery Image" id="modalImage" class="max-h-[85vh] max-w-full rounded-lg object-contain shadow-2xl ring-1 ring-white/10">
+            @if ($room->images)
+                @foreach ($room->images as $image)
+                    <img src="{{ url('storage/' . $image) }}" alt="Foto Kamar {{ $room->number }}">
+                @endforeach
+            @endif
         </div>
-    </div> --}}
+    </div>
 
-    {{-- @push('scripts')
+    @push('scripts')
         <script>
-            // Gallery functionality
-            const allImages = [
-                @if ($room->thumbnail)
-                    '{{ url('storage/' . $room->thumbnail) }}',
-                @endif
-                @if ($room->images)
-                    @foreach ($room->images as $image)
-                        '{{ url('storage/' . $image) }}',
-                    @endforeach
-                @endif
-            ];
-
-            let currentImageIndex = 0;
             const modal = document.getElementById('imageModal');
-            const modalImage = document.getElementById('modalImage');
 
-            function openGallery(index) {
-                if (allImages.length === 0) return;
-                currentImageIndex = index;
-                modalImage.src = allImages[currentImageIndex];
+            function openGallery() {
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
                 document.body.style.overflow = 'hidden';
@@ -317,32 +294,6 @@
                 modal.classList.remove('flex');
                 document.body.style.overflow = '';
             }
-
-            function prevImage() {
-                if (allImages.length === 0) return;
-                currentImageIndex = (currentImageIndex - 1 + allImages.length) % allImages.length;
-                modalImage.src = allImages[currentImageIndex];
-            }
-
-            function nextImage() {
-                if (allImages.length === 0) return;
-                currentImageIndex = (currentImageIndex + 1) % allImages.length;
-                modalImage.src = allImages[currentImageIndex];
-            }
-
-            // Keyboard navigation
-            document.addEventListener('keydown', function(e) {
-                if (modal.classList.contains('hidden')) return;
-
-                if (e.key === 'Escape') closeGallery();
-                if (e.key === 'ArrowLeft') prevImage();
-                if (e.key === 'ArrowRight') nextImage();
-            });
-
-            // Close modal on overlay click
-            modal.addEventListener('click', function(e) {
-                if (e.target === this) closeGallery();
-            });
         </script>
-    @endpush --}}
+    @endpush
 </x-public-layout>
