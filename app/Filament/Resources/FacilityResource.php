@@ -85,45 +85,37 @@ class FacilityResource extends Resource
 
                         Forms\Components\Select::make('icon')
                             ->label('Ikon')
-                            ->options(static::getIconOptions())
-                            ->searchable()
-                            ->native(false)
-                            ->allowHtml()
-                            ->getSearchResultsUsing(function (string $search) {
-                                if (empty($search)) {
-                                    return static::getIconOptions();
-                                }
-                                
-                                $icons = static::getAvailableIcons();
-                                
-                                return collect($icons)
-                                    ->filter(fn ($label, $icon) => 
-                                        stripos($label, $search) !== false || 
-                                        stripos($icon, $search) !== false
-                                    )
-                                    ->mapWithKeys(fn ($label, $icon) => [
-                                        $icon => '<div class="flex items-center gap-2">' .
+                            ->options(function () {
+                                return collect(static::getAvailableIcons())->map(function ($label, $icon) {
+                                    try {
+                                        return '<div class="flex items-center gap-2">' .
                                             svg($icon, 'w-5 h-5')->toHtml() .
                                             '<span>' . $label . '</span>' .
-                                            '</div>'
-                                    ])
-                                    ->toArray();
+                                            '</div>';
+                                    } catch (\Exception $e) {
+                                        return $label;
+                                    }
+                                })->toArray();
                             })
-                            ->getOptionLabelUsing(function ($value) {
-                                if (!$value) return null;
-                                $label = static::getAvailableIcons()[$value] ?? $value;
-                                return new \Illuminate\Support\HtmlString(
-                                    '<div class="flex items-center gap-2">' .
-                                    svg($value, 'w-5 h-5')->toHtml() .
-                                    '<span>' . $label . '</span>' .
+                            ->searchable()
+                            ->allowHtml()
+                            ->required()
+                            ->native(false)
+                            ->live()
+                            ->columnSpan(1)
+                            ->getOptionLabelUsing(fn ($value) => 
+                                new \Illuminate\Support\HtmlString(
+                                    '<div class="flex items-center gap-2 text-sm">' .
+                                    ($value ? svg($value, 'w-5 h-5')->toHtml() : '') .
+                                    '<span>' . (static::getAvailableIcons()[$value] ?? $value) . '</span>' .
                                     '</div>'
-                                );
-                            })
-                            ->columnSpan(1),
+                                )
+                            ),
 
                         Forms\Components\Toggle::make('is_active')
                             ->label('Status Aktif')
                             ->default(true)
+                            ->inline(false)
                             ->columnSpan(1),
                     ])
                     ->columns(2),
@@ -170,8 +162,8 @@ class FacilityResource extends Resource
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('Status')
                     ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueIcon('lucide-check-circle')
+                    ->falseIcon('lucide-x-circle')
                     ->trueColor('success')
                     ->falseColor('danger'),
 
@@ -231,9 +223,19 @@ class FacilityResource extends Resource
                                             ->formatStateUsing(function ($state) {
                                                 $labels = static::getAvailableIcons();
                                                 $label = $labels[$state] ?? $state;
+                                                
+                                                $svgHtml = '';
+                                                if ($state) {
+                                                    try {
+                                                        $svgHtml = svg($state, 'w-5 h-5')->toHtml();
+                                                    } catch (\Exception $e) {
+                                                        $svgHtml = '<span class="text-gray-400">?</span>';
+                                                    }
+                                                }
+                                                
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<div class="flex items-center gap-2">' .
-                                                    ($state ? svg($state, 'w-5 h-5')->toHtml() : '') .
+                                                    $svgHtml .
                                                     '<span>' . $label . '</span></div>'
                                                 );
                                             }),
@@ -440,85 +442,78 @@ class FacilityResource extends Resource
     public static function getAvailableIcons(): array
     {
         return [
-            'heroicon-o-home' => 'Rumah',
-            'heroicon-o-building-office' => 'Gedung Kantor',
-            'heroicon-o-building-library' => 'Perpustakaan',
-            'heroicon-o-academic-cap' => 'Topi Akademik',
-            'heroicon-o-users' => 'Pengguna',
-            'heroicon-o-user-group' => 'Grup Pengguna',
-            'heroicon-o-wifi' => 'WiFi',
-            'heroicon-o-tv' => 'TV',
-            'heroicon-o-computer-desktop' => 'Komputer Desktop',
-            'heroicon-o-device-phone-mobile' => 'HP',
-            'heroicon-o-device-tablet' => 'Tablet',
-            'heroicon-o-printer' => 'Printer',
-            'heroicon-o-light-bulb' => 'Lampu',
-            'heroicon-o-fire' => 'Api',
-            'heroicon-o-bolt' => 'Petir',
-            'heroicon-o-sun' => 'Matahari',
-            'heroicon-o-moon' => 'Bulan',
-            'heroicon-o-sparkles' => 'Kilauan',
-            'heroicon-o-star' => 'Bintang',
-            'heroicon-o-heart' => 'Hati',
-            'heroicon-o-shield-check' => 'Perisai Centang',
-            'heroicon-o-lock-closed' => 'Kunci Tertutup',
-            'heroicon-o-lock-open' => 'Kunci Terbuka',
-            'heroicon-o-key' => 'Kunci',
-            'heroicon-o-bell' => 'Lonceng',
-            'heroicon-o-book-open' => 'Buku Terbuka',
-            'heroicon-o-newspaper' => 'Koran',
-            'heroicon-o-document' => 'Dokumen',
-            'heroicon-o-folder' => 'Folder',
-            'heroicon-o-clipboard' => 'Clipboard',
-            'heroicon-o-calendar' => 'Kalender',
-            'heroicon-o-clock' => 'Jam',
-            'heroicon-o-beaker' => 'Gelas Kimia',
-            'heroicon-o-wrench-screwdriver' => 'Kunci dan Obeng',
-            'heroicon-o-cog-6-tooth' => 'Pengaturan',
-            'heroicon-o-shopping-bag' => 'Tas Belanja',
-            'heroicon-o-shopping-cart' => 'Keranjang Belanja',
-            'heroicon-o-gift' => 'Hadiah',
-            'heroicon-o-truck' => 'Truk',
-            'heroicon-o-map' => 'Peta',
-            'heroicon-o-map-pin' => 'Pin Peta',
-            'heroicon-o-globe-alt' => 'Bola Dunia',
-            'heroicon-o-flag' => 'Bendera',
-            'heroicon-o-camera' => 'Kamera',
-            'heroicon-o-video-camera' => 'Video Kamera',
-            'heroicon-o-musical-note' => 'Not Musik',
-            'heroicon-o-microphone' => 'Mikrofon',
-            'heroicon-o-phone' => 'Telepon',
-            'heroicon-o-envelope' => 'Amplop',
-            'heroicon-o-chat-bubble-left-right' => 'Chat',
-            'heroicon-o-inbox' => 'Inbox',
-            'heroicon-o-archive-box' => 'Kotak Arsip',
-            'heroicon-o-trash' => 'Tempat Sampah',
-            'heroicon-o-credit-card' => 'Kartu Kredit',
-            'heroicon-o-banknotes' => 'Uang Kertas',
-            'heroicon-o-cloud' => 'Awan',
-            'heroicon-o-arrow-path' => 'Panah Melingkar',
-            'heroicon-o-arrow-up-tray' => 'Unggah',
-            'heroicon-o-arrow-down-tray' => 'Unduh',
-            'heroicon-o-magnifying-glass' => 'Kaca Pembesar',
-            'heroicon-o-funnel' => 'Filter',
-            'heroicon-o-bars-3' => 'Menu',
-            'heroicon-o-squares-2x2' => 'Kotak',
-            'heroicon-o-squares-plus' => 'Tambah Kotak',
-            'heroicon-o-square-3-stack-3d' => 'Tumpukan 3D',
-            'heroicon-o-cube' => 'Kubus',
-            'heroicon-o-rectangle-stack' => 'Tumpukan',
-            'heroicon-o-window' => 'Jendela',
-            'heroicon-o-check' => 'Centang',
-            'heroicon-o-check-circle' => 'Centang Lingkaran',
-            'heroicon-o-x-mark' => 'Silang',
-            'heroicon-o-x-circle' => 'Silang Lingkaran',
-            'heroicon-o-exclamation-circle' => 'Seru Lingkaran',
-            'heroicon-o-exclamation-triangle' => 'Seru Segitiga',
-            'heroicon-o-information-circle' => 'Info Lingkaran',
-            'heroicon-o-question-mark-circle' => 'Tanya Lingkaran',
-            'heroicon-o-plus' => 'Plus',
-            'heroicon-o-minus' => 'Minus',
-            'heroicon-o-ellipsis-horizontal' => 'Titik Tiga',
+            'lucide-house' => 'Rumah',
+            'lucide-building' => 'Gedung',
+            'lucide-library' => 'Perpustakaan',
+            'lucide-graduation-cap' => 'Akademik',
+            'lucide-users' => 'Penghuni',
+            'lucide-wifi' => 'WiFi',
+            'lucide-tv' => 'TV',
+            'lucide-monitor' => 'Komputer',
+            'lucide-smartphone' => 'HP',
+            'lucide-printer' => 'Printer',
+            'lucide-lightbulb' => 'Lampu',
+            'lucide-flame' => 'Api',
+            'lucide-zap' => 'Petir',
+            'lucide-sun' => 'Matahari',
+            'lucide-moon' => 'Bulan',
+            'lucide-sparkles' => 'Fasilitas',
+            'lucide-star' => 'Bintang',
+            'lucide-heart' => 'Hati',
+            'lucide-shield-check' => 'Aman',
+            'lucide-lock' => 'Terkunci',
+            'lucide-key' => 'Kunci',
+            'lucide-bell' => 'Lonceng',
+            'lucide-book-open' => 'Buku',
+            'lucide-calendar' => 'Kalender',
+            'lucide-clock' => 'Jam',
+            'lucide-flask-conical' => 'Lab',
+            'lucide-wrench' => 'Alat',
+            'lucide-settings' => 'Seting',
+            'lucide-shopping-bag' => 'Belanja',
+            'lucide-gift' => 'Hadiah',
+            'lucide-map-pin' => 'Lokasi',
+            'lucide-globe' => 'Dunia',
+            'lucide-camera' => 'Kamera',
+            'lucide-video' => 'CCTV',
+            'lucide-music' => 'Musik',
+            'lucide-mic' => 'Mic',
+            'lucide-phone' => 'Telepon',
+            'lucide-mail' => 'Email',
+            'lucide-message-square' => 'Chat',
+            'lucide-trash-2' => 'Sampah',
+            'lucide-credit-card' => 'Kartu',
+            'lucide-banknote' => 'Uang',
+            'lucide-cloud' => 'Cloud',
+            'lucide-search' => 'Cari',
+            'lucide-layout-grid' => 'Grid',
+            'lucide-box' => 'Box',
+            'lucide-check-circle' => 'Ok',
+            'lucide-info' => 'Info',
+            'lucide-help-circle' => 'Tanya',
+            'lucide-lamp' => 'Lampu Belajar',
+            'lucide-fan' => 'Kipas',
+            'lucide-snowflake' => 'AC',
+            'lucide-container' => 'Lemari',
+            'lucide-bed' => 'Kasur',
+            'lucide-shirt' => 'Pakaian',
+            'lucide-utensils' => 'Dapur',
+            'lucide-coffee' => 'Kopi',
+            'lucide-parking-circle' => 'Parkir',
+            'lucide-bike' => 'Sepeda',
+            'lucide-car' => 'Mobil',
+            'lucide-bus' => 'Transport',
+            'lucide-trees' => 'Taman',
+            'lucide-shower-head' => 'Shower',
+            'lucide-bath' => 'Bak Mandi',
+            'lucide-waves' => 'Air',
+            'lucide-droplets' => 'Cairan',
+            'lucide-washing-machine' => 'Cuci',
+            'lucide-plug' => 'Listrik',
+            'lucide-shovel' => 'Kebun',
+            'lucide-sofa' => 'Sofa',
+            'lucide-table' => 'Meja',
+            'lucide-armchair' => 'Kursi',
         ];
     }
 
@@ -526,10 +521,18 @@ class FacilityResource extends Resource
     {
         return collect(static::getAvailableIcons())
             ->mapWithKeys(function ($label, $icon) {
-                return [$icon => '<div class="flex items-center gap-2">' .
-                        svg($icon, 'w-5 h-5')->toHtml() .
-                        '<span>' . $label . '</span>' .
-                        '</div>'];
+                try {
+                    $svg = svg($icon, 'w-4 h-4')->toHtml();
+                } catch (\Exception $e) {
+                    $svg = '';
+                }
+
+                return [$icon => new \Illuminate\Support\HtmlString(
+                    '<div class="flex flex-col items-center justify-center p-0.5 border rounded hover:bg-primary-50 dark:hover:bg-primary-950 transition-all border-dashed dark:border-gray-700 w-full aspect-square" title="' . $label . '">' .
+                    $svg .
+                    '<span class="text-[6px] font-medium text-center truncate w-full leading-none mt-0.5">' . $label . '</span>' .
+                    '</div>'
+                )];
             })
             ->toArray();
     }
