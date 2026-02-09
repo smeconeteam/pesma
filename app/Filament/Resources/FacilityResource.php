@@ -498,7 +498,7 @@ class FacilityResource extends Resource
             'lucide-users' => 'Penghuni',
             'lucide-wifi' => 'WiFi',
             'lucide-tv' => 'TV',
-            'lucide-monitor' => 'Komputer',
+            'lucide-computer' => 'Komputer',
             'lucide-smartphone' => 'HP',
             'lucide-printer' => 'Printer',
             'lucide-lightbulb' => 'Lampu',
