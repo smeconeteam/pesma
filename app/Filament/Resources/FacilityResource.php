@@ -83,34 +83,83 @@ class FacilityResource extends Resource
                             ->helperText('Otomatis: tipe-nama (contoh: parkir-motor)')
                             ->columnSpan(1),
 
-                        Forms\Components\Select::make('icon')
-                            ->label('Ikon')
-                            ->options(function () {
-                                return collect(static::getAvailableIcons())->map(function ($label, $icon) {
-                                    try {
-                                        return '<div class="flex items-center gap-2">' .
-                                            svg($icon, 'w-5 h-5')->toHtml() .
-                                            '<span>' . $label . '</span>' .
-                                            '</div>';
-                                    } catch (\Exception $e) {
-                                        return $label;
-                                    }
-                                })->toArray();
-                            })
-                            ->searchable()
-                            ->allowHtml()
-                            ->required()
-                            ->native(false)
-                            ->live()
-                            ->columnSpan(1)
-                            ->getOptionLabelUsing(fn ($value) => 
-                                new \Illuminate\Support\HtmlString(
-                                    '<div class="flex items-center gap-2 text-sm">' .
-                                    ($value ? svg($value, 'w-5 h-5')->toHtml() : '') .
-                                    '<span>' . (static::getAvailableIcons()[$value] ?? $value) . '</span>' .
-                                    '</div>'
+                        Forms\Components\Group::make([
+                            Forms\Components\Select::make('icon')
+                                ->label('Ikon')
+                                ->options(function () {
+                                    return collect(static::getAvailableIcons())->map(function ($label, $icon) {
+                                        try {
+                                            return '<div class="flex flex-col items-center justify-center p-1" title="' . $label . '">' .
+                                                svg($icon, 'w-6 h-6')->toHtml() .
+                                                '<span class="sr-only">' . $label . '</span>' . // Hidden but searchable
+                                                '</div>';
+                                        } catch (\Exception $e) {
+                                            return $label;
+                                        }
+                                    })->toArray();
+                                })
+                                ->searchable()
+                                ->allowHtml()
+                                ->required()
+                                ->native(false)
+                                ->live()
+                                ->columnSpan(1)
+                                ->getOptionLabelUsing(fn ($value) => 
+                                    new \Illuminate\Support\HtmlString(
+                                        '<div class="flex items-center gap-2 text-sm">' .
+                                        ($value ? svg($value, 'w-5 h-5')->toHtml() : '') .
+                                        '<span>' . (static::getAvailableIcons()[$value] ?? $value) . '</span>' .
+                                        '</div>'
+                                    )
                                 )
-                            ),
+                                ->extraAttributes([
+                                    'class' => 'icon-grid-selector',
+                                ]),
+
+                            Forms\Components\Placeholder::make('icon_grid_style')
+                                ->label('')
+                                ->content(new \Illuminate\Support\HtmlString('
+                                    <style>
+                                        /* Target the parent container to allow grid dropdown */
+                                        .icon-grid-selector > div > div {
+                                            position: relative;
+                                        }
+                                        /* Target the dropdown list list */
+                                        .icon-grid-selector .fi-select-input-options-list ul,
+                                        .icon-grid-selector .choices__list--dropdown .choices__list {
+                                            display: grid !important;
+                                            grid-template-columns: repeat(7, 1fr) !important;
+                                            gap: 4px !important;
+                                            padding: 8px !important;
+                                            max-height: 400px !important;
+                                            overflow-y: auto !important;
+                                        }
+                                        /* Style individual grid items */
+                                        .icon-grid-selector .fi-select-input-option,
+                                        .icon-grid-selector .choices__item--choice {
+                                            padding: 0 !important;
+                                            display: flex !important;
+                                            aspect-ratio: 1/1 !important;
+                                            align-items: center !important;
+                                            justify-content: center !important;
+                                            border-radius: 6px !important;
+                                            border: 1px dashed transparent !important;
+                                            transition: all 0.2s !important;
+                                        }
+                                        .icon-grid-selector .fi-select-input-option:hover,
+                                        .icon-grid-selector .choices__item--choice:hover {
+                                            background-color: rgba(var(--primary-500), 0.1) !important;
+                                            border-color: rgba(var(--primary-500), 0.5) !important;
+                                        }
+                                        /* Ensure the search container stays full width above the grid */
+                                        .icon-grid-selector .fi-select-search-container {
+                                            grid-column: span 7 !important;
+                                            width: 100% !important;
+                                        }
+                                    </style>
+                                ')),
+                        ])
+                        ->columnSpan(1),
 
                         Forms\Components\Toggle::make('is_active')
                             ->label('Status Aktif')
