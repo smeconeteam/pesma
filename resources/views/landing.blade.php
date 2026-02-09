@@ -6,6 +6,14 @@
     <title>{{ $institution->dormitory_name ?? 'Asrama' }} - Temukan Kamar Impian Anda</title>
     <meta name="description" content="Temukan berbagai kamar di {{ $institution->dormitory_name ?? 'Asrama' }} dengan fasilitas lengkap dan harga terjangkau.">
     
+    <!-- Favicon -->
+    @if($institution && $institution->logo_url)
+        <link rel="icon" type="image/png" href="{{ $institution->logo_url }}">
+        <link rel="apple-touch-icon" href="{{ $institution->logo_url }}">
+    @else
+        <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    @endif
+    
     <!-- Performance Optimization -->
     <link rel="dns-prefetch" href="https://fonts.bunny.net">
     <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>

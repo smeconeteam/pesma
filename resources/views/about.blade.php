@@ -6,6 +6,14 @@
     <title>Tentang Kami - {{ $institution->dormitory_name ?? 'Asrama' }}</title>
     <meta name="description" content="Informasi lengkap tentang {{ $institution->dormitory_name ?? 'Asrama' }} dan layanan yang kami sediakan.">
     
+    <!-- Favicon -->
+    @if($institution && $institution->logo_url)
+        <link rel="icon" type="image/png" href="{{ $institution->logo_url }}">
+        <link rel="apple-touch-icon" href="{{ $institution->logo_url }}">
+    @else
+        <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    @endif
+    
     <!-- Performance Optimization -->
     <link rel="dns-prefetch" href="https://fonts.bunny.net">
     <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
