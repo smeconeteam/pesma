@@ -10,6 +10,8 @@ use App\Models\RoomResident;
 use App\Models\RoomType;
 use App\Models\Facility;
 use App\Models\RoomRule;
+use App\Models\User;
+use App\Models\AdminScope;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Components\FileUpload;
@@ -102,6 +104,7 @@ class RoomResource extends Resource
                             ->afterStateUpdated(function (Set $set) {
                                 $set('block_id', null);
                                 $set('code', null);
+                                $set('contact_person_user_id', null);
                             })
                             ->disabled(function ($record) {
                                 $user = auth()->user();
@@ -142,7 +145,10 @@ class RoomResource extends Resource
                         Select::make('block_id')
                             ->label('Komplek')
                             ->live()
-                            ->afterStateUpdated(fn(Set $set, Get $get) => static::generateRoomCode($set, $get))
+                            ->afterStateUpdated(function (Set $set, Get $get) {
+                                static::generateRoomCode($set, $get);
+                                $set('contact_person_user_id', null);
+                            })
                             ->options(function (Get $get, ?Room $record) {
                                 $user = auth()->user();
                                 $dormId = $get('dorm_id');
@@ -370,15 +376,64 @@ class RoomResource extends Resource
 
                                 Forms\Components\Section::make('Informasi Penanggung Jawab')
                                     ->schema([
-                                        Forms\Components\TextInput::make('contact_person_name')
-                                            ->label('Nama Kontak (Penanggung Jawab)')
-                                            ->maxLength(255),
-                                        Forms\Components\TextInput::make('contact_person_number')
-                                            ->label('Nomor Kontak (Penanggung Jawab)')
-                                            ->tel()
-                                            ->maxLength(255),
+                                        Select::make('contact_person_user_id')
+                                            ->label('Penanggung Jawab Kamar')
+                                            ->options(function (Get $get, ?Room $record) {
+                                                $dormId = $get('dorm_id') ?? $record?->block?->dorm_id;
+                                                $blockId = $get('block_id') ?? $record?->block_id;
+                                                
+                                                if (!$dormId) {
+                                                    return [];
+                                                }
+                                                
+                                                // 1. Ambil admin cabang yang memiliki akses ke cabang yang dipilih
+                                                $branchAdminIds = AdminScope::where('type', 'branch')
+                                                    ->where('dorm_id', $dormId)
+                                                    ->pluck('user_id')
+                                                    ->toArray();
+                                                
+                                                // 2. Ambil admin komplek yang memiliki akses HANYA ke block yang dipilih
+                                                $blockAdminIds = [];
+                                                if ($blockId) {
+                                                    $blockAdminIds = AdminScope::where('type', 'block')
+                                                        ->where('block_id', $blockId)
+                                                        ->pluck('user_id')
+                                                        ->toArray();
+                                                }
+                                                    
+                                                $allAdminIds = array_unique(array_merge($branchAdminIds, $blockAdminIds));
+                                                
+                                                // Filter hanya user yang memiliki residentProfile (penghuni)
+                                                // dan merupakan admin cabang atau admin komplek di lokasi tersebut
+                                                return User::whereIn('id', $allAdminIds)
+                                                    ->where('is_active', true)
+                                                    ->whereHas('residentProfile') // Harus memiliki profil penghuni
+                                                    ->with(['residentProfile', 'roles'])
+                                                    ->get()
+                                                    ->mapWithKeys(function ($user) {
+                                                        $name = $user->residentProfile?->full_name ?? $user->name;
+                                                        $phone = $user->residentProfile?->phone_number ?? '-';
+                                                        
+                                                        // Beri tanda role nya
+                                                        $roles = $user->roles->pluck('name')->toArray();
+                                                        $roleLabel = '';
+                                                        if (in_array('branch_admin', $roles)) {
+                                                            $roleLabel = ' (Admin Cabang)';
+                                                        } elseif (in_array('block_admin', $roles)) {
+                                                            // Cek scope block nya untuk lebih detail jika perlu
+                                                            $roleLabel = ' (Admin Komplek)';
+                                                        }
+                                                        
+                                                        return [$user->id => "{$name}{$roleLabel} - {$phone}"];
+                                                    })
+                                                    ->toArray();
+                                            })
+                                            ->searchable()
+                                            ->native(false)
+                                            ->placeholder('Pilih penanggung jawab...')
+                                            ->helperText('Pilih penghuni yang sudah diangkat menjadi Admin Cabang atau Admin Komplek di lokasi ini.'),
                                     ])
-                                    ->columns(2),
+                                    ->columns(1),
                             ]),
                         
                         Tabs\Tab::make('Foto')

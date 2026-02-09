@@ -99,17 +99,27 @@ class ViewRoom extends ViewRecord
 
                 InfoSection::make('Informasi Penanggung Jawab')
                     ->schema([
-                        TextEntry::make('contact_person_name')
-                            ->label('Nama Kontak')
-                            ->placeholder('-'),
-                        TextEntry::make('contact_person_number')
-                            ->label('Nomor Kontak')
+                        TextEntry::make('contactPerson.residentProfile.full_name')
+                            ->label('Nama Penanggung Jawab')
+                            ->icon('heroicon-m-user')
+                            ->weight('semibold')
+                            ->placeholder('-')
+                            ->default(fn ($record) => $record->contactPerson?->name),
+
+                        TextEntry::make('contactPerson.residentProfile.phone_number')
+                            ->label('Nomor WhatsApp')
+                            ->icon('heroicon-m-phone')
                             ->placeholder('-')
                             ->copyable()
-                            ->copyMessage('Nomor disalin'),
+                            ->copyMessage('Nomor disalin')
+                            ->url(fn ($record) => $record->contactPerson?->residentProfile?->phone_number 
+                                ? 'https://wa.me/' . preg_replace('/[^0-9]/', '', $record->contactPerson->residentProfile->phone_number) 
+                                : null, 
+                                shouldOpenInNewTab: true)
+                            ->color('success'),
                     ])
                     ->columns(2)
-                    ->visible(fn ($record) => ! empty($record->contact_person_name) || ! empty($record->contact_person_number)),
+                    ->visible(fn ($record) => ! empty($record->contact_person_user_id)),
 
                 InfoSection::make('Galeri')
                     ->schema([

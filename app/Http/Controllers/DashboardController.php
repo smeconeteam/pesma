@@ -65,12 +65,12 @@ class DashboardController extends Controller
             }
         }
 
-        // DATA PIC KAMAR
+        // DATA PIC KAMAR (Penghuni yang ditunjuk sebagai PIC - berbeda dengan Penanggung Jawab)
         $picInfo = null;
         $isYouPic = false;
 
         if ($room?->id) {
-            // Logic 1: Cari Resident yang jadi PIC
+            // Cari Resident yang jadi PIC (is_pic = true)
             $picAssignment = \App\Models\RoomResident::query()
                 ->where('room_id', $room->id)
                 ->whereNull('check_out_date')
@@ -89,16 +89,8 @@ class DashboardController extends Controller
                 ];
 
                 $isYouPic = ($user->id === $picUser?->id);
-            } 
-            // Logic 2: Kalau tidak ada Resident PIC, ambil dari Penanggung Jawab Kamar (Staf)
-            elseif ($room->contact_person_name) {
-                $picInfo = [
-                    'name'      => $room->contact_person_name . ' (Staf)',
-                    'phone'     => $room->contact_person_number ?? '-',
-                    'photo_url' => null,
-                ];
-                $isYouPic = false;
             }
+            // Jika tidak ada resident PIC, biarkan picInfo tetap null
         }
         
         // Data kontak
@@ -128,15 +120,22 @@ class DashboardController extends Controller
             ->orderBy('display_name')
             ->get();
 
-        // Prepend room contact person ke daftar kontak
-        if ($room?->contact_person_name && $room?->contact_person_number) {
-            $roomContact = (object) [
-                'display_name' => $room->contact_person_name . ' (Penanggung Jawab)',
-                'name'         => $room->contact_person_name,
-                'phone'        => $room->contact_person_number,
-                'auto_message' => null,
-            ];
-            $contacts->prepend($roomContact);
+        // Prepend room contact person ke daftar kontak (dari penghuni yang jadi admin cabang)
+        if ($room?->contact_person_user_id) {
+            $contactPerson = $room->contactPerson;
+            $contactResidentProfile = $contactPerson?->residentProfile;
+            $contactName = $contactResidentProfile?->full_name ?? $contactPerson?->name;
+            $contactPhone = $contactResidentProfile?->phone_number;
+            
+            if ($contactName && $contactPhone) {
+                $roomContact = (object) [
+                    'display_name' => $contactName . ' (Penanggung Jawab)',
+                    'name'         => $contactName,
+                    'phone'        => $contactPhone,
+                    'auto_message' => null,
+                ];
+                $contacts->prepend($roomContact);
+            }
         }
         
         // ==========================================

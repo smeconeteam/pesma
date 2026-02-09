@@ -19,6 +19,34 @@ class EditAdminAssignment extends EditRecord
         return $this->getResource()::getUrl('index');
     }
 
+    protected function getHeaderActions(): array
+    {
+        return [
+            \Filament\Actions\DeleteAction::make()
+                ->label('Cabut Hak Admin')
+                ->modalHeading('Cabut Hak Admin')
+                ->modalDescription('Apakah Anda yakin ingin mencabut hak admin untuk user ini?')
+                ->before(function (\Filament\Actions\DeleteAction $action) {
+                    $user = $this->record->user;
+                    $assignedRoomsCount = \App\Models\Room::where('contact_person_user_id', $user->id)->count();
+
+                    if ($assignedRoomsCount > 0) {
+                        \Filament\Notifications\Notification::make()
+                            ->title('Gagal Mencabut Hak Admin')
+                            ->body("Admin ini masih menjadi penanggung jawab untuk {$assignedRoomsCount} kamar. Mohon ganti penanggung jawab kamar-kamar tersebut terlebih dahulu.")
+                            ->danger()
+                            ->send();
+                        
+                        $action->halt();
+                    }
+                })
+                ->using(function ($record) {
+                    app(AdminPrivilegeService::class)->revokeAdmin($record->user);
+                })
+                ->successNotificationTitle('Hak admin berhasil dicabut'),
+        ];
+    }
+
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
         /** @var AdminScope $record */

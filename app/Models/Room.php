@@ -28,7 +28,14 @@ class Room extends Model
         'length',
         'contact_person_name',
         'contact_person_number',
+        'contact_person_user_id',
     ];
+
+    // Relasi ke Admin Cabang sebagai Penanggung Jawab
+    public function contactPerson(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'contact_person_user_id');
+    }
 
     protected $casts = [
         'capacity' => 'integer',

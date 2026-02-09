@@ -203,6 +203,19 @@ class AdminAssignmentResource extends Resource
                     ->color('danger')
                     ->requiresConfirmation()
                     ->action(function (AdminScope $record) {
+                        // Cek apakah user menjadi penanggung jawab di kamar manapun
+                        $assignedRoomsCount = \App\Models\Room::where('contact_person_user_id', $record->user_id)->count();
+
+                        if ($assignedRoomsCount > 0) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Gagal Mencabut Admin')
+                                ->body("Admin ini masih menjadi penanggung jawab untuk {$assignedRoomsCount} kamar. Mohon ganti penanggung jawab kamar-kamar tersebut terlebih dahulu sebelum mencabut hak admin.")
+                                ->danger()
+                                ->send();
+                            
+                            return;
+                        }
+
                         app(\App\Services\AdminPrivilegeService::class)->revokeAdmin($record->user);
 
                         \Filament\Notifications\Notification::make()
