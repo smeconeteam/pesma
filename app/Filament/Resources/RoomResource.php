@@ -10,6 +10,8 @@ use App\Models\RoomResident;
 use App\Models\RoomType;
 use App\Models\Facility;
 use App\Models\RoomRule;
+use App\Models\User;
+use App\Models\AdminScope;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Components\FileUpload;
@@ -29,6 +31,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use App\Services\IconService;
 
 class RoomResource extends Resource
 {
@@ -370,15 +373,64 @@ class RoomResource extends Resource
 
                                 Forms\Components\Section::make('Informasi Penanggung Jawab')
                                     ->schema([
-                                        Forms\Components\TextInput::make('contact_person_name')
-                                            ->label('Nama Kontak (Penanggung Jawab)')
-                                            ->maxLength(255),
-                                        Forms\Components\TextInput::make('contact_person_number')
-                                            ->label('Nomor Kontak (Penanggung Jawab)')
-                                            ->tel()
-                                            ->maxLength(255),
+                                        Select::make('contact_person_user_id')
+                                            ->label('Penanggung Jawab Kamar')
+                                            ->options(function (Get $get, ?Room $record) {
+                                                $dormId = $get('dorm_id') ?? $record?->block?->dorm_id;
+                                                $blockId = $get('block_id') ?? $record?->block_id;
+                                                
+                                                if (!$dormId) {
+                                                    return [];
+                                                }
+                                                
+                                                // 1. Ambil admin cabang yang memiliki akses ke cabang yang dipilih
+                                                $branchAdminIds = AdminScope::where('type', 'branch')
+                                                    ->where('dorm_id', $dormId)
+                                                    ->pluck('user_id')
+                                                    ->toArray();
+                                                
+                                                // 2. Ambil admin komplek yang memiliki akses HANYA ke block yang dipilih
+                                                $blockAdminIds = [];
+                                                if ($blockId) {
+                                                    $blockAdminIds = AdminScope::where('type', 'block')
+                                                        ->where('block_id', $blockId)
+                                                        ->pluck('user_id')
+                                                        ->toArray();
+                                                }
+                                                    
+                                                $allAdminIds = array_unique(array_merge($branchAdminIds, $blockAdminIds));
+                                                
+                                                // Filter hanya user yang memiliki residentProfile (penghuni)
+                                                // dan merupakan admin cabang atau admin komplek di lokasi tersebut
+                                                return User::whereIn('id', $allAdminIds)
+                                                    ->where('is_active', true)
+                                                    ->whereHas('residentProfile') // Harus memiliki profil penghuni
+                                                    ->with(['residentProfile', 'roles'])
+                                                    ->get()
+                                                    ->mapWithKeys(function ($user) {
+                                                        $name = $user->residentProfile?->full_name ?? $user->name;
+                                                        $phone = $user->residentProfile?->phone_number ?? '-';
+                                                        
+                                                        // Beri tanda role nya
+                                                        $roles = $user->roles->pluck('name')->toArray();
+                                                        $roleLabel = '';
+                                                        if (in_array('branch_admin', $roles)) {
+                                                            $roleLabel = ' (Admin Cabang)';
+                                                        } elseif (in_array('block_admin', $roles)) {
+                                                            // Cek scope block nya untuk lebih detail jika perlu
+                                                            $roleLabel = ' (Admin Komplek)';
+                                                        }
+                                                        
+                                                        return [$user->id => "{$name}{$roleLabel} - {$phone}"];
+                                                    })
+                                                    ->toArray();
+                                            })
+                                            ->searchable()
+                                            ->native(false)
+                                            ->placeholder('Pilih penanggung jawab...')
+                                            ->helperText('Pilih penghuni yang sudah diangkat menjadi Admin Cabang atau Admin Komplek di lokasi ini.'),
                                     ])
-                                    ->columns(2),
+                                    ->columns(1),
                             ]),
 
                         Tabs\Tab::make('Foto')
@@ -506,7 +558,7 @@ class RoomResource extends Resource
                                             })
                                             ->getOptionLabelUsing(function ($value) {
                                                 if (!$value) return null;
-                                                $label = static::getAvailableIcons()[$value] ?? $value;
+                                                $label = IconService::getAllIcons()[$value] ?? $value;
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<div class="flex items-center gap-2">' .
                                                         svg($value, 'w-5 h-5')->toHtml() .
@@ -564,7 +616,7 @@ class RoomResource extends Resource
                                             })
                                             ->getOptionLabelUsing(function ($value) {
                                                 if (!$value) return null;
-                                                $label = static::getAvailableIcons()[$value] ?? $value;
+                                                $label = IconService::getAllIcons()[$value] ?? $value;
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<div class="flex items-center gap-2">' .
                                                         svg($value, 'w-5 h-5')->toHtml() .
@@ -622,7 +674,7 @@ class RoomResource extends Resource
                                             })
                                             ->getOptionLabelUsing(function ($value) {
                                                 if (!$value) return null;
-                                                $label = static::getAvailableIcons()[$value] ?? $value;
+                                                $label = IconService::getAllIcons()[$value] ?? $value;
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<div class="flex items-center gap-2">' .
                                                         svg($value, 'w-5 h-5')->toHtml() .
@@ -680,7 +732,7 @@ class RoomResource extends Resource
                                             })
                                             ->getOptionLabelUsing(function ($value) {
                                                 if (!$value) return null;
-                                                $label = static::getAvailableIcons()[$value] ?? $value;
+                                                $label = IconService::getAllIcons()[$value] ?? $value;
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<div class="flex items-center gap-2">' .
                                                         svg($value, 'w-5 h-5')->toHtml() .
@@ -1555,95 +1607,12 @@ class RoomResource extends Resource
 
     public static function getAvailableIcons(): array
     {
-        return [
-            'heroicon-o-home' => 'Rumah',
-            'heroicon-o-building-office' => 'Gedung Kantor',
-            'heroicon-o-building-library' => 'Perpustakaan',
-            'heroicon-o-academic-cap' => 'Topi Akademik',
-            'heroicon-o-users' => 'Pengguna',
-            'heroicon-o-user-group' => 'Grup Pengguna',
-            'heroicon-o-wifi' => 'WiFi',
-            'heroicon-o-tv' => 'TV',
-            'heroicon-o-computer-desktop' => 'Komputer Desktop',
-            'heroicon-o-device-phone-mobile' => 'HP',
-            'heroicon-o-device-tablet' => 'Tablet',
-            'heroicon-o-printer' => 'Printer',
-            'heroicon-o-light-bulb' => 'Lampu',
-            'heroicon-o-fire' => 'Api',
-            'heroicon-o-bolt' => 'Petir',
-            'heroicon-o-sun' => 'Matahari',
-            'heroicon-o-moon' => 'Bulan',
-            'heroicon-o-sparkles' => 'Kilauan',
-            'heroicon-o-star' => 'Bintang',
-            'heroicon-o-heart' => 'Hati',
-            'heroicon-o-shield-check' => 'Perisai Centang',
-            'heroicon-o-lock-closed' => 'Kunci Tertutup',
-            'heroicon-o-lock-open' => 'Kunci Terbuka',
-            'heroicon-o-key' => 'Kunci',
-            'heroicon-o-bell' => 'Lonceng',
-            'heroicon-o-book-open' => 'Buku Terbuka',
-            'heroicon-o-newspaper' => 'Koran',
-            'heroicon-o-document' => 'Dokumen',
-            'heroicon-o-folder' => 'Folder',
-            'heroicon-o-clipboard' => 'Clipboard',
-            'heroicon-o-calendar' => 'Kalender',
-            'heroicon-o-clock' => 'Jam',
-            'heroicon-o-beaker' => 'Gelas Kimia',
-            'heroicon-o-wrench-screwdriver' => 'Kunci dan Obeng',
-            'heroicon-o-cog-6-tooth' => 'Pengaturan',
-            'heroicon-o-shopping-bag' => 'Tas Belanja',
-            'heroicon-o-shopping-cart' => 'Keranjang Belanja',
-            'heroicon-o-gift' => 'Hadiah',
-            'heroicon-o-truck' => 'Truk',
-            'heroicon-o-map' => 'Peta',
-            'heroicon-o-map-pin' => 'Pin Peta',
-            'heroicon-o-globe-alt' => 'Bola Dunia',
-            'heroicon-o-flag' => 'Bendera',
-            'heroicon-o-camera' => 'Kamera',
-            'heroicon-o-video-camera' => 'Video Kamera',
-            'heroicon-o-musical-note' => 'Not Musik',
-            'heroicon-o-microphone' => 'Mikrofon',
-            'heroicon-o-phone' => 'Telepon',
-            'heroicon-o-envelope' => 'Amplop',
-            'heroicon-o-chat-bubble-left-right' => 'Chat',
-            'heroicon-o-inbox' => 'Inbox',
-            'heroicon-o-archive-box' => 'Kotak Arsip',
-            'heroicon-o-trash' => 'Tempat Sampah',
-            'heroicon-o-credit-card' => 'Kartu Kredit',
-            'heroicon-o-banknotes' => 'Uang Kertas',
-            'heroicon-o-cloud' => 'Awan',
-            'heroicon-o-arrow-path' => 'Panah Melingkar',
-            'heroicon-o-arrow-up-tray' => 'Unggah',
-            'heroicon-o-arrow-down-tray' => 'Unduh',
-            'heroicon-o-magnifying-glass' => 'Kaca Pembesar',
-            'heroicon-o-funnel' => 'Filter',
-            'heroicon-o-bars-3' => 'Menu',
-            'heroicon-o-squares-2x2' => 'Kotak',
-            'heroicon-o-squares-plus' => 'Tambah Kotak',
-            'heroicon-o-square-3-stack-3d' => 'Tumpukan 3D',
-            'heroicon-o-cube' => 'Kubus',
-            'heroicon-o-rectangle-stack' => 'Tumpukan',
-            'heroicon-o-window' => 'Jendela',
-            'heroicon-o-check' => 'Centang',
-            'heroicon-o-check-circle' => 'Centang Lingkaran',
-            'heroicon-o-x-mark' => 'Silang',
-            'heroicon-o-x-circle' => 'Silang Lingkaran',
-            'heroicon-o-exclamation-circle' => 'Seru Lingkaran',
-            'heroicon-o-exclamation-triangle' => 'Seru Segitiga',
-            'heroicon-o-information-circle' => 'Info Lingkaran',
-            'heroicon-o-question-mark-circle' => 'Tanya Lingkaran',
-            'heroicon-o-plus' => 'Plus',
-            'heroicon-o-minus' => 'Minus',
-            'heroicon-o-ellipsis-horizontal' => 'Titik Tiga',
-            'heroicon-o-no-symbol' => 'Dilarang',
-            'heroicon-o-hand-raised' => 'Tangan Terangkat',
-            'heroicon-o-shield-exclamation' => 'Peringatan',
-        ];
+        return IconService::getAllIcons();
     }
 
     public static function getIconOptions(): array
     {
-        return collect(static::getAvailableIcons())
+        return collect(IconService::getAllIcons())
             ->mapWithKeys(function ($label, $icon) {
                 return [$icon => '<div class="flex items-center gap-2">' .
                     svg($icon, 'w-5 h-5')->toHtml() .

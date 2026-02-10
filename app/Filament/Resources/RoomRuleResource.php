@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
+use App\Services\IconService;
 
 class RoomRuleResource extends Resource
 {
@@ -63,43 +64,74 @@ class RoomRuleResource extends Resource
                             ->helperText('Otomatis: nama peraturan (contoh: dilarang-merokok)')
                             ->columnSpan(1),
 
-                        Forms\Components\Select::make('icon')
-                            ->label('Ikon')
-                            ->options(static::getIconOptions())
-                            ->searchable()
-                            ->native(false)
-                            ->allowHtml()
-                            ->getSearchResultsUsing(function (string $search) {
-                                if (empty($search)) {
-                                    return static::getIconOptions();
-                                }
-                                
-                                $icons = static::getAvailableIcons();
-                                
-                                return collect($icons)
-                                    ->filter(fn ($label, $icon) => 
-                                        stripos($label, $search) !== false || 
-                                        stripos($icon, $search) !== false
-                                    )
-                                    ->mapWithKeys(fn ($label, $icon) => [
-                                        $icon => '<div class="flex items-center gap-2">' .
-                                            svg($icon, 'w-5 h-5')->toHtml() .
-                                            '<span>' . $label . '</span>' .
-                                            '</div>'
-                                    ])
-                                    ->toArray();
-                            })
-                            ->getOptionLabelUsing(function ($value) {
-                                if (!$value) return null;
-                                $label = static::getAvailableIcons()[$value] ?? $value;
-                                return new \Illuminate\Support\HtmlString(
-                                    '<div class="flex items-center gap-2">' .
-                                    svg($value, 'w-5 h-5')->toHtml() .
-                                    '<span>' . $label . '</span>' .
-                                    '</div>'
-                                );
-                            })
-                            ->columnSpan(1),
+                        Forms\Components\Group::make([
+                            Forms\Components\Placeholder::make('icon_grid_styles')
+                                ->label('')
+                                ->content(new \Illuminate\Support\HtmlString('
+                                    <style>
+                                        .icon-grid-selector .fi-fo-select-option-content {
+                                            display: grid !important;
+                                            grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+                                            gap: 0.5rem !important;
+                                            padding: 0.75rem !important;
+                                            width: 100% !important;
+                                        }
+                                        .icon-grid-selector .fi-fo-select-option {
+                                            padding: 0 !important;
+                                        }
+                                        .icon-grid-selector .fi-fo-select-option > span {
+                                            display: none !important;
+                                        }
+                                    </style>
+                                '))
+                                ->columnSpan(0),
+
+                            Forms\Components\Select::make('icon')
+                                ->label('Ikon')
+                                ->options(static::getIconOptions())
+                                ->searchable()
+                                ->native(false)
+                                ->allowHtml()
+                                ->extraAttributes(['class' => 'icon-grid-selector'])
+                                ->getSearchResultsUsing(function (string $search) {
+                                    if (empty($search)) {
+                                        return static::getIconOptions();
+                                    }
+                                    
+                                    $icons = IconService::getAllIcons();
+                                    
+                                    return collect($icons)
+                                        ->filter(fn ($label, $icon) => 
+                                            stripos($label, $search) !== false || 
+                                            stripos($icon, $search) !== false
+                                        )
+                                        ->mapWithKeys(fn ($label, $icon) => [
+                                            $icon => '<div class="flex flex-col items-center justify-center p-0.5 border rounded hover:bg-primary-50 dark:hover:bg-primary-950 transition-all border-dashed dark:border-gray-700 w-full aspect-square" title="' . $label . '">' .
+                                                svg($icon, 'w-4 h-4')->toHtml() .
+                                                '<span class="sr-only">' . $label . '</span>' .
+                                                '</div>'
+                                        ])
+                                        ->toArray();
+                                })
+                                ->getOptionLabelUsing(function ($value) {
+                                    if (!$value) return null;
+                                    $label = IconService::getAllIcons()[$value] ?? $value;
+                                    $svgHtml = '';
+                                    try {
+                                        $svgHtml = svg($value, 'w-5 h-5')->toHtml();
+                                    } catch (\Exception $e) {
+                                        $svgHtml = '';
+                                    }
+
+                                    return new \Illuminate\Support\HtmlString(
+                                        '<div class="flex items-center gap-2">' .
+                                        $svgHtml .
+                                        '<span>' . $label . '</span>' .
+                                        '</div>'
+                                    );
+                                })
+                                ->columnSpan(1),
+                        ])->columns(1)->columnSpan(1),
 
                         Forms\Components\Toggle::make('is_active')
                             ->label('Status Aktif')
@@ -174,7 +206,7 @@ class RoomRuleResource extends Resource
                                         TextEntry::make('icon')
                                             ->label('Icon')
                                             ->formatStateUsing(function ($state) {
-                                                $labels = static::getAvailableIcons();
+                                                $labels = IconService::getAllIcons();
                                                 $label = $labels[$state] ?? $state;
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<div class="flex items-center gap-2">' .
@@ -385,100 +417,25 @@ class RoomRuleResource extends Resource
     
     public static function getAvailableIcons(): array
     {
-        return [
-            'heroicon-o-home' => 'Rumah',
-            'heroicon-o-building-office' => 'Gedung Kantor',
-            'heroicon-o-building-library' => 'Perpustakaan',
-            'heroicon-o-academic-cap' => 'Topi Akademik',
-            'heroicon-o-users' => 'Pengguna',
-            'heroicon-o-user-group' => 'Grup Pengguna',
-            'heroicon-o-wifi' => 'WiFi',
-            'heroicon-o-tv' => 'TV',
-            'heroicon-o-computer-desktop' => 'Komputer Desktop',
-            'heroicon-o-device-phone-mobile' => 'HP',
-            'heroicon-o-device-tablet' => 'Tablet',
-            'heroicon-o-printer' => 'Printer',
-            'heroicon-o-light-bulb' => 'Lampu',
-            'heroicon-o-fire' => 'Api',
-            'heroicon-o-bolt' => 'Petir',
-            'heroicon-o-sun' => 'Matahari',
-            'heroicon-o-moon' => 'Bulan',
-            'heroicon-o-sparkles' => 'Kilauan',
-            'heroicon-o-star' => 'Bintang',
-            'heroicon-o-heart' => 'Hati',
-            'heroicon-o-shield-check' => 'Perisai Centang',
-            'heroicon-o-lock-closed' => 'Kunci Tertutup',
-            'heroicon-o-lock-open' => 'Kunci Terbuka',
-            'heroicon-o-key' => 'Kunci',
-            'heroicon-o-bell' => 'Lonceng',
-            'heroicon-o-book-open' => 'Buku Terbuka',
-            'heroicon-o-newspaper' => 'Koran',
-            'heroicon-o-document' => 'Dokumen',
-            'heroicon-o-folder' => 'Folder',
-            'heroicon-o-clipboard' => 'Clipboard',
-            'heroicon-o-calendar' => 'Kalender',
-            'heroicon-o-clock' => 'Jam',
-            'heroicon-o-beaker' => 'Gelas Kimia',
-            'heroicon-o-wrench-screwdriver' => 'Kunci dan Obeng',
-            'heroicon-o-cog-6-tooth' => 'Pengaturan',
-            'heroicon-o-shopping-bag' => 'Tas Belanja',
-            'heroicon-o-shopping-cart' => 'Keranjang Belanja',
-            'heroicon-o-gift' => 'Hadiah',
-            'heroicon-o-truck' => 'Truk',
-            'heroicon-o-map' => 'Peta',
-            'heroicon-o-map-pin' => 'Pin Peta',
-            'heroicon-o-globe-alt' => 'Bola Dunia',
-            'heroicon-o-flag' => 'Bendera',
-            'heroicon-o-camera' => 'Kamera',
-            'heroicon-o-video-camera' => 'Video Kamera',
-            'heroicon-o-musical-note' => 'Not Musik',
-            'heroicon-o-microphone' => 'Mikrofon',
-            'heroicon-o-phone' => 'Telepon',
-            'heroicon-o-envelope' => 'Amplop',
-            'heroicon-o-chat-bubble-left-right' => 'Chat',
-            'heroicon-o-inbox' => 'Inbox',
-            'heroicon-o-archive-box' => 'Kotak Arsip',
-            'heroicon-o-trash' => 'Tempat Sampah',
-            'heroicon-o-credit-card' => 'Kartu Kredit',
-            'heroicon-o-banknotes' => 'Uang Kertas',
-            'heroicon-o-cloud' => 'Awan',
-            'heroicon-o-arrow-path' => 'Panah Melingkar',
-            'heroicon-o-arrow-up-tray' => 'Unggah',
-            'heroicon-o-arrow-down-tray' => 'Unduh',
-            'heroicon-o-magnifying-glass' => 'Kaca Pembesar',
-            'heroicon-o-funnel' => 'Filter',
-            'heroicon-o-bars-3' => 'Menu',
-            'heroicon-o-squares-2x2' => 'Kotak',
-            'heroicon-o-squares-plus' => 'Tambah Kotak',
-            'heroicon-o-square-3-stack-3d' => 'Tumpukan 3D',
-            'heroicon-o-cube' => 'Kubus',
-            'heroicon-o-rectangle-stack' => 'Tumpukan',
-            'heroicon-o-window' => 'Jendela',
-            'heroicon-o-check' => 'Centang',
-            'heroicon-o-check-circle' => 'Centang Lingkaran',
-            'heroicon-o-x-mark' => 'Silang',
-            'heroicon-o-x-circle' => 'Silang Lingkaran',
-            'heroicon-o-exclamation-circle' => 'Seru Lingkaran',
-            'heroicon-o-exclamation-triangle' => 'Seru Segitiga',
-            'heroicon-o-information-circle' => 'Info Lingkaran',
-            'heroicon-o-question-mark-circle' => 'Tanya Lingkaran',
-            'heroicon-o-plus' => 'Plus',
-            'heroicon-o-minus' => 'Minus',
-            'heroicon-o-ellipsis-horizontal' => 'Titik Tiga',
-            'heroicon-o-no-symbol' => 'Dilarang',
-            'heroicon-o-hand-raised' => 'Tangan Terangkat',
-            'heroicon-o-shield-exclamation' => 'Peringatan',
-        ];
+        return IconService::getAllIcons();
     }
 
     public static function getIconOptions(): array
     {
-        return collect(static::getAvailableIcons())
+        return collect(IconService::getAllIcons())
             ->mapWithKeys(function ($label, $icon) {
-                return [$icon => '<div class="flex items-center gap-2">' .
-                        svg($icon, 'w-5 h-5')->toHtml() .
-                        '<span>' . $label . '</span>' .
-                        '</div>'];
+                $svgHtml = '';
+                try {
+                    $svgHtml = svg($icon, 'w-4 h-4')->toHtml();
+                } catch (\Exception $e) {
+                    $svgHtml = '';
+                }
+
+                return [$icon => '<div class="flex flex-col items-center justify-center p-0.5 border rounded hover:bg-primary-50 dark:hover:bg-primary-950 transition-all border-dashed dark:border-gray-700 w-full aspect-square" title="' . $label . '">' .
+                    $svgHtml .
+                    '<span class="sr-only">' . $label . '</span>' .
+                    '</div>'
+                ];
             })
             ->toArray();
     }

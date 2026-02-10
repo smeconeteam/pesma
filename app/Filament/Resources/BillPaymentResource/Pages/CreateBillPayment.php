@@ -787,6 +787,11 @@ class CreateBillPayment extends CreateRecord
         }
     }
 
+    protected function getCreatedNotification(): ?Notification
+    {
+        return null;
+    }
+
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
