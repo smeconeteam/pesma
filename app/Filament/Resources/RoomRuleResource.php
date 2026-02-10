@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
+use App\Services\IconService;
 
 class RoomRuleResource extends Resource
 {
@@ -97,7 +98,7 @@ class RoomRuleResource extends Resource
                                         return static::getIconOptions();
                                     }
                                     
-                                    $icons = static::getAvailableIcons();
+                                    $icons = IconService::getAllIcons();
                                     
                                     return collect($icons)
                                         ->filter(fn ($label, $icon) => 
@@ -105,18 +106,16 @@ class RoomRuleResource extends Resource
                                             stripos($icon, $search) !== false
                                         )
                                         ->mapWithKeys(fn ($label, $icon) => [
-                                            $icon => new \Illuminate\Support\HtmlString(
-                                                '<div class="flex flex-col items-center justify-center p-0.5 border rounded hover:bg-primary-50 dark:hover:bg-primary-950 transition-all border-dashed dark:border-gray-700 w-full aspect-square" title="' . $label . '">' .
+                                            $icon => '<div class="flex flex-col items-center justify-center p-0.5 border rounded hover:bg-primary-50 dark:hover:bg-primary-950 transition-all border-dashed dark:border-gray-700 w-full aspect-square" title="' . $label . '">' .
                                                 svg($icon, 'w-4 h-4')->toHtml() .
-                                                '<span class="text-[6px] font-medium text-center truncate w-full leading-none mt-0.5">' . $label . '</span>' .
+                                                '<span class="sr-only">' . $label . '</span>' .
                                                 '</div>'
-                                            )
                                         ])
                                         ->toArray();
                                 })
                                 ->getOptionLabelUsing(function ($value) {
                                     if (!$value) return null;
-                                    $label = static::getAvailableIcons()[$value] ?? $value;
+                                    $label = IconService::getAllIcons()[$value] ?? $value;
                                     $svgHtml = '';
                                     try {
                                         $svgHtml = svg($value, 'w-5 h-5')->toHtml();
@@ -207,7 +206,7 @@ class RoomRuleResource extends Resource
                                         TextEntry::make('icon')
                                             ->label('Icon')
                                             ->formatStateUsing(function ($state) {
-                                                $labels = static::getAvailableIcons();
+                                                $labels = IconService::getAllIcons();
                                                 $label = $labels[$state] ?? $state;
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<div class="flex items-center gap-2">' .
@@ -418,38 +417,12 @@ class RoomRuleResource extends Resource
     
     public static function getAvailableIcons(): array
     {
-        return [
-            'lucide-check-circle' => 'Selesai',
-            'lucide-alert-circle' => 'Penting',
-            'lucide-ban' => 'Dilarang',
-            'lucide-info' => 'Informasi',
-            'lucide-clock' => 'Waktu',
-            'lucide-calendar' => 'Jadwal',
-            'lucide-trash-2' => 'Kebersihan',
-            'lucide-lock' => 'Keamanan',
-            'lucide-shield-alert' => 'Privasi',
-            'lucide-zap' => 'Listrik',
-            'lucide-droplet' => 'Air',
-            'lucide-flame' => 'Api',
-            'lucide-wifi' => 'WiFi',
-            'lucide-tv' => 'TV',
-            'lucide-volume-2' => 'Suara',
-            'lucide-users' => 'Tamu',
-            'lucide-door-closed' => 'Paling',
-            'lucide-bed' => 'Tidur',
-            'lucide-utensils' => 'Makan',
-            'lucide-shirt' => 'Pakaian',
-            'lucide-cigarette-off' => 'Tanpa Asap',
-            'lucide-dog' => 'Hewan',
-            'lucide-wrench' => 'Alat',
-            'lucide-phone' => 'Darurat',
-            'lucide-map-pin' => 'Lokasi',
-        ];
+        return IconService::getAllIcons();
     }
 
     public static function getIconOptions(): array
     {
-        return collect(static::getAvailableIcons())
+        return collect(IconService::getAllIcons())
             ->mapWithKeys(function ($label, $icon) {
                 $svgHtml = '';
                 try {
@@ -458,12 +431,11 @@ class RoomRuleResource extends Resource
                     $svgHtml = '';
                 }
 
-                return [$icon => new \Illuminate\Support\HtmlString(
-                    '<div class="flex flex-col items-center justify-center p-0.5 border rounded hover:bg-primary-50 dark:hover:bg-primary-950 transition-all border-dashed dark:border-gray-700 w-full aspect-square" title="' . $label . '">' .
+                return [$icon => '<div class="flex flex-col items-center justify-center p-0.5 border rounded hover:bg-primary-50 dark:hover:bg-primary-950 transition-all border-dashed dark:border-gray-700 w-full aspect-square" title="' . $label . '">' .
                     $svgHtml .
-                    '<span class="text-[6px] font-medium text-center truncate w-full leading-none mt-0.5">' . $label . '</span>' .
+                    '<span class="sr-only">' . $label . '</span>' .
                     '</div>'
-                )];
+                ];
             })
             ->toArray();
     }

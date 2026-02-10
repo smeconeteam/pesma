@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
+use App\Services\IconService;
 
 class FacilityResource extends Resource
 {
@@ -86,29 +87,33 @@ class FacilityResource extends Resource
                         Forms\Components\Group::make([
                             Forms\Components\Select::make('icon')
                                 ->label('Ikon')
-                                ->options(function () {
-                                    return collect(static::getAvailableIcons())->map(function ($label, $icon) {
-                                        try {
-                                            return '<div class="flex flex-col items-center justify-center p-1" title="' . $label . '">' .
-                                                svg($icon, 'w-6 h-6')->toHtml() .
-                                                '<span class="sr-only">' . $label . '</span>' . // Hidden but searchable
-                                                '</div>';
-                                        } catch (\Exception $e) {
-                                            return $label;
-                                        }
-                                    })->toArray();
-                                })
                                 ->searchable()
                                 ->allowHtml()
                                 ->required()
                                 ->native(false)
                                 ->live()
                                 ->columnSpan(1)
+                                ->options(static::getIconOptions())
+                                ->getSearchResultsUsing(function (string $search) {
+                                    $icons = IconService::getAllIcons();
+                                    return collect($icons)
+                                        ->filter(fn ($label, $icon) => 
+                                            stripos($label, $search) !== false || 
+                                            stripos($icon, $search) !== false
+                                        )
+                                        ->mapWithKeys(fn ($label, $icon) => [
+                                            $icon => '<div class="flex flex-col items-center justify-center p-0.5 border rounded hover:bg-primary-50 dark:hover:bg-primary-950 transition-all border-dashed dark:border-gray-700 w-full aspect-square" title="' . $label . '">' .
+                                                svg($icon, 'w-4 h-4')->toHtml() .
+                                                '<span class="sr-only">' . $label . '</span>' .
+                                                '</div>'
+                                        ])
+                                        ->toArray();
+                                })
                                 ->getOptionLabelUsing(fn ($value) => 
                                     new \Illuminate\Support\HtmlString(
                                         '<div class="flex items-center gap-2 text-sm">' .
                                         ($value ? svg($value, 'w-5 h-5')->toHtml() : '') .
-                                        '<span>' . (static::getAvailableIcons()[$value] ?? $value) . '</span>' .
+                                        '<span>' . (IconService::getAllIcons()[$value] ?? $value) . '</span>' .
                                         '</div>'
                                     )
                                 )
@@ -270,7 +275,7 @@ class FacilityResource extends Resource
                                         TextEntry::make('icon')
                                             ->label('Icon')
                                             ->formatStateUsing(function ($state) {
-                                                $labels = static::getAvailableIcons();
+                                                $labels = IconService::getAllIcons();
                                                 $label = $labels[$state] ?? $state;
                                                 
                                                 $svgHtml = '';
@@ -490,85 +495,12 @@ class FacilityResource extends Resource
     }
     public static function getAvailableIcons(): array
     {
-        return [
-            'lucide-house' => 'Rumah',
-            'lucide-building' => 'Gedung',
-            'lucide-library' => 'Perpustakaan',
-            'lucide-graduation-cap' => 'Akademik',
-            'lucide-users' => 'Penghuni',
-            'lucide-wifi' => 'WiFi',
-            'lucide-tv' => 'TV',
-            'lucide-computer' => 'Komputer',
-            'lucide-smartphone' => 'HP',
-            'lucide-printer' => 'Printer',
-            'lucide-lightbulb' => 'Lampu',
-            'lucide-flame' => 'Api',
-            'lucide-zap' => 'Petir',
-            'lucide-sun' => 'Matahari',
-            'lucide-moon' => 'Bulan',
-            'lucide-sparkles' => 'Fasilitas',
-            'lucide-star' => 'Bintang',
-            'lucide-heart' => 'Hati',
-            'lucide-shield-check' => 'Aman',
-            'lucide-lock' => 'Terkunci',
-            'lucide-key' => 'Kunci',
-            'lucide-bell' => 'Lonceng',
-            'lucide-book-open' => 'Buku',
-            'lucide-calendar' => 'Kalender',
-            'lucide-clock' => 'Jam',
-            'lucide-flask-conical' => 'Lab',
-            'lucide-wrench' => 'Alat',
-            'lucide-settings' => 'Seting',
-            'lucide-shopping-bag' => 'Belanja',
-            'lucide-gift' => 'Hadiah',
-            'lucide-map-pin' => 'Lokasi',
-            'lucide-globe' => 'Dunia',
-            'lucide-camera' => 'Kamera',
-            'lucide-video' => 'CCTV',
-            'lucide-music' => 'Musik',
-            'lucide-mic' => 'Mic',
-            'lucide-phone' => 'Telepon',
-            'lucide-mail' => 'Email',
-            'lucide-message-square' => 'Chat',
-            'lucide-trash-2' => 'Sampah',
-            'lucide-credit-card' => 'Kartu',
-            'lucide-banknote' => 'Uang',
-            'lucide-cloud' => 'Cloud',
-            'lucide-search' => 'Cari',
-            'lucide-layout-grid' => 'Grid',
-            'lucide-box' => 'Box',
-            'lucide-check-circle' => 'Ok',
-            'lucide-info' => 'Info',
-            'lucide-help-circle' => 'Tanya',
-            'lucide-lamp' => 'Lampu Belajar',
-            'lucide-fan' => 'Kipas',
-            'lucide-snowflake' => 'AC',
-            'lucide-container' => 'Lemari',
-            'lucide-bed' => 'Kasur',
-            'lucide-shirt' => 'Pakaian',
-            'lucide-utensils' => 'Dapur',
-            'lucide-coffee' => 'Kopi',
-            'lucide-parking-circle' => 'Parkir',
-            'lucide-bike' => 'Sepeda',
-            'lucide-car' => 'Mobil',
-            'lucide-bus' => 'Transport',
-            'lucide-trees' => 'Taman',
-            'lucide-shower-head' => 'Shower',
-            'lucide-bath' => 'Bak Mandi',
-            'lucide-waves' => 'Air',
-            'lucide-droplets' => 'Cairan',
-            'lucide-washing-machine' => 'Cuci',
-            'lucide-plug' => 'Listrik',
-            'lucide-shovel' => 'Kebun',
-            'lucide-sofa' => 'Sofa',
-            'lucide-table' => 'Meja',
-            'lucide-armchair' => 'Kursi',
-        ];
+        return IconService::getAllIcons();
     }
 
     public static function getIconOptions(): array
     {
-        return collect(static::getAvailableIcons())
+        return collect(IconService::getAllIcons())
             ->mapWithKeys(function ($label, $icon) {
                 try {
                     $svg = svg($icon, 'w-4 h-4')->toHtml();
@@ -576,12 +508,11 @@ class FacilityResource extends Resource
                     $svg = '';
                 }
 
-                return [$icon => new \Illuminate\Support\HtmlString(
-                    '<div class="flex flex-col items-center justify-center p-0.5 border rounded hover:bg-primary-50 dark:hover:bg-primary-950 transition-all border-dashed dark:border-gray-700 w-full aspect-square" title="' . $label . '">' .
+                return [$icon => '<div class="flex flex-col items-center justify-center p-0.5 border rounded hover:bg-primary-50 dark:hover:bg-primary-950 transition-all border-dashed dark:border-gray-700 w-full aspect-square" title="' . $label . '">' .
                     $svg .
-                    '<span class="text-[6px] font-medium text-center truncate w-full leading-none mt-0.5">' . $label . '</span>' .
+                    '<span class="sr-only">' . $label . '</span>' .
                     '</div>'
-                )];
+                ];
             })
             ->toArray();
     }

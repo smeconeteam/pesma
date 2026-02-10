@@ -31,6 +31,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use App\Services\IconService;
 
 class RoomResource extends Resource
 {
@@ -504,11 +505,7 @@ class RoomResource extends Resource
                                                 ->searchable()
                                                 ->extraAttributes(['class' => 'icon-grid-selector'])
                                                 ->getSearchResultsUsing(function (string $search) {
-                                                    if (empty($search)) {
-                                                        return static::getIconOptions();
-                                                    }
-                                                    
-                                                    $icons = static::getAvailableIcons();
+                                                    $icons = IconService::getAllIcons();
                                                     
                                                     return collect($icons)
                                                         ->filter(fn ($label, $icon) => 
@@ -516,18 +513,16 @@ class RoomResource extends Resource
                                                             stripos($icon, $search) !== false
                                                         )
                                                         ->mapWithKeys(fn ($label, $icon) => [
-                                                            $icon => new \Illuminate\Support\HtmlString(
-                                                                '<div class="flex flex-col items-center justify-center p-0.5 border rounded hover:bg-primary-50 dark:hover:bg-primary-950 transition-all border-dashed dark:border-gray-700 w-full aspect-square" title="' . $label . '">' .
+                                                            $icon => '<div class="flex flex-col items-center justify-center p-0.5 border rounded hover:bg-primary-50 dark:hover:bg-primary-950 transition-all border-dashed dark:border-gray-700 w-full aspect-square" title="' . $label . '">' .
                                                                 svg($icon, 'w-4 h-4')->toHtml() .
-                                                                '<span class="text-[6px] font-medium text-center truncate w-full leading-none mt-0.5">' . $label . '</span>' .
+                                                                '<span class="sr-only">' . $label . '</span>' .
                                                                 '</div>'
-                                                            )
                                                         ])
                                                         ->toArray();
                                                 })
                                                 ->getOptionLabelUsing(function ($value) {
                                                     if (!$value) return null;
-                                                    $label = static::getAvailableIcons()[$value] ?? $value;
+                                                    $label = IconService::getAllIcons()[$value] ?? $value;
                                                     $svgHtml = '';
                                                     try {
                                                         $svgHtml = svg($value, 'w-5 h-5')->toHtml();
@@ -569,11 +564,7 @@ class RoomResource extends Resource
                                             ->allowHtml()
                                             ->searchable()
                                             ->getSearchResultsUsing(function (string $search) {
-                                                if (empty($search)) {
-                                                    return static::getIconOptions();
-                                                }
-                                                
-                                                $icons = static::getAvailableIcons();
+                                                $icons = IconService::getAllIcons();
                                                 
                                                 return collect($icons)
                                                     ->filter(fn ($label, $icon) => 
@@ -590,7 +581,7 @@ class RoomResource extends Resource
                                             })
                                             ->getOptionLabelUsing(function ($value) {
                                                 if (!$value) return null;
-                                                $label = static::getAvailableIcons()[$value] ?? $value;
+                                                $label = IconService::getAllIcons()[$value] ?? $value;
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<div class="flex items-center gap-2">' .
                                                     svg($value, 'w-5 h-5')->toHtml() .
@@ -626,11 +617,7 @@ class RoomResource extends Resource
                                             ->allowHtml()
                                             ->searchable()
                                             ->getSearchResultsUsing(function (string $search) {
-                                                if (empty($search)) {
-                                                    return static::getIconOptions();
-                                                }
-                                                
-                                                $icons = static::getAvailableIcons();
+                                                $icons = IconService::getAllIcons();
                                                 
                                                 return collect($icons)
                                                     ->filter(fn ($label, $icon) => 
@@ -647,7 +634,7 @@ class RoomResource extends Resource
                                             })
                                             ->getOptionLabelUsing(function ($value) {
                                                 if (!$value) return null;
-                                                $label = static::getAvailableIcons()[$value] ?? $value;
+                                                $label = IconService::getAllIcons()[$value] ?? $value;
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<div class="flex items-center gap-2">' .
                                                     svg($value, 'w-5 h-5')->toHtml() .
@@ -683,11 +670,7 @@ class RoomResource extends Resource
                                             ->allowHtml()
                                             ->searchable()
                                             ->getSearchResultsUsing(function (string $search) {
-                                                if (empty($search)) {
-                                                    return static::getIconOptions();
-                                                }
-                                                
-                                                $icons = static::getAvailableIcons();
+                                                $icons = IconService::getAllIcons();
                                                 
                                                 return collect($icons)
                                                     ->filter(fn ($label, $icon) => 
@@ -704,7 +687,7 @@ class RoomResource extends Resource
                                             })
                                             ->getOptionLabelUsing(function ($value) {
                                                 if (!$value) return null;
-                                                $label = static::getAvailableIcons()[$value] ?? $value;
+                                                $label = IconService::getAllIcons()[$value] ?? $value;
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<div class="flex items-center gap-2">' .
                                                     svg($value, 'w-5 h-5')->toHtml() .
@@ -740,11 +723,7 @@ class RoomResource extends Resource
                                             ->allowHtml()
                                             ->searchable()
                                             ->getSearchResultsUsing(function (string $search) {
-                                                if (empty($search)) {
-                                                    return static::getIconOptions();
-                                                }
-                                                
-                                                $icons = static::getAvailableIcons();
+                                                $icons = IconService::getAllIcons();
                                                 
                                                 return collect($icons)
                                                     ->filter(fn ($label, $icon) => 
@@ -761,7 +740,7 @@ class RoomResource extends Resource
                                             })
                                             ->getOptionLabelUsing(function ($value) {
                                                 if (!$value) return null;
-                                                $label = static::getAvailableIcons()[$value] ?? $value;
+                                                $label = IconService::getAllIcons()[$value] ?? $value;
                                                 return new \Illuminate\Support\HtmlString(
                                                     '<div class="flex items-center gap-2">' .
                                                     svg($value, 'w-5 h-5')->toHtml() .
@@ -1636,38 +1615,12 @@ class RoomResource extends Resource
 
     public static function getAvailableIcons(): array
     {
-        return [
-            'lucide-home' => 'Kamar',
-            'lucide-bed' => 'Tempat Tidur',
-            'lucide-armchair' => 'Kursi',
-            'lucide-table' => 'Meja',
-            'lucide-lamp' => 'Lampu',
-            'lucide-fan' => 'Kipas',
-            'lucide-snowflake' => 'AC',
-            'lucide-wifi' => 'WiFi',
-            'lucide-tv' => 'TV',
-            'lucide-utensils' => 'Dapur',
-            'lucide-shower-head' => 'Shower',
-            'lucide-bath' => 'Bak Mandi',
-            'lucide-parking-circle' => 'Parkir',
-            'lucide-bike' => 'Sepeda',
-            'lucide-car' => 'Mobil',
-            'lucide-trees' => 'Taman',
-            'lucide-shield-check' => 'Aman',
-            'lucide-lock' => 'Kunci',
-            'lucide-bell' => 'Lonceng',
-            'lucide-book-open' => 'Buku',
-            'lucide-plug' => 'Listrik',
-            'lucide-washing-machine' => 'Cuci',
-            'lucide-trash-2' => 'Sampah',
-            'lucide-camera' => 'Kamera',
-            'lucide-video' => 'CCTV',
-        ];
+        return IconService::getAllIcons();
     }
 
     public static function getIconOptions(): array
     {
-        return collect(static::getAvailableIcons())
+        return collect(IconService::getAllIcons())
             ->mapWithKeys(function ($label, $icon) {
                 $svgHtml = '';
                 try {
@@ -1676,12 +1629,11 @@ class RoomResource extends Resource
                     $svgHtml = '';
                 }
 
-                return [$icon => new \Illuminate\Support\HtmlString(
-                    '<div class="flex flex-col items-center justify-center p-0.5 border rounded hover:bg-primary-50 dark:hover:bg-primary-950 transition-all border-dashed dark:border-gray-700 w-full aspect-square" title="' . $label . '">' .
+                return [$icon => '<div class="flex flex-col items-center justify-center p-0.5 border rounded hover:bg-primary-50 dark:hover:bg-primary-950 transition-all border-dashed dark:border-gray-700 w-full aspect-square" title="' . $label . '">' .
                     $svgHtml .
-                    '<span class="text-[6px] font-medium text-center truncate w-full leading-none mt-0.5">' . $label . '</span>' .
+                    '<span class="sr-only">' . $label . '</span>' .
                     '</div>'
-                )];
+                ];
             })
             ->toArray();
     }
