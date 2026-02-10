@@ -204,4 +204,17 @@ class LandingController extends Controller
 
         return view('rooms.show', compact('institution', 'room', 'similarRooms'));
     }
+
+    /**
+     * Show about page
+     */
+    public function about()
+    {
+        // Cache institution data
+        $institution = cache()->remember('institution_data', 3600, function () {
+            return Institution::first();
+        });
+        
+        return view('about', compact('institution'));
+    }
 }

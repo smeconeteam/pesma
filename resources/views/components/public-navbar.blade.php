@@ -9,6 +9,7 @@
         <div class="nav-links">
             <a href="{{ route('home') }}" class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}">Beranda</a>
             <a href="{{ route('rooms.available') }}" class="nav-link {{ request()->routeIs('rooms.available') || request()->routeIs('rooms.show') ? 'active' : '' }}">Kamar Tersedia</a>
+            <a href="{{ route('about') }}" class="nav-link {{ request()->routeIs('about') ? 'active' : '' }}">Tentang Kami</a>
             @auth
                 @php
                     $isAdmin = auth()->user()->hasAnyRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']);

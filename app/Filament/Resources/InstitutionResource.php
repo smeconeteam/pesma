@@ -72,6 +72,38 @@ class InstitutionResource extends Resource
                     ])
                     ->columns(2),
 
+                Forms\Components\Section::make('Tentang Kami')
+                    ->icon('heroicon-o-information-circle')
+                    ->description('Konten ini akan ditampilkan di halaman "Tentang Kami" pada website publik.')
+                    ->schema([
+                        Forms\Components\RichEditor::make('about_content')
+                            ->label('Konten Tentang Asrama')
+                            ->helperText('Gunakan editor di bawah untuk menulis informasi lengkap tentang asrama. Gunakan toolbar untuk formatting.')
+                            ->toolbarButtons([
+                                'bold',
+                                'italic',
+                                'underline',
+                                'strike',
+                                'link',
+                                'heading',
+                                'h2',
+                                'h3',
+                                'bulletList',
+                                'orderedList',
+                                'blockquote',
+                                'codeBlock',
+                                'undo',
+                                'redo',
+                            ])
+                            ->disableAllToolbarButtons(false)
+                            ->fileAttachmentsDisk('public')
+                            ->fileAttachmentsDirectory('institutions/about')
+                            ->fileAttachmentsVisibility('public')
+                            ->columnSpanFull()
+                            ->nullable()
+                            ->placeholder('Klik di sini untuk mulai menulis tentang asrama...'),
+                    ]),
+
                 Forms\Components\Section::make('Logo')
                     ->schema([
                         Forms\Components\FileUpload::make('logo_path')
