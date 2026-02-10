@@ -55,7 +55,7 @@ class ViewTransaction extends ViewRecord
                             ->badge()
                             ->formatStateUsing(fn (string $state): string => match ($state) {
                                 'cash' => 'Tunai',
-                                'credit' => 'Kredit',
+                                'credit' => 'Transfer',
                             }),
 
                         Infolists\Components\TextEntry::make('transaction_date')

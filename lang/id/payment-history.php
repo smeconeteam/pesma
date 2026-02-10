@@ -54,4 +54,29 @@ return [
     'payment_details' => 'Detail Pembayaran',
     'close' => 'Tutup',
     'view_proof' => 'Lihat Bukti',
+    'print_receipt' => 'Cetak Nota',
+    
+    // Statistics Descriptions
+    'all_payments_desc' => 'Semua pembayaran',
+    'verified_desc' => 'Sudah diverifikasi',
+    'pending_desc' => 'Menunggu verifikasi',
+    'rejected_desc' => 'Pembayaran ditolak',
+    
+    // Actions
+    'actions' => 'Aksi',
+    'view_detail' => 'Lihat Detail',
+    'detail' => 'Detail',
+    'receipt' => 'Nota',
+    
+    // Modal Labels
+    'bill_no_label' => 'No. Tagihan',
+    'billing_type_label' => 'Jenis Tagihan',
+    'notes_label' => 'Catatan',
+    'rejection_reason_label' => 'Alasan Penolakan',
+    'proof_of_payment' => 'Bukti Pembayaran',
+    
+    // Payment Method Names
+    'method_cash' => 'Tunai',
+    'method_transfer' => 'Transfer Bank',
+    'method_qris' => 'QRIS',
 ];

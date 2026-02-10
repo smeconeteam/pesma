@@ -44,6 +44,7 @@ class StoreRegistrationRequest extends FormRequest
             'phone_number' => 'required|string|max:255',
             'guardian_name' => 'nullable|string|max:255',
             'guardian_phone_number' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:500',
 
             // Preferensi (sekarang optional)
             'preferred_dorm_id' => 'nullable|exists:dorms,id',
@@ -80,6 +81,7 @@ class StoreRegistrationRequest extends FormRequest
             'phone_number' => 'No. HP',
             'guardian_name' => 'Nama Wali',
             'guardian_phone_number' => 'No. HP Wali',
+            'address' => 'Alamat',
             'preferred_dorm_id' => 'Cabang',
             'preferred_room_type_id' => 'Tipe Kamar',
             'planned_check_in_date' => 'Rencana Tanggal Masuk',

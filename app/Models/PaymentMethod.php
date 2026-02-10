@@ -30,4 +30,17 @@ class PaymentMethod extends Model
     {
         return $this->hasMany(BillPayment::class);
     }
+
+    /**
+     * Get the formatted name of the payment method
+     */
+    public function getNameAttribute(): string
+    {
+        return match ($this->kind) {
+            'qris' => 'QRIS',
+            'transfer' => 'Transfer',
+            'cash' => 'Cash',
+            default => ucfirst($this->kind ?? '-'),
+        };
+    }
 }

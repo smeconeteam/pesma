@@ -53,6 +53,12 @@ return [
     'email_address' => 'Alamat Email',
     'phone_number' => 'No. HP',
     'phone_placeholder' => '08xxxxxxxxxx',
+    'address' => 'Alamat',
+    'address_placeholder' => 'Alamat lengkap domisili saat ini',
+    'school' => 'Sekolah / Universitas',
+    'school_placeholder' => 'Nama Sekolah / Universitas',
+    'student_id_label' => 'NIM / NIS',
+    'student_id_placeholder' => 'Nomor Induk Mahasiswa / Siswa',
     
     // Email Verification
     'email_unverified' => 'Alamat email Anda belum terverifikasi.',

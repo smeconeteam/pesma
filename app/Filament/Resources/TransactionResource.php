@@ -17,12 +17,12 @@ use Illuminate\Support\Facades\Auth;
 class TransactionResource extends Resource
 {
     protected static ?string $model = Transaction::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-banknotes';
-    protected static ?string $navigationLabel = 'Arus Kas';
+    protected static ?string $slug = 'kas';
+    protected static ?string $navigationGroup = 'Keuangan';
+    protected static ?string $navigationLabel = 'Kas';
     protected static ?string $modelLabel = 'Transaksi';
-    protected static ?string $pluralModelLabel = 'Arus Kas';
-    protected static ?int $navigationSort = 5;
+    protected static ?string $pluralModelLabel = 'Kas';
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
@@ -58,7 +58,7 @@ class TransactionResource extends Resource
                             ->label('Metode Pembayaran')
                             ->options([
                                 'cash' => 'Tunai',
-                                'credit' => 'Kredit',
+                                'credit' => 'Transfer',
                             ])
                             ->required()
                             ->native(false)
@@ -134,7 +134,7 @@ class TransactionResource extends Resource
                     ->color('gray')
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'cash' => 'Tunai',
-                        'credit' => 'Kredit',
+                        'credit' => 'Transfer',
                     }),
 
                 Tables\Columns\TextColumn::make('income_amount')
@@ -194,7 +194,7 @@ class TransactionResource extends Resource
                     ->label('Metode Pembayaran')
                     ->options([
                         'cash' => 'Tunai',
-                        'credit' => 'Kredit',
+                        'credit' => 'Transfer',
                     ])
                     ->native(false),
 

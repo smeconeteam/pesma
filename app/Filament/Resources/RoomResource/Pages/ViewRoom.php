@@ -60,6 +60,16 @@ class ViewRoom extends ViewRecord
                         TextEntry::make('monthly_rate')
                             ->label('Tarif Bulanan')
                             ->money('IDR', true),
+                        
+                        TextEntry::make('width')
+                            ->label('Lebar Kamar')
+                            ->suffix(' m')
+                            ->placeholder('-'),
+
+                        TextEntry::make('length')
+                            ->label('Panjang Kamar')
+                            ->suffix(' m')
+                            ->placeholder('-'),
 
                         TextEntry::make('width')
                             ->label('Lebar Kamar')

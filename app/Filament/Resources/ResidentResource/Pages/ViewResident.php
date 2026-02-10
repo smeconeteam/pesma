@@ -111,6 +111,10 @@ class ViewResident extends ViewRecord
                     TextEntry::make('residentProfile.phone_number')->label('No. HP')->placeholder('-'),
                     TextEntry::make('residentProfile.guardian_name')->label('Nama Wali')->placeholder('-'),
                     TextEntry::make('residentProfile.guardian_phone_number')->label('No. HP Wali')->placeholder('-'),
+                    TextEntry::make('residentProfile.address')
+                        ->label('Alamat')
+                        ->placeholder('-')
+                        ->columnSpanFull(),
                 ]),
 
             InfoSection::make('Kamar Saat Ini')

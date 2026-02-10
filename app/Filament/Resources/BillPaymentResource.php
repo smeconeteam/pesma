@@ -4,10 +4,11 @@ namespace App\Filament\Resources;
 
 use App\Models\Bill;
 use Filament\Tables;
-use App\Models\BillPayment;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
+use App\Models\BillPayment;
 use Filament\Resources\Resource;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\BillPaymentResource\Pages;
 
@@ -19,7 +20,7 @@ class BillPaymentResource extends Resource
     protected static ?string $modelLabel = 'Pembayaran';
     protected static ?string $pluralModelLabel = 'Pembayaran';
     protected static ?string $navigationGroup = 'Keuangan';
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
     {
@@ -100,15 +101,6 @@ class BillPaymentResource extends Resource
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
-                Tables\Filters\SelectFilter::make('status')
-                    ->label('Status')
-                    ->options([
-                        'pending' => 'Menunggu Verifikasi',
-                        'verified' => 'Terverifikasi',
-                        'rejected' => 'Ditolak',
-                    ])
-                    ->multiple(),
-
                 Tables\Filters\SelectFilter::make('payment_method_id')
                     ->label('Metode Pembayaran')
                     ->relationship('paymentMethod', 'kind')
@@ -196,6 +188,46 @@ class BillPaymentResource extends Resource
                             ->body('Pembayaran telah ditolak.')
                             ->send();
                     }),
+
+                Tables\Actions\DeleteAction::make()
+                    ->label('Hapus')
+                    ->visible(fn() => auth()->user()->hasRole(['super_admin', 'main_admin', 'branch_admin']))
+                    ->requiresConfirmation()
+                    ->modalHeading('Hapus Pembayaran')
+                    ->modalDescription('Apakah Anda yakin ingin menghapus pembayaran ini? Jumlah yang sudah dibayar akan dikembalikan ke tagihan dan transaksi arus kas akan dihapus.')
+                    ->before(function (BillPayment $record) {
+                        // Kembalikan paid_amount ke bill jika payment sudah verified
+                        if ($record->status === 'verified') {
+                            DB::transaction(function () use ($record) {
+                                // Hapus transaction arus kas
+                                $record->deleteTransaction();
+
+                                // Kembalikan ke bill
+                                $bill = $record->bill;
+                                if ($bill) {
+                                    $bill->paid_amount = max(0, $bill->paid_amount - $record->amount);
+                                    $bill->remaining_amount = $bill->total_amount - $bill->paid_amount;
+
+                                    // Update status bill
+                                    if ($bill->remaining_amount >= $bill->total_amount) {
+                                        $bill->status = 'issued';
+                                    } elseif ($bill->remaining_amount > 0) {
+                                        $bill->status = 'partial';
+                                    } else {
+                                        $bill->status = 'paid';
+                                    }
+
+                                    $bill->save();
+                                }
+                            });
+                        }
+                    })
+                    ->successNotification(
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('Pembayaran Dihapus')
+                            ->body('Pembayaran berhasil dihapus, jumlah dikembalikan ke tagihan, dan transaksi arus kas dihapus.')
+                    ),
             ])
             ->bulkActions([
                 Tables\Actions\BulkAction::make('verify_bulk')

@@ -25,6 +25,7 @@ class ResidentProfile extends Model
         'phone_number',
         'guardian_name',
         'guardian_phone_number',
+        'address',
         'status',
         'check_in_date',
         'check_out_date',
