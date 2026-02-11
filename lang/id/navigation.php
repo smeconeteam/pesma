@@ -13,5 +13,10 @@ return [
     'register' => 'Daftar',
     'language' => 'Bahasa',
     'dark_mode' => 'Mode Gelap',
-    'settings' => 'Pengaturan',
+    'home' => 'Beranda',
+    'available_rooms' => 'Kamar Tersedia',
+    'about' => 'Tentang',
+    'contact' => 'Kontak',
+
+
 ];

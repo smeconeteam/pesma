@@ -22,8 +22,9 @@
     @endif
 
     <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -34,17 +35,13 @@
         <div>
             <a href="/" class="flex justify-center">
                 @if ($institution && $institution->logo_path)
-                    <img
-                        src="{{ Storage::url($institution->logo_path) }}"
-                        alt="{{ $institution->dormitory_name }}"
-                        class="h-20 w-20 object-contain"
-                    >
+                    <img src="{{ Storage::url($institution->logo_path) }}" alt="{{ $institution->dormitory_name }}" class="h-20 w-20 object-contain">
                 @else
                     <x-application-logo class="h-20 w-20 fill-current text-gray-500" />
                 @endif
             </a>
 
-            <h1 class="mt-2 text-3xl font-semibold tracking-tight text-gray-900 text-center">
+            <h1 class="mt-2 text-center text-3xl font-semibold tracking-tight text-gray-900">
                 {{ $institution->dormitory_name ?? config('app.name', 'Laravel') }}
             </h1>
         </div>

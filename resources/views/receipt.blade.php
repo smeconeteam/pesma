@@ -659,7 +659,7 @@
                     </div>
                     <div class="info-row">
                         <span class="info-label">Atas Nama</span>
-                        <span class="info-value">{{ $payment->bankAccount->account_name }}</span>
+                        <span class="info-value">{{ $payment->bankAccount->account_holder }}</span>
                     </div>
                     @endif
                     

@@ -14,6 +14,11 @@ class CreateRegistration extends CreateRecord
 {
     protected static string $resource = RegistrationResource::class;
 
+    protected function getCreatedNotification(): ?Notification
+    {
+        return null;
+    }
+
     protected function getRedirectUrl(): string
     {
         $user = auth()->user();

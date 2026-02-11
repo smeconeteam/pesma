@@ -330,31 +330,40 @@
                                 ${status.label}
                             </span>
                         </div>
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold ${statusColor}">
+                            ${payment.status === 'verified' ? 'Terverifikasi' : (payment.status === 'pending' ? 'Menunggu Verifikasi' : 'Ditolak')}
+                        </span>
                     </div>
                 
-                    <div class="space-y-4">
-                        <h5 class="font-bold text-gray-900 dark:text-gray-100 text-lg">{{ __('payment-history.payment_details') }}</h5>
-                        <div class="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-4 space-y-3 border border-gray-100 dark:border-gray-700">
-                            <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
-                                <span class="text-gray-700 dark:text-gray-300">{{ __('payment-history.payment_date') }}</span>
-                                <span class="font-bold text-gray-900 dark:text-gray-100">${formatDate(payment.payment_date)}</span>
-                            </div>
-                            <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
-                                <span class="text-gray-700 dark:text-gray-300">{{ __('payment-history.amount') }}</span>
-                                <span class="font-bold text-gray-900 dark:text-gray-100">${formatCurrency(payment.amount)}</span>
-                            </div>
-                            <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
-                                <span class="text-gray-700 dark:text-gray-300">{{ __('payment-history.payment_method') }}</span>
-                                <span class="font-bold text-gray-900 dark:text-gray-100">${getPaymentMethodLabel(payment.payment_method_kind)}</span>
-                            </div>
-                            <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
-                                <span class="text-gray-700 dark:text-gray-300">{{ __('payment-history.bill_no_label') }}</span>
-                                <span class="font-bold text-gray-900 dark:text-gray-100">${payment.bill?.bill_number || '-'}</span>
-                            </div>
-                            <div class="flex items-center justify-between py-2">
-                                <span class="text-gray-700 dark:text-gray-300">{{ __('payment-history.billing_type_label') }}</span>
-                                <span class="font-bold text-gray-900 dark:text-gray-100">${payment.bill?.billing_type_name || '-'}</span>
-                            </div>
+                <div class="space-y-4">
+                    <h5 class="font-bold text-gray-900 dark:text-gray-100 text-lg">{{ __('payment-history.payment_details') }}</h5>
+                    <div class="bg-gray-50 dark:bg-gray-700/30 rounded-xl p-4 space-y-3 border border-gray-100 dark:border-gray-700">
+                        <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
+                            <span class="text-gray-700 dark:text-gray-300">{{ __('payment-history.payment_date') }}</span>
+                            <span class="font-bold text-gray-900 dark:text-gray-100">${formatDate(payment.payment_date)}</span>
+                        </div>
+                        <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
+                            <span class="text-gray-700 dark:text-gray-300">{{ __('payment-history.amount') }}</span>
+                            <span class="font-bold text-gray-900 dark:text-gray-100">${formatCurrency(payment.amount)}</span>
+                        </div>
+                        <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
+                            <span class="text-gray-700 dark:text-gray-300">{{ __('payment-history.payment_method') }}</span>
+                            <span class="font-bold text-gray-900 dark:text-gray-100">${
+                                payment.payment_method ? 
+                                    (payment.payment_method.kind === 'qris' ? 'QRIS' : 
+                                    (payment.payment_method.kind === 'transfer' ? 'Transfer Bank' : 
+                                    (payment.payment_method.kind === 'cash' ? 'Tunai' : payment.payment_method.kind))) 
+                                : '-'
+                            }</span>
+                        </div>
+                        <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
+                            <span class="text-gray-700 dark:text-gray-300">{{ __('payment-history.payment_type') }}</span>
+                            <span class="font-bold text-gray-900 dark:text-gray-100">${payment.is_pic_payment ? 'PIC (Gabungan)' : 'Pribadi'}</span>
+                        </div>
+                        ${payment.verified_at ? `
+                        <div class="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-600">
+                            <span class="text-gray-700 dark:text-gray-300">{{ __('payment-history.verified_at') }}</span>
+                            <span class="font-bold text-gray-900 dark:text-gray-100">${formatDate(payment.verified_at)}</span>
                         </div>
                         
                         ${payment.notes ? `
@@ -413,6 +422,44 @@
                             {{ __('payment-history.close') }}
                         </button>
                     </div>
+                </div>
+                ` : ''}
+                
+                ${payment.rejection_reason ? `
+                <div class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded-lg p-4">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-red-600 dark:text-red-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                        </svg>
+                        <div class="flex-1">
+                            <h6 class="font-bold text-red-900 dark:text-red-200 mb-1">{{ __('payment-history.rejection_reason') }}</h6>
+                            <p class="text-sm text-red-800 dark:text-red-300">${payment.rejection_reason}</p>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+                
+                ${payment.proof_path ? `
+                <div class="space-y-2">
+                    <h6 class="font-bold text-gray-900 dark:text-gray-100">{{ __('payment-history.proof') }}</h6>
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                        <img src="${payment.proof_url}" alt="Bukti Pembayaran" class="w-full h-auto">
+                    </div>
+                </div>
+                ` : ''}
+                
+                <div class="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700 gap-3">
+                    ${payment.status === 'verified' ? `
+                    <a href="{{ url('/receipt') }}/${payment.id}" target="_blank" class="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg font-semibold transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2-4h6a2 2 0 002-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 002 2zm-6 9h6m-6 0a2 2 0 002 2h2a2 2 0 002-2m-6 0h6"></path>
+                        </svg>
+                        Download Nota
+                    </a>
+                    ` : ''}
+                    <button onclick="closePaymentModal()" class="px-6 py-2.5 bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors">
+                        {{ __('payment-history.close') }}
+                    </button>
                 </div>
             `;
 

@@ -1,634 +1,68 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $institution->dormitory_name ?? 'Asrama' }} - Temukan Kamar Impian Anda</title>
-    <meta name="description" content="Temukan berbagai kamar di {{ $institution->dormitory_name ?? 'Asrama' }} dengan fasilitas lengkap dan harga terjangkau.">
-    
-    <!-- Performance Optimization -->
-    <link rel="dns-prefetch" href="https://fonts.bunny.net">
-    <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
-    
-    <!-- Fonts with font-display swap for performance -->
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,800&display=swap" rel="stylesheet" />
-    
-    <script>
-        // Check for saved theme preference or default to light mode immediately to prevent flash
-        const theme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', theme);
-    </script>
-    <style>
-        :root {
-            /* Light Mode - Matching Tailwind Gray-50/White */
-            --bg-primary: #f9fafb; /* gray-50 */
-            --bg-secondary: #ffffff;
-            --text-primary: #111827; /* gray-900 */
-            --text-secondary: #6b7280; /* gray-500 */
-            --text-tertiary: #9ca3af; /* gray-400 */
-            --border-color: #e5e7eb; /* gray-200 */
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            --footer-bg: #111827; /* gray-900 */
-        }
-
-        [data-theme="dark"] {
-            /* Dark Mode - Matching Tailwind Gray-950/Gray-900 */
-            --bg-primary: #030712; /* gray-950 */
-            --bg-secondary: #111827; /* gray-900 */
-            --text-primary: #f3f4f6; /* gray-100 */
-            --text-secondary: #9ca3af; /* gray-400 */
-            --text-tertiary: #6b7280; /* gray-500 */
-            --border-color: #1f2937; /* gray-800 */
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-            --footer-bg: #030712; /* gray-950 */
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
-        }
-
-        body {
-            font-family: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            line-height: 1.6;
-            color: var(--text-primary);
-            background: var(--bg-primary);
-        }
-
-        /* Navbar */
-        .navbar {
-            background: var(--bg-secondary);
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-            border-bottom: 1px solid var(--border-color);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .navbar-container {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 16px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 24px;
-            font-weight: 700;
-            color: #10b981;
-            text-decoration: none;
-        }
-
-        .logo-img {
-            width: 40px;
-            height: 40px;
-            object-fit: contain;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 32px;
-            align-items: center;
-        }
-
-        .nav-links a {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.2s;
-        }
-
-        .nav-links a:not(.btn-primary):not(.btn-secondary):hover {
-            color: #10b981;
-        }
-
-        /* Dark Mode Toggle */
-        .dark-mode-toggle {
-            background: var(--bg-primary);
-            border: 2px solid var(--border-color);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .dark-mode-toggle:hover {
-            transform: scale(1.1);
-            border-color: #10b981;
-        }
-
-        .dark-mode-toggle svg {
-            width: 20px;
-            height: 20px;
-            fill: var(--text-primary);
-            transition: transform 0.3s ease;
-            display: block;
-        }
-
-        .dark-mode-toggle:hover svg {
-            transform: rotate(20deg);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            padding: 10px 24px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 500;
-            transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
-            border: none;
-            cursor: pointer;
-            display: inline-block;
-        }
-
-        .btn-primary:hover {
-            background: #059669; /* Emerald-600 */
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); /* Add glow effect */
-        }
-
-        /* Specific fix for Dark Mode consistency */
-        [data-theme="dark"] .btn-primary {
-            background: #34d399; /* Emerald-400 - even brighter for dark mode */
-            color: #022c22; /* Dark green text for contrast */
-            font-weight: 700; /* Bolder for visibility */
-        }
-        
-        [data-theme="dark"] .btn-primary:hover {
-            background: #10b981;
-            box-shadow: 0 4px 15px rgba(52, 211, 153, 0.4);
-        }
-
-        .btn-secondary {
-            background: var(--bg-secondary);
-            color: #1f2937; /* gray-800 - Request: Black text in light mode */
-            padding: 10px 24px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            border: 2px solid #10b981;
-            transition: all 0.2s;
-            display: inline-block;
-        }
-
-        .btn-secondary:hover {
-            background: #10b981;
-            color: white;
-        }
-
-        .btn-outline {
-            background: transparent;
-            color: #10b981; /* Default Emerald-500 */
-            padding: 12px 32px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            border: 2px solid #10b981;
-            transition: all 0.2s;
-            display: inline-block;
-            font-size: 16px;
-        }
-
-        .btn-outline:hover {
-            background: #10b981;
-            color: white;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
-        }
-
-        /* Fix for Dark Mode - Make Outline Button BRIGHTER */
-        [data-theme="dark"] .btn-outline {
-            color: #34d399; /* Emerald-400 (Brighter Green) */
-            border-color: #34d399;
-        }
-
-        [data-theme="dark"] .btn-outline:hover {
-            background: #34d399;
-            color: #022c22; /* Dark text on hover */
-            box-shadow: 0 4px 15px rgba(52, 211, 153, 0.3);
-        }
-
-        /* Hero Section */
-        .hero {
-            /* Removed background gradient to use theme background */
-            /* Removed color: white to use theme text color */
-            padding: 80px 24px;
-            text-align: center;
-        }
-
-        .hero-container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-
-        .hero h1 {
-            font-size: 48px;
-            font-weight: 800;
-            margin-bottom: 24px;
-            letter-spacing: -0.02em;
-            color: var(--text-primary); /* Changed from white to adaptive variable */
-        }
-
-        .hero p {
-            font-size: 18px;
-            color: var(--text-secondary); /* Changed from white opacity to adaptive variable */
-            margin-bottom: 40px;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .hero-buttons {
-            display: flex;
-            gap: 16px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        /* Stats Section */
-        .stats {
-            background: var(--bg-secondary);
-            padding: 48px 24px;
-            margin-top: -40px;
-            border-radius: 16px;
-            box-shadow: var(--shadow-md);
-            max-width: 1100px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 32px;
-            text-align: center;
-        }
-
-        .stat-item h3 {
-            font-size: 40px;
-            font-weight: 800;
-            color: #10b981;
-            margin-bottom: 8px;
-        }
-
-        .stat-item p {
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        /* Main Content */
-        .container {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 60px 24px;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 40px;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-
-        .section-title {
-            font-size: 32px;
-            font-weight: 800;
-            color: var(--text-primary);
-        }
-
-        .section-subtitle {
-            font-size: 18px;
-            color: var(--text-secondary);
-            margin-top: 8px;
-        }
-
-        /* Rooms Grid */
-        .rooms-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 24px;
-            margin-bottom: 40px;
-        }
-
-        .room-card {
-            background: var(--bg-secondary);
-            border-radius: 16px; /* sm:rounded-2xl */
-            overflow: hidden;
-            border: 1px solid var(--border-color); /* Added border like dashboard */
-            box-shadow: var(--shadow-lg); /* shadow-lg */
-            transition: all 0.2s ease;
-            text-decoration: none;
-            color: inherit;
-            display: block;
-        }
-
-        .room-card:hover {
-            transform: translateY(-2px);
-            border-color: #10b981; /* hover:border-green-500 approximation */
-        }
-
-        .room-image {
-            width: 100%;
-            height: 200px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 48px;
-            color: white;
-            font-weight: 800;
-            position: relative;
-        }
-
-        .room-badge {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: rgba(255,255,255,0.95);
-            color: #10b981;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 700;
-        }
-
-        .room-content {
-            padding: 24px;
-        }
-
-        .room-title {
-            font-size: 20px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            color: var(--text-primary);
-        }
-
-        .room-type {
-            font-size: 14px;
-            color: #10b981;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .room-location {
-            color: var(--text-secondary);
-            font-size: 14px;
-            margin-bottom: 16px;
-        }
-
-        .room-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-top: 16px;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .room-price {
-            font-size: 22px;
-            font-weight: 800;
-            color: #10b981;
-        }
-
-        .room-price small {
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-secondary);
-        }
-
-        .room-capacity {
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-
-        /* View All Button */
-        .view-all-wrapper {
-            text-align: center;
-            margin-top: 48px;
-        }
-
-        /* Footer */
-        .footer {
-            background: var(--footer-bg);
-            color: white;
-            padding: 48px 24px 24px;
-            margin-top: 80px;
-        }
-
-        .footer-container {
-            max-width: 1280px;
-            margin: 0 auto;
-        }
-
-        .footer-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 40px;
-            margin-bottom: 40px;
-        }
-
-        .footer-section h4 {
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 16px;
-        }
-
-        .footer-section p,
-        .footer-section a {
-            color: #94a3b8;
-            text-decoration: none;
-            display: block;
-            margin-bottom: 8px;
-            transition: color 0.2s;
-        }
-
-        .footer-section a:hover {
-            color: #10b981;
-        }
-
-        .footer-bottom {
-            text-align: center;
-            padding-top: 24px;
-            border-top: 1px solid #334155;
-            color: #94a3b8;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 32px;
-            }
-
-            .hero p {
-                font-size: 16px;
-            }
-
-            .nav-links {
-                display: none;
-            }
-
-            .section-title {
-                font-size: 24px;
-            }
-
-            .rooms-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-                gap: 24px;
-            }
-
-            .section-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-        }
-    </style>
-</head>
-<body>
-    <!-- Navbar -->
-    <x-public-navbar :institution="$institution" />
-
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="hero-container">
-            <h1>Temukan Kamar Impian Anda</h1>
-            <p>{{ $institution->dormitory_name ?? 'Asrama Modern' }} menyediakan berbagai pilihan kamar dengan fasilitas lengkap dan harga terjangkau</p>
-            <div class="hero-buttons">
-                <a href="#rooms" class="btn-primary" style="font-size: 18px; padding: 14px 32px;">Lihat Kamar</a>
-                <a href="{{ route('public.registration.create') }}" class="btn-outline" style="font-size: 18px; padding: 14px 32px; margin-left: 16px;">Daftar Sekarang</a>
+<x-public-layout>
+    <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <div class="flex flex-col items-center justify-center gap-4 text-center md:gap-6">
+            <h1 class="max-w-4xl text-3xl font-bold md:text-4xl lg:text-5xl dark:text-white">{{ __('public.landing-headline', ['name' => $institution->dormitory_name ?? config('app.name', 'Laravel')]) }}</h1>
+
+            <p class="text-base text-gray-600 dark:text-gray-300">{{ $institution->dormitory_name ?? __('public.modern_dormitory') }} {{ __('public.landing-description') }}</p>
+
+            <div class="mt-2 flex gap-2">
+                <a href="#rooms" class="rounded-md bg-gray-100 px-4 py-3 text-center text-sm font-medium text-green-600 ring-1 ring-inset ring-green-600 transition-colors hover:bg-green-600 hover:text-white dark:bg-gray-800 dark:text-green-400 dark:ring-green-500 dark:hover:bg-green-600 dark:hover:text-white">{{ __('public.view_rooms') }}</a>
+                <a href="{{ route('public.registration.create') }}" class="items-center rounded-md bg-green-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">{{ __('public.register_now') }}</a>
             </div>
         </div>
     </section>
 
     <!-- Stats Section -->
-    <div class="container" style="margin-top: -20px;">
-        <div class="stats">
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <h3>{{ $totalRooms-1 }}+</h3>
-                    <p>Kamar Tersedia</p>
-                </div>
-                <div class="stat-item">
-                    <h3>100%</h3>
-                    <p>Fasilitas Lengkap</p>
-                </div>
-                <div class="stat-item">
-                    <h3>24/7</h3>
-                    <p>Keamanan Terjaga</p>
-                </div>
+    <div class="mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="mx-auto flex max-w-3xl flex-col items-center justify-between gap-6 rounded-2xl bg-white px-12 py-6 text-center shadow-md md:flex-row dark:bg-gray-800 dark:shadow-gray-900/10">
+            <div class="flex flex-col gap-2">
+                <h3 class="text-4xl font-bold text-green-600 dark:text-green-400">{{ $totalRooms - 1 }}+</h3>
+                <p class="text-gray-600 dark:text-gray-300">{{ __('public.rooms_available') }}</p>
+            </div>
+            <div class="flex flex-col gap-2">
+                <h3 class="text-4xl font-bold text-green-600 dark:text-green-400">100%</h3>
+                <p class="text-gray-600 dark:text-gray-300">{{ __('public.full_facilities') }}</p>
+            </div>
+            <div class="flex flex-col gap-2">
+                <h3 class="text-4xl font-bold text-green-600 dark:text-green-400">24/7</h3>
+                <p class="text-gray-600 dark:text-gray-300">{{ __('public.security_guaranteed') }}</p>
             </div>
         </div>
     </div>
 
     <!-- Rooms Section -->
-    <div class="container" id="rooms">
-        <div class="section-header">
+    <div class="mx-auto mt-24 flex flex-col items-center justify-between gap-6 rounded-t-2xl bg-white px-4 py-6 sm:px-6 lg:px-8 dark:bg-gray-800 dark:shadow-gray-900/10" id="rooms">
+        <div class="flex w-full items-center justify-between border-b-2 border-gray-200 pb-4 dark:border-gray-700">
             <div>
-                <h2 class="section-title">Kamar yang Tersedia</h2>
-                <p class="section-subtitle">Pilih kamar terbaik untuk kenyamanan Anda</p>
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white">{{ __('public.available_rooms') }}</h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('public.choose_best_room') }}</p>
             </div>
-            @if($totalRooms > 6)
-                <a href="{{ route('rooms.available') }}" class="btn-outline">
-                    Lihat Semua ({{ $totalRooms }})
+            @if ($totalRooms > 6)
+                <a href="{{ route('rooms.available') }}" class="hidden items-center rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 md:inline-flex dark:bg-green-500 dark:hover:bg-green-600">
+                    {{ __('public.view_all') }} ({{ $totalRooms }})
                 </a>
             @endif
         </div>
 
-        @if($rooms->count() > 0)
-            <div class="rooms-grid">
-                @foreach($rooms as $room)
-                    <a href="{{ route('rooms.show', $room->id) }}" class="room-card">
-                        <div class="room-image" @if($room->thumbnail) style="background-image: url('{{ asset('storage/' . $room->thumbnail) }}'); background-size: cover; background-position: center;" @endif>
-                            @if(!$room->thumbnail)
-                                {{ $room->number }}
-                            @endif
-                            @if($room->is_active)
-                                <div class="room-badge">{{ $room->residentCategory->name ?? 'Asrama' }}</div>
-                            @endif
-                        </div>
-                        <div class="room-content">
-                            <div class="room-title">{{ $room->block->dorm->name }} Nomor {{ $room->number }} Tipe {{ $room->roomType->name }}</div>
-                            <div class="room-type">{{ $room->roomType->name }}</div>
-                            <div class="room-location">📍 Komplek {{ $room->block->name }}, Cabang {{ $room->block->dorm->name }}, {{ \Illuminate\Support\Str::words($room->block->dorm->address, 7, '...') }}</div>
-                            <div class="room-info">
-                                <div class="room-price">
-                                    Rp {{ number_format($room->monthly_rate ?? $room->roomType->default_monthly_rate, 0, ',', '.') }}
-                                    <small>/bulan</small>
-                                </div>
-                                <div class="room-capacity">
-                                    👥 {{ $room->capacity ?? $room->roomType->default_capacity }} orang
-                                </div>
-                            </div>
-                        </div>
-                    </a>
+        @if ($rooms->count() > 0)
+            <div class="grid w-full grid-cols-1 gap-6 pt-6 sm:grid-cols-2 lg:grid-cols-3">
+                @foreach ($rooms as $room)
+                    <x-room-card :room="$room" />
                 @endforeach
             </div>
 
-            @if($totalRooms > 6)
+            @if ($totalRooms > 6)
                 <div class="view-all-wrapper">
-                    <a href="{{ route('rooms.available') }}" class="btn-primary" style="font-size: 18px; padding: 14px 40px;">
-                        Lihat Semua Kamar ({{ $totalRooms }})
+                    <a href="{{ route('rooms.available') }}" class="inline-flex items-center rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 md:hidden dark:bg-green-500 dark:hover:bg-green-600">
+                        {{ __('public.view_all') }} ({{ $totalRooms }})
                     </a>
                 </div>
             @endif
         @else
             <div style="text-align: center; padding: 80px 20px;">
-                <p style="font-size: 20px; color: #64748b;">Belum ada kamar tersedia saat ini</p>
+                <p class="text-gray-500 dark:text-gray-400" style="font-size: 20px;">{{ __('public.no_rooms_available') }}</p>
             </div>
         @endif
     </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-container">
-            <div class="footer-grid">
-                <div class="footer-section">
-                    <h4>{{ $institution->dormitory_name ?? 'Asrama' }}</h4>
-                    <p>{{ $institution->institution_name ?? 'Institusi Pendidikan' }}</p>
-                    @if($institution)
-                        <p>{{ $institution->address }}</p>
-                        <p>{{ $institution->phone }}</p>
-                        <p>{{ $institution->email }}</p>
-                    @endif
-                </div>
-                <div class="footer-section">
-                    <h4>Tautan Cepat</h4>
-                    <a href="{{ route('rooms.available') }}">Kamar Tersedia</a>
-                    <a href="{{ route('public.registration.create') }}">Pendaftaran</a>
-                    <a href="{{ route('login') }}">Login</a>
-                </div>
-                <div class="footer-section">
-                    <h4>Informasi</h4>
-                    <a href="https://ppmelfira.com/" target="_blank">Tentang Kami</a>
-                    <a href="/kebijakan" target="_blank">Syarat & Ketentuan</a>
-                    <a href="#">Kontak</a>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; {{ date('Y') }} {{ $institution->dormitory_name ?? 'Asrama' }}. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
-
-</body>
-</html>
+</x-public-layout>

@@ -13,7 +13,12 @@ return [
     |
     */
 
-    'previous' => '&laquo; Previous',
-    'next' => 'Next &raquo;',
+    'previous' => '&laquo; Sebelumnya',
+    'next' => 'Selanjutnya &raquo;',
+    'showing' => 'Menampilkan',
+    'to' => 'sampai',
+    'of' => 'dari',
+    'results' => 'hasil',
+    'go_to_page' => 'Ke halaman :page',
 
 ];

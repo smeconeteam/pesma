@@ -13,5 +13,8 @@ return [
     'register' => 'Register',
     'language' => 'Language',
     'dark_mode' => 'Dark Mode',
-    'settings' => 'Settings',
+    'home' => 'Home',
+    'available_rooms' => 'Available Rooms',
+    'about' => 'About',
+    'contact' => 'Contact',
 ];

@@ -189,4 +189,9 @@ class EditRoom extends EditRecord
     {
         return $this->getResource()::getUrl('index');
     }
+
+    protected function getSavedNotification(): ?Notification
+    {
+        return null;
+    }
 }

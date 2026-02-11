@@ -19,6 +19,7 @@ class Institution extends Model
         'email',
         'website',
         'logo_path',
+        'about_content',
     ];
 
     protected static function boot()
