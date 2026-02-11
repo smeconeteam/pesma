@@ -36,11 +36,12 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
                 <a href="{{ route('about') }}" class="{{ request()->routeIs('about') ? 'border-green-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600' }} inline-flex items-center border-b-2 px-1 pt-1 transition-colors">
                     {{ __('navigation.about') }}
                 </a>
+                <a href="{{ route('about') }}" class="{{ request()->routeIs('about') ? 'border-green-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600' }} inline-flex items-center border-b-2 px-1 pt-1 transition-colors">
+                    {{ __('footer.about_us') }}
+                </a>
                 <a href="{{ route('contact') }}" class="{{ request()->routeIs('contact') ? 'border-green-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600' }} inline-flex items-center border-b-2 px-1 pt-1 transition-colors">
-                    Kontak
-                    <a href="{{ route('about') }}" class="{{ request()->routeIs('about') ? 'border-green-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600' }} inline-flex items-center border-b-2 px-1 pt-1 transition-colors">
-                        {{ __('footer.about_us') }}
-                    </a>
+                    {{ __('navigation.contact') }}
+                </a>
             </div>
 
             <!-- Desktop Right Side -->
@@ -129,11 +130,11 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
                             </a>
                         @endif
 
-                        <<<<<<< HEAD @if (Route::has('public.registration.create'))
+                        @if (Route::has('public.registration.create'))
                             <a href="{{ route('public.registration.create') }}" class="block w-full rounded-md bg-green-600 px-3 py-2 text-center text-base font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
                                 {{ __('navigation.register') }}
                             </a>
-                            @endif
+                        @endif
                     </div>
                 @endguest
             </div>
@@ -145,7 +146,7 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
                 </label>
                 <x-locale-switcher :short="false" select-class="w-full text-sm border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-green-500 focus:ring-green-500" />
             </div>
-            =======
+
             <!-- Language Switcher & Dark Mode Mobile -->
             <div class="mt-2 border-t border-gray-200 px-3 py-2 dark:border-gray-700">
                 <div class="flex items-center justify-between">

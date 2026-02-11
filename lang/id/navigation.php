@@ -16,4 +16,7 @@ return [
     'home' => 'Beranda',
     'available_rooms' => 'Kamar Tersedia',
     'about' => 'Tentang',
+    'contact' => 'Kontak',
+
+
 ];
