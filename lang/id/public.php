@@ -18,8 +18,12 @@ return [
     'complex' => 'Komplek',
     'branch' => 'Cabang',
     'per_month' => '/bulan',
+    'month' => 'bulan',
+    'price' => 'Harga',
     'person' => 'orang',
     'active' => 'Aktif',
+    'slots_available' => 'Tersedia: :count slot',
+    'resident' => 'Penghuni',
 
     // Rooms Index Page
     'home' => 'Beranda',

@@ -16,4 +16,5 @@ return [
     'home' => 'Home',
     'available_rooms' => 'Available Rooms',
     'about' => 'About',
+    'contact' => 'Contact',
 ];
