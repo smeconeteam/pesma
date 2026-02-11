@@ -18,8 +18,12 @@ return [
     'complex' => 'Complex',
     'branch' => 'Branch',
     'per_month' => '/month',
+    'month' => 'month',
+    'price' => 'Price',
     'person' => 'person',
     'active' => 'Active',
+    'slots_available' => 'Available: :count slots',
+    'resident' => 'Resident',
 
     // Rooms Index Page
     'home' => 'Home',

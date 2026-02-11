@@ -94,7 +94,7 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
                                 </svg>
-                                {{ $room->capacity ?? $room->roomType->default_capacity }} Penghuni
+                                {{ $room->capacity ?? $room->roomType->default_capacity }} {{ __('public.resident') }}
                             </li>
 
                             <li class="flex items-center gap-4 text-lg">
@@ -118,7 +118,7 @@
                     @if ($room->facilities->count() > 0)
                         @if ($room->roomFacilities->count() > 0)
                             <div class="">
-                                <h4 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">Fasilitas Kamar</h4>
+                                <h4 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">{{ __('public.room_facilities') }}</h4>
 
                                 <ul class="grid grid-cols-2 gap-2">
                                     @foreach ($room->roomFacilities as $facility)
@@ -139,7 +139,7 @@
 
                         @if ($room->generalFacilities->count() > 0)
                             <div class="">
-                                <h4 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">Fasilitas Umum</h4>
+                                <h4 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">{{ __('public.public_facilities') }}</h4>
 
                                 <ul class="grid grid-cols-2 gap-2">
                                     @foreach ($room->generalFacilities as $facility)
@@ -160,7 +160,7 @@
 
                         @if ($room->bathroomFacilities->count() > 0)
                             <div class="">
-                                <h4 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">Fasilitas Toilet</h4>
+                                <h4 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">{{ __('public.bathroom_facilities') }}</h4>
 
                                 <ul class="grid grid-cols-2 gap-2">
                                     @foreach ($room->bathroomFacilities as $facility)
@@ -181,7 +181,7 @@
 
                         @if ($room->parkingFacilities->count() > 0)
                             <div class="">
-                                <h4 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">Fasilitas Parkir</h4>
+                                <h4 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">{{ __('public.parking_facilities') }}</h4>
 
                                 <ul class="grid grid-cols-2 gap-2">
                                     @foreach ($room->parkingFacilities as $facility)
@@ -203,7 +203,7 @@
 
                     @if ($room->roomRules->count() > 0)
                         <div class="">
-                            <h4 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">Peraturan Kamar</h4>
+                            <h4 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">{{ __('public.room_rules') }}</h4>
 
                             <ul class="grid grid-cols-1 gap-2">
                                 @foreach ($room->roomRules as $rules)
@@ -224,7 +224,7 @@
             </div>
 
             <div class="shadow-t md:flex-1/3 md:top-18 fixed bottom-0 left-0 right-0 z-10 shrink-0 bg-white shadow-md md:sticky md:bottom-auto md:h-min md:w-auto md:rounded-xl dark:bg-gray-800 dark:shadow-gray-900/20">
-                <div class="text-md {{ $room->available_capacity < 3 ? 'bg-red-600' : 'bg-green-600' }} w-full px-4 py-2 font-medium text-white md:rounded-t-xl">Tersedia: {{ $room->available_capacity }} slot</div>
+                <div class="text-md {{ $room->available_capacity < 3 ? 'bg-red-600' : 'bg-green-600' }} w-full px-4 py-2 font-medium text-white md:rounded-t-xl">{{ __('public.slots_available', ['count' => $room->available_capacity]) }}</div>
                 <h3 class="mb-2 px-4 py-2 text-2xl font-semibold text-gray-900 md:text-3xl dark:text-white">Rp{{ number_format($room->monthly_rate ?? $room->roomType->default_monthly_rate, 0, ',', '.') }}<span class="text-xl font-normal text-gray-600 dark:text-gray-400">{{ __('public.per_month') }}</span></h3>
 
                 <div class="flex gap-4 px-4 pb-3 md:flex-col md:items-stretch md:pb-4">
@@ -247,7 +247,7 @@
         <!-- Similar Rooms -->
         @if ($similarRooms->count() > 0)
             <div class="mb-12 mt-16 px-4 sm:px-6 lg:px-8">
-                <h2 class="mb-6 text-2xl font-extrabold text-gray-900">{{ __('public.similar_rooms') }}</h2>
+                <h2 class="mb-6 text-2xl font-extrabold text-gray-900 dark:text-white">{{ __('public.similar_rooms') }}</h2>
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                     @foreach ($similarRooms as $similar)
                         <x-room-card :room="$similar" />
