@@ -15,5 +15,5 @@ return [
     'dark_mode' => 'Mode Gelap',
     'home' => 'Beranda',
     'available_rooms' => 'Kamar Tersedia',
-
+    'about' => 'Tentang',
 ];

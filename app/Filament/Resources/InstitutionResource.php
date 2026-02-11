@@ -2,12 +2,14 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\InstitutionResource\Pages;
-use App\Models\Institution;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables\Table;
+use App\Models\Institution;
+use Filament\Resources\Resource;
+use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Tabs\Tab;
+use App\Filament\Resources\InstitutionResource\Pages;
 
 class InstitutionResource extends Resource
 {
@@ -25,99 +27,136 @@ class InstitutionResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Informasi Lembaga')
-                    ->columns(2)
-                    ->schema([
-                        Forms\Components\TextInput::make('legal_number')
-                            ->label('Nomor Legalitas')
-                            ->maxLength(255)
-                            ->required()
-                            ->columnSpan(1),
+                Tabs::make('Tabs')
+                    ->tabs([
+                        Tab::make('Informasi Lembaga')
+                            ->schema([
+                                Forms\Components\Section::make('Informasi Dasar')
+                                    ->columns(2)
+                                    ->schema([
+                                        Forms\Components\TextInput::make('legal_number')
+                                            ->label('Nomor Legalitas')
+                                            ->maxLength(255)
+                                            ->required()
+                                            ->columnSpan(1),
 
-                        Forms\Components\TextInput::make('institution_name')
-                            ->label('Nama Lembaga')
-                            ->required()
-                            ->maxLength(255)
-                            ->columnSpan(1),
+                                        Forms\Components\TextInput::make('institution_name')
+                                            ->label('Nama Lembaga')
+                                            ->required()
+                                            ->maxLength(255)
+                                            ->columnSpan(1),
 
-                        Forms\Components\TextInput::make('dormitory_name')
-                            ->label('Nama Asrama')
-                            ->required()
-                            ->maxLength(255)
-                            ->columnSpan(1) ,
+                                        Forms\Components\TextInput::make('dormitory_name')
+                                            ->label('Nama Asrama')
+                                            ->required()
+                                            ->maxLength(255)
+                                            ->columnSpan(1),
 
-                        Forms\Components\Textarea::make('address')
-                            ->label('Alamat')
-                            ->rows(3)
-                            ->required()
-                            ->columnSpanFull(),
-                    ]),
+                                        Forms\Components\Textarea::make('address')
+                                            ->label('Alamat')
+                                            ->rows(3)
+                                            ->required()
+                                            ->columnSpanFull(),
+                                    ]),
 
-                Forms\Components\Section::make('Kontak')
-                    ->schema([
-                        Forms\Components\TextInput::make('phone')
-                            ->label('Nomor Telepon')
-                            ->tel()
-                            ->maxLength(20),
+                                Forms\Components\Section::make('Logo')
+                                    ->schema([
+                                        Forms\Components\FileUpload::make('logo_path')
+                                            ->label('Logo')
+                                            ->disk('public')
+                                            ->directory('institutions/logos')
+                                            ->visibility('public')
+                                            ->image()
+                                            ->imageEditor()
+                                            ->maxSize(2048)
+                                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg', 'image/webp'])
+                                            ->columnSpanFull()
+                                            ->storeFileNamesIn('logo_original_name'),
+                                    ])
+                            ]),
 
-                        Forms\Components\TextInput::make('email')
-                            ->label('Email')
-                            ->email()
-                            ->maxLength(255),
+                        Tab::make('Kontak')
+                            ->schema([
+                                Forms\Components\TextInput::make('phone')
+                                    ->label('Nomor Telepon')
+                                    ->tel()
+                                    ->maxLength(20),
 
-                        Forms\Components\TextInput::make('website')
-                            ->label('Website')
-                            ->prefix('https://')
-                            ->maxLength(255),
-                    ])
-                    ->columns(2),
+                                Forms\Components\TextInput::make('email')
+                                    ->label('Email')
+                                    ->email()
+                                    ->maxLength(255),
 
-                Forms\Components\Section::make('Tentang Kami')
-                    ->icon('heroicon-o-information-circle')
-                    ->description('Konten ini akan ditampilkan di halaman "Tentang Kami" pada website publik.')
-                    ->schema([
-                        Forms\Components\RichEditor::make('about_content')
-                            ->label('Konten Tentang Asrama')
-                            ->helperText('Gunakan editor di bawah untuk menulis informasi lengkap tentang asrama. Gunakan toolbar untuk formatting.')
-                            ->toolbarButtons([
-                                'bold',
-                                'italic',
-                                'underline',
-                                'strike',
-                                'link',
-                                'heading',
-                                'h2',
-                                'h3',
-                                'bulletList',
-                                'orderedList',
-                                'blockquote',
-                                'codeBlock',
-                                'undo',
-                                'redo',
+                                Forms\Components\TextInput::make('website')
+                                    ->label('Website')
+                                    ->prefix('https://')
+                                    ->maxLength(255),
                             ])
-                            ->disableAllToolbarButtons(false)
-                            ->fileAttachmentsDisk('public')
-                            ->fileAttachmentsDirectory('institutions/about')
-                            ->fileAttachmentsVisibility('public')
-                            ->columnSpanFull()
-                            ->nullable()
-                            ->placeholder('Klik di sini untuk mulai menulis tentang asrama...'),
-                    ]),
+                            ->columns(2),
 
-                Forms\Components\Section::make('Logo')
-                    ->schema([
-                        Forms\Components\FileUpload::make('logo_path')
-                            ->label('Logo')
-                            ->disk('public')
-                            ->directory('institutions/logos')
-                            ->visibility('public')
-                            ->image()
-                            ->imageEditor()
-                            ->maxSize(2048)
-                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg', 'image/webp'])
-                            ->columnSpanFull()
-                            ->storeFileNamesIn('logo_original_name'),
+                        Tab::make('Tentang Kami')
+                            ->schema([
+                                Forms\Components\RichEditor::make('about_content')
+                                    ->label('Konten Tentang Asrama')
+                                    ->toolbarButtons([
+                                        'bold',
+                                        'italic',
+                                        'underline',
+                                        'strike',
+                                        'link',
+                                        'heading',
+                                        'h2',
+                                        'h3',
+                                        'bulletList',
+                                        'orderedList',
+                                        'blockquote',
+                                        'codeBlock',
+                                        'undo',
+                                        'redo',
+                                        'attachFiles',
+                                    ])
+                                    ->disableAllToolbarButtons(false)
+                                    ->fileAttachmentsDisk('public')
+                                    ->fileAttachmentsDirectory('institutions/about')
+                                    ->fileAttachmentsVisibility('public')
+                                    ->columnSpanFull()
+                                    ->mutateDehydratedStateUsing(function ($state) {
+
+                                        if (! $state) return $state;
+
+                                        libxml_use_internal_errors(true);
+
+                                        $dom = new \DOMDocument('1.0', 'UTF-8');
+                                        $dom->loadHTML('<div>' . $state . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+
+                                        // 1. HAPUS figcaption
+                                        while (($captions = $dom->getElementsByTagName('figcaption'))->length > 0) {
+                                            $captions->item(0)->remove();
+                                        }
+
+                                        // 2. UNWRAP <a> TANPA MEMINDAHKAN <img>
+                                        $links = [];
+                                        foreach ($dom->getElementsByTagName('a') as $a) {
+                                            $links[] = $a;
+                                        }
+
+                                        foreach ($links as $a) {
+                                            $parent = $a->parentNode;
+
+                                            while ($a->firstChild) {
+                                                $parent->insertBefore($a->firstChild, $a);
+                                            }
+
+                                            $parent->removeChild($a);
+                                        }
+
+                                        return $dom->saveHTML();
+                                    })
+                                    ->nullable()
+                                    ->placeholder('Klik di sini untuk mulai menulis tentang asrama...'),
+                            ]),
                     ])
+                    ->columnSpan(2)
             ]);
     }
 
