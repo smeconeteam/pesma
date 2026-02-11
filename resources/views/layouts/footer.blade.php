@@ -1,4 +1,4 @@
-<footer class="w-full bg-gray-100 px-4 pt-12 sm:px-6 lg:px-8">
+<footer class="w-full bg-white px-4 pt-12 sm:px-6 lg:px-8">
     <div class="mx-auto max-w-7xl">
         <div class="flex flex-col gap-8 md:flex-row md:justify-between md:gap-0 lg:gap-16 lg:px-12 lg:py-8 lg:pb-12 lg:pt-0">
             <div class="md:max-w-[50%]">
