@@ -217,4 +217,29 @@ class LandingController extends Controller
         
         return view('about', compact('institution'));
     }
+    /**
+     * Show contact page
+     */
+    public function contact()
+    {
+        // Cache institution data
+        $institution = cache()->remember('institution_data', 3600, function () {
+            return Institution::first();
+        });
+
+        // Main Admins
+        $mainAdmins = \App\Models\User::whereHas('roles', function($q) {
+            $q->where('name', 'main_admin');
+        })->with(['adminProfile', 'residentProfile'])->get();
+
+        // Branch Admins (grouped by Dorm)
+        $dorms = \App\Models\Dorm::where('is_active', true)
+            ->with(['adminScopes' => function($q) {
+                $q->where('type', 'branch');
+            }, 'adminScopes.user.residentProfile'])
+            ->orderBy('name')
+            ->get();
+
+        return view('contact', compact('institution', 'mainAdmins', 'dorms'));
+    }
 }

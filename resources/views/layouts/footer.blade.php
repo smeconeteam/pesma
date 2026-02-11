@@ -33,8 +33,8 @@
                 <ul class="flex flex-col">
                     <a href="{{ env('APP_URL') }}" target="_blank" class="transition-all duration-100 hover:text-green-600 hover:underline">{{ __('footer.about_us') }}</a>
 
-                    <a href="/kebijakan" target="_blank" class="transition-all duration-100 hover:text-green-600 hover:underline">{{ __('footer.terms_conditions') }}</a>
-                    <a href="#" class="transition-all duration-100 hover:text-green-600 hover:underline">{{ __('footer.contact') }}</a>
+                    <a href="{{ route('public.policy') }}" class="transition-all duration-100 hover:text-green-600 hover:underline">{{ __('footer.terms_conditions') }}</a>
+                    <a href="{{ route('contact') }}" class="transition-all duration-100 hover:text-green-600 hover:underline">{{ __('footer.contact') }}</a>
                 </ul>
             </div>
         </div>

@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Route;
 
 // Landing Page for Public
 Route::get('/', [LandingController::class, 'index'])->name('home');
+Route::get('/kontak', [LandingController::class, 'contact'])->name('contact');
 Route::get('/kamar-tersedia', [LandingController::class, 'allRooms'])->name('rooms.available');
 Route::get('/kamar/{code}', [LandingController::class, 'showRoom'])->name('rooms.show');
 Route::get('/tentang', [LandingController::class, 'about'])->name('about');
