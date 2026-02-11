@@ -46,7 +46,7 @@
                     </button>
 
                     <!-- Dropdown Panel -->
-                    <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" class="absolute right-0 z-50 mt-2 w-80 rounded-xl border border-gray-200 bg-white shadow-xl dark:bg-gray-800 dark:border-gray-700" style="display: none;">
+                    <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" class="absolute right-0 z-50 mt-2 w-80 rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800" style="display: none;">
                         <div class="p-4">
                             <div class="mb-4 flex items-center justify-between border-b border-gray-100 pb-3 dark:border-gray-700">
                                 <h3 class="font-semibold text-gray-900 dark:text-white">{{ __('public.filters') }}</h3>
@@ -61,7 +61,7 @@
                                 <!-- Branch Filter -->
                                 <div>
                                     <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('public.branch') }}</label>
-                                    <select name="dorm_id" class="w-full cursor-pointer rounded-lg border border-gray-200 px-3 py-2.5 text-sm transition-colors hover:border-gray-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:focus:ring-green-500/40">
+                                    <select name="dorm_id" class="w-full cursor-pointer rounded-lg border border-gray-200 px-3 py-2.5 text-sm transition-colors hover:border-gray-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:ring-green-500/40">
                                         <option value="">{{ __('public.all_branches') }}</option>
                                         @foreach ($dorms as $dorm)
                                             <option value="{{ $dorm->id }}" {{ request('dorm_id') == $dorm->id ? 'selected' : '' }}>
@@ -74,7 +74,7 @@
                                 <!-- Room Type Filter -->
                                 <div>
                                     <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('public.room_type') }}</label>
-                                    <select name="room_type_id" class="w-full cursor-pointer rounded-lg border border-gray-200 px-3 py-2.5 text-sm transition-colors hover:border-gray-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:focus:ring-green-500/40">
+                                    <select name="room_type_id" class="w-full cursor-pointer rounded-lg border border-gray-200 px-3 py-2.5 text-sm transition-colors hover:border-gray-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:ring-green-500/40">
                                         <option value="">{{ __('public.all_room_types') }}</option>
                                         @foreach ($roomTypes as $type)
                                             <option value="{{ $type->id }}" {{ request('room_type_id') == $type->id ? 'selected' : '' }}>
@@ -87,7 +87,7 @@
                                 <!-- Category Filter -->
                                 <div>
                                     <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('public.type') }}</label>
-                                    <select name="resident_category_id" class="w-full cursor-pointer rounded-lg border border-gray-200 px-3 py-2.5 text-sm transition-colors hover:border-gray-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 dark:focus:ring-green-500/40">
+                                    <select name="resident_category_id" class="w-full cursor-pointer rounded-lg border border-gray-200 px-3 py-2.5 text-sm transition-colors hover:border-gray-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:focus:ring-green-500/40">
                                         <option value="">{{ __('public.all_categories') }}</option>
                                         @foreach ($residentCategories as $category)
                                             <option value="{{ $category->id }}" {{ request('resident_category_id') == $category->id ? 'selected' : '' }}>
@@ -111,7 +111,7 @@
                 <!-- Filter Buttons -->
                 <div class="flex gap-3">
                     @if (request()->hasAny(['search', 'dorm_id', 'room_type_id', 'resident_category_id']))
-                        <a href="{{ route('rooms.available') }}" class="inline-flex gap-1 items-center rounded-md bg-green-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
+                        <a href="{{ route('rooms.available') }}" class="inline-flex items-center gap-1 rounded-md bg-green-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -127,14 +127,14 @@
                 <div class="mt-4 flex flex-wrap items-center gap-2 text-sm">
                     <span class="text-gray-600">{{ __('public.active_filters') }}</span>
                     @if (request('search'))
-                        <span class="rounded-2xl bg-green-600 hover:bg-green-700 transition-all duration-100 px-2 text-white">
+                        <span class="rounded-2xl bg-green-600 px-2 text-white transition-all duration-100 hover:bg-green-700">
                             "{{ request('search') }}"
                         </span>
                     @endif
                     @if (request('dorm_id'))
                         @php $selectedDorm = $dorms->firstWhere('id', request('dorm_id')); @endphp
                         @if ($selectedDorm)
-                            <span class="rounded-2xl bg-green-600 hover:bg-green-700 transition-all duration-100 px-2 text-white">
+                            <span class="rounded-2xl bg-green-600 px-2 text-white transition-all duration-100 hover:bg-green-700">
                                 {{ $selectedDorm->name }}
                             </span>
                         @endif
@@ -142,7 +142,7 @@
                     @if (request('room_type_id'))
                         @php $selectedType = $roomTypes->firstWhere('id', request('room_type_id')); @endphp
                         @if ($selectedType)
-                            <span class="rounded-2xl bg-green-600 hover:bg-green-700 transition-all duration-100 px-2 text-white">
+                            <span class="rounded-2xl bg-green-600 px-2 text-white transition-all duration-100 hover:bg-green-700">
                                 {{ $selectedType->name }}
                             </span>
                         @endif
@@ -150,7 +150,7 @@
                     @if (request('resident_category_id'))
                         @php $selectedCategory = $residentCategories->firstWhere('id', request('resident_category_id')); @endphp
                         @if ($selectedCategory)
-                            <span class="rounded-2xl bg-green-600 hover:bg-green-700 transition-all duration-100 px-2 text-white">
+                            <span class="rounded-2xl bg-green-600 px-2 text-white transition-all duration-100 hover:bg-green-700">
                                 {{ $selectedCategory->name }}
                             </span>
                         @endif
@@ -160,7 +160,7 @@
         </div>
 
         <!-- Rooms Container -->
-        <div id="rooms-container" class="mx-auto mt-4 flex flex-col items-center justify-between gap-6 rounded-t-2xl bg-white p-4 sm:p-6 lg:p-8 dark:bg-gray-800 dark:shadow-gray-900/10">
+        <div id="rooms-container" class="mx-auto mt-4 flex flex-col items-center justify-between gap-6 rounded-2xl bg-white p-4 sm:mx-6 sm:p-6 lg:mx-8 lg:p-8 dark:bg-gray-800 dark:shadow-gray-900/10">
             @include('rooms.partials.list')
         </div>
     </div>
