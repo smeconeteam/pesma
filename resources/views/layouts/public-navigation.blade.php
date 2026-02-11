@@ -38,12 +38,26 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
                 </a>
                 <a href="{{ route('contact') }}" class="{{ request()->routeIs('contact') ? 'border-green-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600' }} inline-flex items-center border-b-2 px-1 pt-1 transition-colors">
                     Kontak
-                </a>
+                    <a href="{{ route('about') }}" class="{{ request()->routeIs('about') ? 'border-green-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600' }} inline-flex items-center border-b-2 px-1 pt-1 transition-colors">
+                        {{ __('footer.about_us') }}
+                    </a>
             </div>
 
             <!-- Desktop Right Side -->
             <div class="hidden gap-4 sm:flex sm:items-center">
-                <x-locale-switcher :short="true" class="cursor-pointer" select-class="cursor-pointer text-sm rounded-md shadow-sm focus:border-green-500 focus:ring-green-500 border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300" />
+                <!-- Dark Mode Toggle -->
+                <button @click="toggleTheme()" class="inline-flex items-center justify-center rounded-full p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200" aria-label="Toggle dark mode">
+                    <!-- Sun Icon (shown in dark mode) -->
+                    <svg x-show="darkMode" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <!-- Moon Icon (shown in light mode) -->
+                    <svg x-show="!darkMode" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                </button>
+
+                <x-locale-switcher :short="true" class="cursor-pointer" select-class="cursor-pointer text-sm rounded-md shadow-sm focus:border-green-500 focus:ring-green-500" />
 
                 @auth
                     @if (Route::has('dashboard'))
@@ -91,47 +105,66 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
             <a href="{{ route('rooms.available') }}" class="{{ request()->routeIs('rooms.available') || request()->routeIs('rooms.show') ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' }} block rounded-md px-3 py-2 text-base font-medium transition-colors">
                 {{ __('navigation.available_rooms') }}
             </a>
-            <<<<<<< HEAD <a href="{{ route('about') }}" class="{{ request()->routeIs('about') ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' }} block rounded-md px-3 py-2 text-base font-medium transition-colors">
+            <a href="{{ route('about') }}" class="{{ request()->routeIs('about') ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' }} block rounded-md px-3 py-2 text-base font-medium transition-colors">
                 {{ __('navigation.about') }}
-                =======
-                <a href="{{ route('contact') }}" class="{{ request()->routeIs('contact') ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' }} block rounded-md px-3 py-2 text-base font-medium transition-colors">
-                    Kontak
-                    >>>>>>> 4fcabe8 (feat: create halaman kontak)
-                </a>
+            </a>
+            <a href="{{ route('contact') }}" class="{{ request()->routeIs('contact') ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' }} block rounded-md px-3 py-2 text-base font-medium transition-colors">
+                Kontak
+            </a>
 
-                <div class="mt-2 border-t border-gray-200 pt-2 dark:border-gray-700">
-                    @auth
-                        @if (Route::has('dashboard'))
-                            <a href="{{ route('dashboard') }}" class="mb-2 block rounded-md bg-green-600 px-3 py-2 text-base font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
-                                {{ __('navigation.dashboard') }}
+            <div class="mt-2 border-t border-gray-200 pt-2 dark:border-gray-700">
+                @auth
+                    @if (Route::has('dashboard'))
+                        <a href="{{ route('dashboard') }}" class="mb-2 block rounded-md bg-green-600 px-3 py-2 text-base font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
+                            {{ __('navigation.dashboard') }}
+                        </a>
+                    @endif
+                @endauth
+
+                @guest
+                    <div class="flex w-full items-center justify-between gap-2">
+                        @if (Route::has('login'))
+                            <a href="{{ route('login') }}" class="block w-full rounded-md bg-gray-100 px-3 py-2 text-center text-base font-medium text-green-600 ring ring-inset ring-green-600 transition-colors hover:bg-green-600 hover:text-white">
+                                {{ __('navigation.login') }}
                             </a>
                         @endif
-                    @endauth
 
-                    @guest
-                        <div class="flex w-full items-center justify-between gap-2">
-                            @if (Route::has('login'))
-                                <a href="{{ route('login') }}" class="block w-full rounded-md bg-gray-100 px-3 py-2 text-center text-base font-medium text-green-600 ring ring-inset ring-green-600 transition-colors hover:bg-green-600 hover:text-white">
-                                    {{ __('navigation.login') }}
-                                </a>
+                        <<<<<<< HEAD @if (Route::has('public.registration.create'))
+                            <a href="{{ route('public.registration.create') }}" class="block w-full rounded-md bg-green-600 px-3 py-2 text-center text-base font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
+                                {{ __('navigation.register') }}
+                            </a>
                             @endif
+                    </div>
+                @endguest
+            </div>
 
-                            @if (Route::has('public.registration.create'))
-                                <a href="{{ route('public.registration.create') }}" class="block w-full rounded-md bg-green-600 px-3 py-2 text-center text-base font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
-                                    {{ __('navigation.register') }}
-                                </a>
-                            @endif
-                        </div>
-                    @endguest
-                </div>
-
-                <!-- Language Switcher Mobile -->
-                <div class="mt-2 border-t border-gray-200 px-3 py-2 dark:border-gray-700">
+            <!-- Language Switcher Mobile -->
+            <div class="mt-2 border-t border-gray-200 px-3 py-2 dark:border-gray-700">
+                <label class="mb-2 block text-xs font-medium text-gray-700 dark:text-gray-300">
+                    {{ __('navigation.language') ?? 'Language' }}
+                </label>
+                <x-locale-switcher :short="false" select-class="w-full text-sm border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-green-500 focus:ring-green-500" />
+            </div>
+            =======
+            <!-- Language Switcher & Dark Mode Mobile -->
+            <div class="mt-2 border-t border-gray-200 px-3 py-2 dark:border-gray-700">
+                <div class="flex items-center justify-between">
                     <label class="mb-2 block text-xs font-medium text-gray-700 dark:text-gray-300">
                         {{ __('navigation.language') ?? 'Language' }}
                     </label>
-                    <x-locale-switcher :short="false" select-class="w-full text-sm border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-green-500 focus:ring-green-500" />
+                    <!-- Mobile Dark Mode Toggle -->
+                    <button @click="toggleTheme()" class="inline-flex items-center justify-center rounded-full p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200" aria-label="Toggle dark mode">
+                        <svg x-show="darkMode" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <svg x-show="!darkMode" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        </svg>
+                    </button>
                 </div>
+                <x-locale-switcher :short="false" select-class="w-full text-sm border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-green-500 focus:ring-green-500" />
+            </div>
+            >>>>>>> 7fab1d7 (fixing homepage)
         </div>
     </div>
 </nav>
