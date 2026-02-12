@@ -14,12 +14,14 @@ class AdminScope extends Model
         'type',
         'dorm_id',
         'block_id',
+        'show_phone_on_landing',
     ];
 
     protected $casts = [
         'user_id'  => 'integer',
         'dorm_id' => 'integer',
         'block_id' => 'integer',
+        'show_phone_on_landing' => 'boolean',
     ];
 
     public function user()

@@ -62,6 +62,9 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
 
                 @auth
                     @if (\Illuminate\Support\Facades\Route::has('profile.edit'))
+                        @php
+                            $navUserPhoto = auth()->user()->residentProfile?->photo_path;
+                        @endphp
                         <div x-data="{ dropdownOpen: false }" @click.away="dropdownOpen = false" class="relative">
 
                             <button @click="dropdownOpen = !dropdownOpen" class="flex items-center gap-3 rounded-lg px-3 py-2 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800">
@@ -76,9 +79,13 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
                                 </svg>
 
                                 <div class="relative">
-                                    <div class="flex h-9 w-9 items-center justify-center rounded-full bg-green-600 text-sm font-bold text-white shadow-md dark:bg-green-500">
-                                        {{ mb_substr(auth()->user()->name, 0, 1) }}
-                                    </div>
+                                    @if($navUserPhoto)
+                                        <img src="{{ Storage::url($navUserPhoto) }}" alt="{{ auth()->user()->name }}" class="h-9 w-9 rounded-full object-cover shadow-md">
+                                    @else
+                                        <div class="flex h-9 w-9 items-center justify-center rounded-full bg-green-600 text-sm font-bold text-white shadow-md dark:bg-green-500">
+                                            {{ mb_substr(auth()->user()->name, 0, 1) }}
+                                        </div>
+                                    @endif
                                     <div class="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-500 dark:border-gray-900 dark:bg-green-400"></div>
                                 </div>
                             </button>
@@ -89,9 +96,13 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
 
                                     <div class="border-b border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900">
                                         <div class="flex items-center gap-3">
-                                            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-600 text-lg font-bold text-white shadow-md dark:bg-green-500">
-                                                {{ mb_substr(auth()->user()->name, 0, 1) }}
-                                            </div>
+                                            @if($navUserPhoto)
+                                                <img src="{{ Storage::url($navUserPhoto) }}" alt="{{ auth()->user()->name }}" class="h-12 w-12 rounded-full object-cover shadow-md">
+                                            @else
+                                                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-600 text-lg font-bold text-white shadow-md dark:bg-green-500">
+                                                    {{ mb_substr(auth()->user()->name, 0, 1) }}
+                                                </div>
+                                            @endif
                                             <div class="min-w-0 flex-1">
                                                 <div class="truncate text-sm font-bold text-gray-900 dark:text-gray-100">
                                                     {{ auth()->user()->name }}

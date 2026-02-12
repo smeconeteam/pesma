@@ -26,6 +26,7 @@ class CreateMainAdmin extends CreateRecord
             'full_name' => $data['adminProfile']['full_name'],
             'gender' => $data['adminProfile']['gender'],
             'phone_number' => $data['adminProfile']['phone_number'],
+            'show_phone_on_landing' => $data['adminProfile']['show_phone_on_landing'] ?? false,
         ];
 
         if (isset($data['adminProfile']['photo_path'])) {

@@ -17,11 +17,13 @@ class AdminProfile extends Model
         'full_name',
         'gender',
         'phone_number',
+        'show_phone_on_landing',
         'photo_path',
     ];
 
     protected $casts = [
         'user_id' => 'integer',
+        'show_phone_on_landing' => 'boolean',
         'deleted_at' => 'datetime',
     ];
 

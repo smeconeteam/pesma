@@ -122,6 +122,12 @@ class MainAdminResource extends Resource
                         ->maxLength(20)
                         ->helperText('Contoh: 812345678'),
 
+                    Forms\Components\Toggle::make('adminProfile.show_phone_on_landing')
+                        ->label('Tampilkan di Halaman Kontak')
+                        ->helperText('Jika diaktifkan, nomor WhatsApp akan ditampilkan di halaman kontak landing page.')
+                        ->default(false)
+                        ->columnSpanFull(),
+
                     Forms\Components\FileUpload::make('adminProfile.photo_path')
                         ->label('Foto Profil')
                         ->image()
@@ -173,6 +179,15 @@ class MainAdminResource extends Resource
                         'primary' => 'M',
                         'success' => 'F',
                     ]),
+
+                Tables\Columns\IconColumn::make('adminProfile.show_phone_on_landing')
+                    ->label('Tampil di Kontak')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-eye')
+                    ->falseIcon('heroicon-o-eye-slash')
+                    ->trueColor('success')
+                    ->falseColor('gray')
+                    ->toggleable(),
 
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('Status')
