@@ -2,7 +2,6 @@
 
 return [
     'title' => 'Contact Us',
-    'subtitle' => 'Get dormitory administrator contact information for assistance and further information.',
     'main_admin' => 'Main Administrator',
     'dorm_admin_branch' => 'Dormitory Administrators (Branch)',
     'dorm_admin' => 'Dormitory Administrator',

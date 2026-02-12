@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'landing-headline' => 'Pursue Your Studies at :name: Choose Between Islamic Boarding or Private Housing.',
+    'landing-headline' => 'Study While Boarding, or Just Rent a Room at :name',
     'landing-description' => 'offers a wide selection of rooms with comprehensive facilities at affordable prices',
     'view_rooms' => 'View Rooms',
     'register_now' => 'Register Now',
@@ -22,7 +22,7 @@ return [
     'price' => 'Price',
     'person' => 'person',
     'active' => 'Active',
-    'slots_available' => 'Available: :count slots',
+    'slots_available' => 'Available: :count space',
     'resident' => 'Resident',
 
     // Rooms Index Page

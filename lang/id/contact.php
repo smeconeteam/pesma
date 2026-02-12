@@ -2,7 +2,6 @@
 
 return [
     'title' => 'Hubungi Kami',
-    'subtitle' => 'Dapatkan informasi kontak pengurus asrama untuk bantuan dan informasi lebih lanjut.',
     'main_admin' => 'Administrator Utama',
     'dorm_admin_branch' => 'Pengurus Asrama (Cabang)',
     'dorm_admin' => 'Pengurus Asrama',

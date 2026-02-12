@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'landing-headline' => 'Bisa Kuliah Sambil Mondok atau Kos aja, Tetap di :name',
+    'landing-headline' => 'Kuliah Sambil Mondok, atau Kos Aja, Bisa di :name',
     'landing-description' => 'menyediakan berbagai pilihan kamar dengan fasilitas lengkap dan harga terjangkau',
     'view_rooms' => 'Lihat Kamar',
     'register_now' => 'Daftar Sekarang',
@@ -22,7 +22,7 @@ return [
     'price' => 'Harga',
     'person' => 'orang',
     'active' => 'Aktif',
-    'slots_available' => 'Tersedia: :count slot',
+    'slots_available' => 'Tersedia: :count space',
     'resident' => 'Penghuni',
 
     // Rooms Index Page

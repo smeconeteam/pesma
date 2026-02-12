@@ -2,12 +2,9 @@
     <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <!-- Page Header -->
         <div class="text-center mb-16">
-            <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white sm:text-5xl">
+            <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white sm:text-4xl">
                 {{ __('contact.title') }}
             </h1>
-            <p class="mt-4 text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                {{ __('contact.subtitle') }}
-            </p>
         </div>
 
         <!-- Main Admins Section -->

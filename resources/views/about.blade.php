@@ -1,12 +1,9 @@
 <x-public-layout>
     <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div class="mb-16 text-center">
-            <h1 class="text-4xl font-extrabold text-gray-900 sm:text-5xl dark:text-white">
+            <h1 class="text-3xl font-extrabold text-gray-900 sm:text-4xl dark:text-white">
                 {{ __('about.title') }}
             </h1>
-            <p class="mx-auto mt-4 max-w-2xl text-xl text-gray-600 dark:text-gray-400">
-                {{ __('about.subtitle', ['name' => $institution->dormitory_name ?? config('app.name', 'Laravel')]) }}
-            </p>
         </div>
 
         <!-- Main Content -->
