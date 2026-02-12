@@ -122,19 +122,19 @@
             @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && !$user->hasVerifiedEmail())
                 <div>
                     <p class="mt-2 text-sm text-gray-800">
-                        {{ __('Alamat email Anda belum terverifikasi.') }}
+                        {{ __('profile.email_unverified') }}
 
                         <button
                             form="send-verification"
                             class="rounded-md text-sm text-gray-600 dark:text-gray-400 underline hover:text-gray-900 dark:hover:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                         >
-                            {{ __('Klik di sini untuk mengirim ulang email verifikasi.') }}
+                            {{ __('profile.resend_verification') }}
                         </button>
                     </p>
 
                     @if (session('status') === 'verification-link-sent')
                         <p class="mt-2 text-sm font-medium text-green-600">
-                            {{ __('Tautan verifikasi baru telah dikirim ke alamat email Anda.') }}
+                            {{ __('profile.verification_sent') }}
                         </p>
                     @endif
                 </div>
@@ -233,7 +233,7 @@
                 if (file.size > 2097152) {
                     alert("{{ __('profile.file_too_large') }}");
                     event.target.value = '';
-                    fileLabel.textContent = 'Pilih Gambar';
+                    fileLabel.textContent = "{{ __('profile.choose_image') }}";
                     return;
                 }
 
@@ -241,7 +241,7 @@
                 if (!file.type.match('image.*')) {
                     alert("{{ __('profile.invalid_file_type') }}");
                     event.target.value = '';
-                    fileLabel.textContent = 'Pilih Gambar';
+                    fileLabel.textContent = "{{ __('profile.choose_image') }}";
                     return;
                 }
 

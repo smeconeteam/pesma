@@ -90,4 +90,8 @@ return [
     'file_too_large' => 'Ukuran file terlalu besar. Maksimal 2MB.',
     'invalid_file_type' => 'File harus berupa gambar (JPG, PNG, atau GIF).',
     'confirm_delete_photo' => 'Apakah Anda yakin ingin menghapus foto profil? Tindakan ini tidak dapat dibatalkan.',
+    'status_active' => 'Aktif',
+    'status_inactive' => 'Nonaktif',
+    'status_pending_placement' => 'Menunggu Penempatan',
+    'check_out_date' => 'Tanggal Keluar',
 ];
