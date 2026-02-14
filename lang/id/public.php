@@ -64,4 +64,15 @@ return [
     'back_to_home' => 'Kembali ke Beranda',
     'filters' => 'Filter',
     'apply_filters' => 'Terapkan Filter',
+
+    // Policy Page
+    'policy' => [
+        'title' => 'Kebijakan',
+        'updated_at' => 'Diperbarui: :date',
+        'back' => 'Kembali',
+        'active' => 'Kebijakan Aktif',
+        'terms' => 'Syarat & Ketentuan',
+        'read_carefully' => 'Harap baca dengan seksama',
+        'footer_note' => 'Dokumen ini dapat berubah sewaktu-waktu tanpa pemberitahuan terlebih dahulu.',
+    ],
 ];
