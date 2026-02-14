@@ -1,13 +1,18 @@
-<x-guest-layout>
-    <div class="mx-auto w-full px-4 py-10">
-        <div class="mb-6">
-            <h1 class="text-2xl font-semibold">Pendaftaran Penghuni</h1>
-            <p class="mt-1 text-gray-600">Isi data berikut. Setelah dikirim, admin akan meninjau dan menyetujui pendaftaran.</p>
+<x-public-layout>
+    <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
+        <div class="mb-10 text-center">
+            <h1 class="text-3xl font-extrabold text-gray-900 sm:text-4xl dark:text-white">{{ __('registration.title') }}</h1>
+            <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">{{ __('registration.subtitle') }}</p>
         </div>
 
         @if ($errors->any())
-            <div class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
-                <div class="mb-2 font-semibold">Ada kesalahan:</div>
+            <div class="mb-8 rounded-xl border border-red-200 bg-red-50 p-6 text-red-700 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400">
+                <div class="mb-2 flex items-center gap-2 font-bold">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    {{ __('registration.error_title') }}
+                </div>
                 <ul class="list-disc space-y-1 pl-5">
                     @foreach ($errors->all() as $e)
                         <li>{{ $e }}</li>
@@ -20,60 +25,78 @@
             @csrf
 
             {{-- AKUN --}}
-            <section class="rounded-xl border bg-white p-6">
-                <h2 class="text-lg font-semibold">Akun</h2>
+            <section class="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg sm:p-8 dark:border-gray-700 dark:bg-gray-800">
+                <div class="mb-6 flex items-center gap-3 border-b border-gray-100 pb-4 dark:border-gray-700">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                        <svg class="h-5 w-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <h2 class="truncate text-lg font-bold text-gray-900 sm:text-xl dark:text-white">{{ __('registration.account') }}</h2>
+                    </div>
+                </div>
 
-                <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
-                        <label class="block text-sm font-medium">Email <span class="text-red-500">*</span></label>
-                        <input name="email" type="email" value="{{ old('email') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.email') }} <span class="text-red-500">*</span></label>
+                        <input name="email" type="email" value="{{ old('email') }}" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" required>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Nama Panggilan <span class="text-red-500">*</span></label>
-                        <input name="name" type="text" value="{{ old('name') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.nickname') }} <span class="text-red-500">*</span></label>
+                        <input name="name" type="text" value="{{ old('name') }}" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" required>
                     </div>
 
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-medium">Password</label>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.password') }}</label>
                         <div class="relative">
                             <input 
                                 id="password"
                                 name="password" 
                                 type="password" 
                                 value="123456789"
-                                class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 pr-10"
+                                class="w-full rounded-lg border-gray-300 pr-10 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                             >
                             
-                            <!-- Tombol Toggle Password -->
                             <button
                                 type="button"
                                 onclick="togglePasswordField()"
-                                class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-600 hover:text-gray-800 focus:outline-none"
+                                class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                             >
-                                <svg id="eye-icon-reg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                <svg id="eye-icon-reg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
-                                <svg id="eye-slash-icon-reg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 hidden">
+                                <svg id="eye-slash-icon-reg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="hidden h-5 w-5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
                                 </svg>
                             </button>
                         </div>
-                        <p class="mt-1 text-xs text-gray-500">Default password: 123456789 (dapat diubah setelah login)</p>
+                        <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">{{ __('registration.password_default') }}</p>
                     </div>
                 </div>
             </section>
 
             {{-- PROFIL --}}
-            <section class="rounded-xl border bg-white p-6">
-                <h2 class="text-lg font-semibold">Profil Calon Penghuni</h2>
+            <section class="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg sm:p-8 dark:border-gray-700 dark:bg-gray-800">
+                <div class="mb-6 flex items-center gap-3 border-b border-gray-100 pb-4 dark:border-gray-700">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
+                        <svg class="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0c0 .883.393 1.627 1.008 2.126C8.596 9.984 8 11.416 8 13v.5m4-5.5a3.504 3.504 0 013.628 3.03A2.992 2.992 0 0113 13v.5m-5 .5v2.5m5-2.5v2.5" />
+                        </svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <h2 class="truncate text-lg font-bold text-gray-900 sm:text-xl dark:text-white">{{ __('registration.profile') }}</h2>
+                    </div>
+                </div>
 
-                <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+
+                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
-                        <label class="block text-sm font-medium">Kategori Penghuni <span class="text-red-500">*</span></label>
-                        <select id="resident_category_id" name="resident_category_id" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
-                            <option value="">-- pilih --</option>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.resident_category') }} <span class="text-red-500">*</span></label>
+                        <select id="resident_category_id" name="resident_category_id" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" required>
+                            <option value="">{{ __('registration.select_option') }}</option>
                             @foreach ($residentCategories as $cat)
                                 <option value="{{ $cat->id }}" @selected(old('resident_category_id') == $cat->id)>
                                     {{ $cat->name }}
@@ -83,71 +106,78 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Nama Lengkap <span class="text-red-500">*</span></label>
-                        <input name="full_name" type="text" value="{{ old('full_name') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.full_name') }} <span class="text-red-500">*</span></label>
+                        <input name="full_name" type="text" value="{{ old('full_name') }}" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" required>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Jenis Kelamin <span class="text-red-500">*</span></label>
-                        <select name="gender" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
-                            <option value="">-- pilih --</option>
-                            <option value="M" @selected(old('gender') === 'M')>Laki-laki</option>
-                            <option value="F" @selected(old('gender') === 'F')>Perempuan</option>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.gender') }} <span class="text-red-500">*</span></label>
+                        <select name="gender" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" required>
+                            <option value="">{{ __('registration.select_option') }}</option>
+                            <option value="M" @selected(old('gender') === 'M')>{{ __('registration.male') }}</option>
+                            <option value="F" @selected(old('gender') === 'F')>{{ __('registration.female') }}</option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">NIK <span class="text-red-500">*</span></label>
-                        <input name="national_id" inputmode="numeric" pattern="[0-9]*" value="{{ old('national_id') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
-                    </div>
-
-
-
-                    <div>
-                        <label class="block text-sm font-medium">Tempat Lahir <span class="text-red-500">*</span></label>
-                        <input name="birth_place" type="text" value="{{ old('birth_place') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.nik') }} <span class="text-red-500">*</span></label>
+                        <input name="national_id" inputmode="numeric" pattern="[0-9]*" value="{{ old('national_id') }}" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" required>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Tanggal Lahir <span class="text-red-500">*</span></label>
-                        <input name="birth_date" type="date" value="{{ old('birth_date') }}" max="{{ now()->subYears(6)->format('Y-m-d') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
-                        <p class="mt-1 text-xs text-gray-500">Minimal usia 6 tahun</p>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.birth_place') }} <span class="text-red-500">*</span></label>
+                        <input name="birth_place" type="text" value="{{ old('birth_place') }}" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" required>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">NIM/NIS <span class="text-red-500">*</span></label>
-                        <input name="student_id" type="text" value="{{ old('student_id') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.birth_date') }} <span class="text-red-500">*</span></label>
+                        <input name="birth_date" type="date" value="{{ old('birth_date') }}" max="{{ now()->subYears(6)->format('Y-m-d') }}" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" required>
+                        <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">{{ __('registration.min_age') }}</p>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Universitas/Sekolah <span class="text-red-500">*</span></label>
-                        <input name="university_school" type="text" value="{{ old('university_school') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.student_id') }} <span class="text-red-500">*</span></label>
+                        <input name="student_id" type="text" value="{{ old('student_id') }}" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" required>
+                    </div>
+
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.university_school') }} <span class="text-red-500">*</span></label>
+                        <input name="university_school" type="text" value="{{ old('university_school') }}" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" required>
                     </div>
 
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-medium">Foto (Opsional)</label>
-                        <input name="photo" type="file" accept="image/*" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.photo') }}</label>
+                        <input name="photo" type="file" accept="image/*" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500 border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300">
                     </div>
                 </div>
             </section>
 
             {{-- KEWARGANEGARAAN --}}
-            <section class="rounded-xl border bg-white p-6">
-                <h2 class="text-lg font-semibold">Kewarganegaraan & Kontak</h2>
+            <section class="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg sm:p-8 dark:border-gray-700 dark:bg-gray-800">
+                <div class="mb-6 flex items-center gap-3 border-b border-gray-100 pb-4 dark:border-gray-700">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30">
+                        <svg class="h-5 w-5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <h2 class="truncate text-lg font-bold text-gray-900 sm:text-xl dark:text-white">{{ __('registration.citizenship_contact') }}</h2>
+                    </div>
+                </div>
 
-                <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
-                        <label class="block text-sm font-medium">Kewarganegaraan <span class="text-red-500">*</span></label>
-                        <select id="citizenship_status" name="citizenship_status" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.citizenship') }} <span class="text-red-500">*</span></label>
+                        <select id="citizenship_status" name="citizenship_status" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" required>
                             <option value="WNI" @selected(old('citizenship_status', 'WNI') === 'WNI')>WNI</option>
                             <option value="WNA" @selected(old('citizenship_status') === 'WNA')>WNA</option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Asal Negara <span class="text-red-500">*</span></label>
-                        <select id="country_id" name="country_id" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
-                            <option value="">-- pilih --</option>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.country') }} <span class="text-red-500">*</span></label>
+                        <select id="country_id" name="country_id" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" required>
+                            <option value="">{{ __('registration.select_option') }}</option>
                             @foreach ($countries as $c)
                                 <option value="{{ $c->id }}" @selected(old('country_id', $indoCountryId) == $c->id)>
                                     {{ $c->name }}
@@ -157,120 +187,132 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">No. HP <span class="text-red-500">*</span></label>
-                        <input name="phone_number" inputmode="numeric" pattern="[0-9]*" value="{{ old('phone_number') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" required>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.phone') }} <span class="text-red-500">*</span></label>
+                        <input name="phone_number" inputmode="numeric" pattern="[0-9]*" value="{{ old('phone_number') }}" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" required>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Nama Wali (Opsional)</label>
-                        <input name="guardian_name" type="text" value="{{ old('guardian_name') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.guardian_name') }}</label>
+                        <input name="guardian_name" type="text" value="{{ old('guardian_name') }}" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">No. HP Wali (Opsional)</label>
-                        <input name="guardian_phone_number" inputmode="numeric" pattern="[0-9]*" value="{{ old('guardian_phone_number') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.guardian_phone') }}</label>
+                        <input name="guardian_phone_number" inputmode="numeric" pattern="[0-9]*" value="{{ old('guardian_phone_number') }}" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
                     </div>
 
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-medium">Alamat (Opsional)</label>
-                        <textarea name="address" rows="3" maxlength="500" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500" placeholder="Masukkan alamat lengkap...">{{ old('address') }}</textarea>
-                        <p class="mt-1 text-xs text-gray-500">Alamat lengkap tempat tinggal</p>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.address') }}</label>
+                        <textarea name="address" rows="3" maxlength="500" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" placeholder="{{ __('registration.address_placeholder') }}">{{ old('address') }}</textarea>
+                        <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">{{ __('registration.address_hint') }}</p>
                     </div>
                 </div>
             </section>
 
             {{-- PREFERENSI --}}
-            <section class="rounded-xl border bg-white p-6">
-                <h2 class="text-lg font-semibold">Preferensi Kamar (Opsional)</h2>
-                <p class="mt-1 text-sm text-gray-600">Anda dapat mengisi preferensi kamar atau membiarkan admin menentukan kamar yang sesuai untuk Anda.</p>
+            <section class="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg sm:p-8 dark:border-gray-700 dark:bg-gray-800">
+                <div class="mb-6 flex items-center gap-3 border-b border-gray-100 pb-4 dark:border-gray-700">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
+                        <svg class="h-5 w-5 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <h2 class="truncate text-lg font-bold text-gray-900 sm:text-xl dark:text-white">{{ __('registration.room_preference') }}</h2>
+                    </div>
+                </div>
 
-                <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
-                        <label class="block text-sm font-medium">Cabang</label>
-                        <select id="preferred_dorm_id" name="preferred_dorm_id" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500">
-                            <option value="">-- pilih cabang --</option>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.branch') }}</label>
+                        <select id="preferred_dorm_id" name="preferred_dorm_id" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                            <option value="">{{ __('registration.select_branch') }}</option>
                             @foreach ($dorms as $d)
                                 <option value="{{ $d->id }}" @selected(old('preferred_dorm_id') == $d->id)>{{ $d->name }}</option>
                             @endforeach
                         </select>
-                        <p id="dorm-info" class="mt-1 text-xs text-gray-500 hidden"></p>
+                        <p id="dorm-info" class="mt-2 text-xs font-medium hidden"></p>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Tipe Kamar</label>
-                        <select id="preferred_room_type_id" name="preferred_room_type_id" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500">
-                            <option value="">-- pilih tipe kamar --</option>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.room_type') }}</label>
+                        <select id="preferred_room_type_id" name="preferred_room_type_id" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                            <option value="">{{ __('registration.select_room_type') }}</option>
                             @foreach ($roomTypes as $rt)
                                 <option value="{{ $rt->id }}" @selected(old('preferred_room_type_id') == $rt->id)>{{ $rt->name }}</option>
                             @endforeach
                         </select>
-                        <p id="room-type-info" class="mt-1 text-xs text-gray-500 hidden"></p>
+                        <p id="room-type-info" class="mt-2 text-xs font-medium hidden"></p>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium">Rencana Tanggal Masuk</label>
-                        <input name="planned_check_in_date" type="date" value="{{ old('planned_check_in_date', now()->addDays(7)->format('Y-m-d')) }}" min="{{ now()->format('Y-m-d') }}" class="mt-1 w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500">
-                        <p class="mt-1 text-xs text-gray-500">Minimal hari ini</p>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.check_in_date') }}</label>
+                        <input name="planned_check_in_date" type="date" value="{{ old('planned_check_in_date', now()->addDays(7)->format('Y-m-d')) }}" min="{{ now()->format('Y-m-d') }}" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                        <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">{{ __('registration.min_today') }}</p>
                     </div>
                 </div>
             </section>
 
             {{-- CHECKBOX KEBIJAKAN --}}
             @if($policy)
-                <div class="flex items-start space-x-3 bg-green-50 border border-green-200 rounded-lg p-4">
+                <div class="flex items-start space-x-3 rounded-xl border border-green-200 bg-green-50 p-5 dark:border-green-900/40 dark:bg-green-900/20">
                     <input 
                         type="checkbox" 
                         name="agreed_to_policy" 
                         id="agreed_to_policy" 
                         value="1"
-                        class="mt-1 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded flex-shrink-0"
+                        class="mt-1 h-5 w-5 flex-shrink-0 cursor-pointer rounded border-gray-300 text-green-600 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-800 dark:ring-offset-gray-900"
                         {{ old('agreed_to_policy') ? 'checked' : '' }}
                         required
                     >
-                    <label for="agreed_to_policy" class="text-sm text-gray-700">
-                        Saya telah membaca dan menyetujui 
+                    <label for="agreed_to_policy" class="cursor-pointer text-sm text-gray-700 dark:text-gray-300">
+                        {{ __('registration.policy_agree') }} 
                         <a 
                             href="{{ route('public.policy') }}" 
                             target="_blank"
-                            class="text-green-600 hover:text-green-700 font-semibold underline"
+                            rel="opener"
+                            class="font-semibold text-green-700 underline decoration-2 underline-offset-2 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
                         >
-                            Kebijakan & Ketentuan
+                            {{ __('registration.policy_link') }}
                         </a>
-                        yang berlaku
-                        <span class="text-red-600">*</span>
+                        <span class="text-red-500 font-bold ml-1">*</span>
                     </label>
                 </div>
                 
                 @error('agreed_to_policy')
-                    <p class="text-sm text-red-600 -mt-4">{{ $message }}</p>
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400 pl-8">{{ $message }}</p>
                 @enderror
             @else
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <p class="text-sm text-yellow-800">
-                        ⚠️ Kebijakan belum tersedia. Silakan hubungi administrator.
+                <div class="rounded-xl border border-yellow-200 bg-yellow-50 p-5 dark:border-yellow-900/40 dark:bg-yellow-900/20">
+                    <p class="flex items-center gap-2 text-sm font-medium text-yellow-800 dark:text-yellow-400">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        {{ __('registration.policy_unavailable') }}
                     </p>
                 </div>
             @endif
 
             {{-- TOMBOL SUBMIT --}}
-            <div class="flex items-center justify-end gap-3">
+            <div class="flex items-center justify-end gap-3 pt-4">
                 <a 
                     href="{{ url('/') }}" 
-                    class="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition font-medium"
+                    class="rounded-lg border border-gray-300 bg-white px-6 py-2.5 text-center font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:focus:ring-offset-gray-900"
                 >
-                    Batal
+                    {{ __('registration.cancel') }}
                 </a>
                 <button 
                     type="submit" 
-                    class="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                    @if(!$policy) disabled title="Kebijakan belum tersedia" @endif
+                    class="rounded-lg bg-green-600 px-6 py-2.5 text-center font-medium text-white shadow-md transition-all hover:bg-green-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-green-500 dark:hover:bg-green-600 dark:focus:ring-offset-gray-900"
+                    @if(!$policy) disabled title="{{ __('registration.policy_unavailable') }}" @endif
                 >
-                    Kirim Pendaftaran
+                    {{ __('registration.submit') }}
                 </button>
             </div>
         </form>
     </div>
 
+    @push('scripts')
     <script>
         // Toggle Password Function
         function togglePasswordField() {
@@ -299,6 +341,15 @@
             const dormInfo = document.getElementById('dorm-info');
             const roomTypeInfo = document.getElementById('room-type-info');
             const indoId = @json($indoCountryId);
+            
+            // Translations
+            const trans = {
+                no_branch_available: "{{ __('registration.no_branch_available') }}",
+                branch_available: "{{ __('registration.branch_available') }}",
+                no_room_type_available: "{{ __('registration.no_room_type_available') }}",
+                no_room_type_available_cat: "{{ __('registration.no_room_type_available_cat') }}",
+                room_type_available: "{{ __('registration.room_type_available') }}",
+            };
 
             // Data availability dari backend
             const roomAvailability = @json($roomAvailability ?? []);
@@ -347,15 +398,15 @@
 
                 // Show info jika tidak ada cabang tersedia
                 if (availableDormsCount === 0) {
-                    dormInfo.textContent = 'Tidak ada cabang yang tersedia untuk kategori ini. Silakan pilih kategori penghuni lain atau biarkan admin menentukan kamar yang sesuai.';
+                    dormInfo.textContent = trans.no_branch_available;
                     dormInfo.classList.remove('hidden');
-                    dormInfo.classList.remove('text-gray-500');
-                    dormInfo.classList.add('text-amber-600');
+                    dormInfo.classList.remove('text-gray-500', 'dark:text-gray-400');
+                    dormInfo.classList.add('text-amber-600', 'dark:text-amber-400');
                 } else {
-                    dormInfo.textContent = `${availableDormsCount} cabang tersedia untuk kategori ini`;
+                    dormInfo.textContent = `${availableDormsCount} ${trans.branch_available}`;
                     dormInfo.classList.remove('hidden');
-                    dormInfo.classList.remove('text-amber-600');
-                    dormInfo.classList.add('text-gray-500');
+                    dormInfo.classList.remove('text-amber-600', 'dark:text-amber-400');
+                    dormInfo.classList.add('text-gray-500', 'dark:text-gray-400');
                 }
 
                 // Reset dorm jika tidak tersedia lagi
@@ -406,18 +457,18 @@
                 // Show info
                 if (availableRoomTypesCount === 0) {
                     if (dormId) {
-                        roomTypeInfo.textContent = 'Tidak ada tipe kamar yang tersedia untuk kombinasi cabang dan kategori ini. Coba pilih cabang lain atau biarkan admin menentukan kamar yang sesuai.';
+                        roomTypeInfo.textContent = trans.no_room_type_available;
                     } else {
-                        roomTypeInfo.textContent = 'Tidak ada tipe kamar yang tersedia untuk kategori ini. Silakan pilih kategori penghuni lain atau biarkan admin menentukan kamar yang sesuai.';
+                        roomTypeInfo.textContent = trans.no_room_type_available_cat;
                     }
                     roomTypeInfo.classList.remove('hidden');
-                    roomTypeInfo.classList.remove('text-gray-500');
-                    roomTypeInfo.classList.add('text-amber-600');
+                    roomTypeInfo.classList.remove('text-gray-500', 'dark:text-gray-400');
+                    roomTypeInfo.classList.add('text-amber-600', 'dark:text-amber-400');
                 } else {
-                    roomTypeInfo.textContent = `${availableRoomTypesCount} tipe kamar tersedia`;
+                    roomTypeInfo.textContent = `${availableRoomTypesCount} ${trans.room_type_available}`;
                     roomTypeInfo.classList.remove('hidden');
-                    roomTypeInfo.classList.remove('text-amber-600');
-                    roomTypeInfo.classList.add('text-gray-500');
+                    roomTypeInfo.classList.remove('text-amber-600', 'dark:text-amber-400');
+                    roomTypeInfo.classList.add('text-gray-500', 'dark:text-gray-400');
                 }
 
                 // Reset room type jika tidak tersedia lagi
@@ -436,4 +487,5 @@
             filterDorms();
         })();
     </script>
-</x-guest-layout>
+    @endpush
+</x-public-layout>
