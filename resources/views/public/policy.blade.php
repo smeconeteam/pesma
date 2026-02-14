@@ -3,7 +3,7 @@
         <!-- Page Header -->
         <div class="mb-8 text-center">
             <h1 class="text-3xl font-extrabold text-gray-900 sm:text-4xl dark:text-white">
-                {{ $policy->title ?? __('public.policy.title') }}
+                {{ __('public.policy.title') }}
             </h1>
             @if($policy->updated_at)
                 <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
