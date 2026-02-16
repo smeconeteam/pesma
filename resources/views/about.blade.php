@@ -1,9 +1,19 @@
 <x-public-layout>
     <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div class="mb-16 text-center">
-            <h1 class="text-3xl font-extrabold text-gray-900 sm:text-4xl dark:text-white">
+        <!-- Breadcrumb -->
+        <div class="mb-6 flex gap-2 px-4 text-sm text-gray-600 sm:px-6 lg:px-8 dark:text-gray-400">
+            <a href="{{ route('home') }}" class="text-green-600 hover:underline dark:text-green-400">{{ __('public.home') }}</a>
+            <span>/</span>
+            <span>{{ __('public.about') }}</span>
+        </div>
+
+        <div class="mb-10 px-4 sm:px-6 lg:px-8">
+            <h1 class="mb-2 text-4xl font-bold text-gray-900 dark:text-white">
                 {{ __('about.title') }}
             </h1>
+            <p class="text-lg text-gray-700 dark:text-gray-300">
+                {{ __('about.description') }}
+            </p>
         </div>
 
         <!-- Main Content -->

@@ -31,28 +31,56 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
                     {{ __('navigation.dashboard') }}
                 </x-nav-link>
 
-                @if (Route::has('resident.my-room'))
-                    <x-nav-link :href="route('resident.my-room')" :active="request()->routeIs('resident.my-room')">
-                        {{ __('navigation.my_room') }}
-                    </x-nav-link>
+                {{-- Room Dropdown --}}
+                @if (Route::has('resident.my-room') || Route::has('resident.room-history'))
+                    <div x-data="{ roomOpen: false }" @click.away="roomOpen = false" class="relative flex h-full items-stretch">
+                        <button @click="roomOpen = !roomOpen" type="button" class="{{ request()->routeIs('resident.my-room') || request()->routeIs('resident.room-history') ? 'border-green-400 text-gray-900 focus:border-green-700 dark:border-green-400 dark:text-gray-100' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-700 dark:hover:text-gray-300' }} inline-flex items-center gap-1 border-b-2 px-1 pt-1 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none">
+                            {{ __('navigation.room') }}
+                            <svg class="h-4 w-4 transition-transform duration-200" :class="{ 'rotate-180': roomOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div x-show="roomOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" class="absolute left-0 top-full z-50 mt-1 w-48 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800 dark:ring-gray-700" style="display: none;">
+                            <div class="py-1">
+                                @if (Route::has('resident.my-room'))
+                                    <a href="{{ route('resident.my-room') }}" class="{{ request()->routeIs('resident.my-room') ? 'bg-gray-100 font-semibold text-gray-900 dark:bg-gray-700 dark:text-gray-100' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700' }} block px-4 py-2 text-sm transition-colors duration-150">
+                                        {{ __('navigation.my_room') }}
+                                    </a>
+                                @endif
+                                @if (Route::has('resident.room-history'))
+                                    <a href="{{ route('resident.room-history') }}" class="{{ request()->routeIs('resident.room-history') ? 'bg-gray-100 font-semibold text-gray-900 dark:bg-gray-700 dark:text-gray-100' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700' }} block px-4 py-2 text-sm transition-colors duration-150">
+                                        {{ __('navigation.room_history') }}
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
                 @endif
 
-                @if (Route::has('resident.room-history'))
-                    <x-nav-link :href="route('resident.room-history')" :active="request()->routeIs('resident.room-history')">
-                        {{ __('navigation.room_history') }}
-                    </x-nav-link>
-                @endif
-
-                @if (Route::has('resident.bills'))
-                    <x-nav-link :href="route('resident.bills')" :active="request()->routeIs('resident.bills')">
-                        {{ __('navigation.bills') }}
-                    </x-nav-link>
-                @endif
-
-                @if (Route::has('resident.payment-history'))
-                    <x-nav-link :href="route('resident.payment-history')" :active="request()->routeIs('resident.payment-history')">
-                        {{ __('navigation.payment_history') }}
-                    </x-nav-link>
+                {{-- Keuangan Dropdown --}}
+                @if (Route::has('resident.bills') || Route::has('resident.payment-history'))
+                    <div x-data="{ financeOpen: false }" @click.away="financeOpen = false" class="relative flex h-full items-stretch">
+                        <button @click="financeOpen = !financeOpen" type="button" class="{{ request()->routeIs('resident.bills') || request()->routeIs('resident.payment-history') ? 'border-green-400 text-gray-900 focus:border-green-700 dark:border-green-400 dark:text-gray-100' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-700 dark:hover:text-gray-300' }} inline-flex items-center gap-1 border-b-2 px-1 pt-1 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none">
+                            {{ __('navigation.finance') }}
+                            <svg class="h-4 w-4 transition-transform duration-200" :class="{ 'rotate-180': financeOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div x-show="financeOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" class="absolute left-0 top-full z-50 mt-1 w-48 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800 dark:ring-gray-700" style="display: none;">
+                            <div class="py-1">
+                                @if (Route::has('resident.bills'))
+                                    <a href="{{ route('resident.bills') }}" class="{{ request()->routeIs('resident.bills') ? 'bg-gray-100 font-semibold text-gray-900 dark:bg-gray-700 dark:text-gray-100' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700' }} block px-4 py-2 text-sm transition-colors duration-150">
+                                        {{ __('navigation.bills') }}
+                                    </a>
+                                @endif
+                                @if (Route::has('resident.payment-history'))
+                                    <a href="{{ route('resident.payment-history') }}" class="{{ request()->routeIs('resident.payment-history') ? 'bg-gray-100 font-semibold text-gray-900 dark:bg-gray-700 dark:text-gray-100' : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700' }} block px-4 py-2 text-sm transition-colors duration-150">
+                                        {{ __('navigation.payment_history') }}
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
                 @endif
             </div>
 
@@ -79,7 +107,7 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
                                 </svg>
 
                                 <div class="relative">
-                                    @if($navUserPhoto)
+                                    @if ($navUserPhoto)
                                         <img src="{{ Storage::url($navUserPhoto) }}" alt="{{ auth()->user()->name }}" class="h-9 w-9 rounded-full object-cover shadow-md">
                                     @else
                                         <div class="flex h-9 w-9 items-center justify-center rounded-full bg-green-600 text-sm font-bold text-white shadow-md dark:bg-green-500">
@@ -96,7 +124,7 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
 
                                     <div class="border-b border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900">
                                         <div class="flex items-center gap-3">
-                                            @if($navUserPhoto)
+                                            @if ($navUserPhoto)
                                                 <img src="{{ Storage::url($navUserPhoto) }}" alt="{{ auth()->user()->name }}" class="h-12 w-12 rounded-full object-cover shadow-md">
                                             @else
                                                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-600 text-lg font-bold text-white shadow-md dark:bg-green-500">

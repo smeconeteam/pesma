@@ -4,6 +4,8 @@ return [
     'dashboard' => 'Dasbor',
     'my_room' => 'Kamar Saya',
     'room_history' => 'Riwayat Kamar',
+    'room' => 'Kamar',
+    'finance' => 'Keuangan',
     'bills' => 'Tagihan',
     'payment_history' => 'Riwayat Pembayaran',
     'registration' => 'Pendaftaran',
