@@ -87,10 +87,10 @@ class LatestRegistrationsWidget extends BaseWidget
                 Tables\Actions\Action::make('view')
                     ->label('Lihat')
                     ->icon('heroicon-o-eye')
-                    ->url(fn(Registration $record): string => 
+                    ->url(
+                        fn(Registration $record): string =>
                         RegistrationResource::getUrl('view', ['record' => $record])
-                    )
-                    ->openUrlInNewTab(),
+                    ),
             ]);
     }
 }
