@@ -28,9 +28,9 @@
 
     $status = $profile?->status ?? ($assignment ? 'active' : 'registered');
     $statusLabel = match ($status) {
-    'active', 'aktif' => 'Aktif',
-    'inactive', 'nonaktif' => 'Nonaktif',
-    'registered', 'pending', 'menunggu_penempatan' => 'Menunggu Penempatan',
+    'active', 'aktif' => __('profile.status_active'),
+    'inactive', 'nonaktif' => __('profile.status_inactive'),
+    'registered', 'pending', 'menunggu_penempatan' => __('profile.status_pending_placement'),
     default => ucfirst(str_replace('_', ' ', (string) $status)),
     };
 
@@ -85,7 +85,7 @@
                                 {{ $user->email ?? '-' }}
                             </div>
                             <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                Status: <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $statusLabel }}</span>
+                                {{ __('profile.status') }}: <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $statusLabel }}</span>
                             </div>
 
                             <div class="mt-2 flex flex-wrap gap-1.5 sm:gap-2">
@@ -159,7 +159,7 @@
                         </div>
 
                         <div class="{{ $rowClass }}">
-                            <dt class="{{ $labelClass }}">{{ __('profile.national_id') }}l</dt>
+                            <dt class="{{ $labelClass }}">{{ __('profile.national_id') }}</dt>
                             <dd class="{{ $valueClass }}">{{ $profile?->national_id ?? '-' }}</dd>
                         </div>
 
@@ -185,20 +185,17 @@
 
                         @if (!$isInactive)
                             <div class="{{ $rowClass }}">
-                                <dt class="{{ $labelClass }}">Tanggal Masuk</dt>
+                                <dt class="{{ $labelClass }}">{{ __('profile.check_in_date') }}</dt>
                                 <dd class="{{ $valueClass }}">{{ $checkInLabel }}</dd>
                             </div>
                         @else
                             <div class="{{ $rowClass }}">
-                                <dt class="{{ $labelClass }}">Tanggal Keluar</dt>
+                                <dt class="{{ $labelClass }}">{{ __('profile.check_out_date') }}</dt>
                                 <dd class="{{ $valueClass }}">{{ $checkOutLabel ?? '-' }}</dd>
                             </div>
                         @endif
 
-                        <div class="{{ $rowClass }}">
-                            <dt class="{{ $labelClass }}">{{ __('profile.check_in_date') }}</dt>
-                            <dd class="{{ $valueClass }}">{{ $checkInLabel }}</dd>
-                        </div>
+
                     </dl>
                 </div>
             </div>
@@ -263,7 +260,7 @@
             {{-- Ubah Password --}}
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg rounded-xl border border-gray-100 dark:border-gray-700">
                 <div class="p-4 sm:p-6">
-                    <div class="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100">Ubah Password</div>
+                    <div class="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100">{{ __('profile.update_password') }}</div>
                     <div class="mt-3 sm:mt-4">
                         @include('profile.partials.update-password-form')
                     </div>

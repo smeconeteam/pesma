@@ -227,15 +227,20 @@ class LandingController extends Controller
             return Institution::first();
         });
 
-        // Main Admins
+        // Main Admins (only active ones who opted to show on landing)
         $mainAdmins = \App\Models\User::whereHas('roles', function($q) {
             $q->where('name', 'main_admin');
-        })->with(['adminProfile', 'residentProfile'])->get();
+        })->where('is_active', true)
+          ->whereHas('adminProfile', function($q) {
+              $q->where('show_phone_on_landing', true);
+          })
+          ->with(['adminProfile', 'residentProfile'])->get();
 
-        // Branch Admins (grouped by Dorm)
+        // Branch Admins (grouped by Dorm, only those who opted to show on landing)
         $dorms = \App\Models\Dorm::where('is_active', true)
             ->with(['adminScopes' => function($q) {
-                $q->where('type', 'branch');
+                $q->where('type', 'branch')
+                  ->where('show_phone_on_landing', true);
             }, 'adminScopes.user.residentProfile'])
             ->orderBy('name')
             ->get();

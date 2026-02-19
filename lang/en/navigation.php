@@ -4,6 +4,8 @@ return [
     'dashboard' => 'Dashboard',
     'my_room' => 'My Room',
     'room_history' => 'Room History',
+    'room' => 'Room',
+    'finance' => 'Finance',
     'bills' => 'Bills',
     'payment_history' => 'Payment History',
     'registration' => 'Registration',

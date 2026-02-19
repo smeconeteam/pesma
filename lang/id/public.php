@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'landing-headline' => 'Bisa Kuliah Sambil Mondok atau Kos aja, Tetap di :name',
+    'landing-headline' => 'Kuliah Sambil Mondok, atau Kos Aja, Bisa di :name',
     'landing-description' => 'menyediakan berbagai pilihan kamar dengan fasilitas lengkap dan harga terjangkau',
     'view_rooms' => 'Lihat Kamar',
     'register_now' => 'Daftar Sekarang',
@@ -22,7 +22,7 @@ return [
     'price' => 'Harga',
     'person' => 'orang',
     'active' => 'Aktif',
-    'slots_available' => 'Tersedia: :count slot',
+    'slots_available' => 'Tersedia: :count space',
     'resident' => 'Penghuni',
 
     // Rooms Index Page
@@ -64,4 +64,15 @@ return [
     'back_to_home' => 'Kembali ke Beranda',
     'filters' => 'Filter',
     'apply_filters' => 'Terapkan Filter',
+
+    // Policy Page
+    'policy' => [
+        'title' => 'Kebijakan',
+        'updated_at' => 'Diperbarui: :date',
+        'back' => 'Kembali',
+        'active' => 'Kebijakan Aktif',
+        'terms' => 'Syarat & Ketentuan',
+        'read_carefully' => 'Harap baca dengan seksama',
+        'footer_note' => 'Dokumen ini dapat berubah sewaktu-waktu tanpa pemberitahuan terlebih dahulu.',
+    ],
 ];

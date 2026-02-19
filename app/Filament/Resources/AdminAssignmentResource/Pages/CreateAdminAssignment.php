@@ -22,6 +22,13 @@ class CreateAdminAssignment extends CreateRecord
         $user = User::findOrFail($data['user_id']);
         $type = $data['type'];
 
-        return app(AdminPrivilegeService::class)->assignAdmin($user, $type);
+        $scope = app(AdminPrivilegeService::class)->assignAdmin($user, $type);
+
+        // Update show_phone_on_landing on the created scope
+        $scope->update([
+            'show_phone_on_landing' => $data['show_phone_on_landing'] ?? false,
+        ]);
+
+        return $scope;
     }
 }

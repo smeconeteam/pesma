@@ -114,6 +114,12 @@ class AdminAssignmentResource extends Resource
                             'branch' => 'Admin Cabang',
                             'block'  => 'Admin Komplek',
                         ]),
+
+                    Forms\Components\Toggle::make('show_phone_on_landing')
+                        ->label('Tampilkan di Halaman Kontak')
+                        ->helperText('Jika diaktifkan, nomor WhatsApp penghuni ini akan ditampilkan di halaman kontak landing page.')
+                        ->default(false)
+                        ->columnSpanFull(),
                 ]),
         ]);
     }
@@ -144,6 +150,15 @@ class AdminAssignmentResource extends Resource
                 Tables\Columns\TextColumn::make('block.name')
                     ->label('Komplek')
                     ->placeholder('-')
+                    ->toggleable(),
+
+                Tables\Columns\IconColumn::make('show_phone_on_landing')
+                    ->label('Tampil di Kontak')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-eye')
+                    ->falseIcon('heroicon-o-eye-slash')
+                    ->trueColor('success')
+                    ->falseColor('gray')
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('created_at')

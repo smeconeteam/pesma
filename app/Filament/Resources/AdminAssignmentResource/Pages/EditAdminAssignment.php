@@ -75,7 +75,7 @@ class EditAdminAssignment extends EditRecord
         $dormId = (int) $active->room->block->dorm->id;
         $blockId = (int) $active->room->block->id;
 
-        return DB::transaction(function () use ($record, $user, $newType, $dormId, $blockId) {
+        return DB::transaction(function () use ($record, $user, $newType, $dormId, $blockId, $data) {
             // HAPUS semua role admin yang ada (branch_admin DAN block_admin)
             $adminRoles = Role::whereIn('name', ['branch_admin', 'block_admin'])->pluck('id');
 
@@ -93,6 +93,7 @@ class EditAdminAssignment extends EditRecord
                 'type' => $newType,
                 'dorm_id' => $dormId,
                 'block_id' => $blockId,
+                'show_phone_on_landing' => $data['show_phone_on_landing'] ?? false,
             ]);
 
             return $record->refresh();

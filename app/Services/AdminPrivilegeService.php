@@ -131,6 +131,7 @@ class AdminPrivilegeService
                 'full_name' => $data['full_name'],
                 'gender' => $data['gender'],
                 'phone_number' => $data['phone_number'],
+                'show_phone_on_landing' => $data['show_phone_on_landing'] ?? false,
             ];
 
             if (isset($data['photo_path'])) {
@@ -178,6 +179,7 @@ class AdminPrivilegeService
                 'full_name' => $data['full_name'],
                 'gender' => $data['gender'],
                 'phone_number' => $data['phone_number'],
+                'show_phone_on_landing' => $data['show_phone_on_landing'] ?? false,
             ];
 
             if (isset($data['photo_path'])) {

@@ -42,6 +42,7 @@ class EditMainAdmin extends EditRecord
                 'full_name' => $this->record->adminProfile?->full_name,
                 'gender' => $this->record->adminProfile?->gender,
                 'phone_number' => $this->record->adminProfile?->phone_number,
+                'show_phone_on_landing' => $this->record->adminProfile?->show_phone_on_landing ?? false,
                 'photo_path' => $this->record->adminProfile?->photo_path,
             ],
         ];
@@ -51,11 +52,12 @@ class EditMainAdmin extends EditRecord
     {
         // Siapkan data untuk service
         $adminData = [
-            'email' => $data['email'],
+            'email' => $data['email'] ?? $this->record->email,
             'national_id' => $data['adminProfile']['national_id'],
             'full_name' => $data['adminProfile']['full_name'],
             'gender' => $data['adminProfile']['gender'],
             'phone_number' => $data['adminProfile']['phone_number'],
+            'show_phone_on_landing' => $data['adminProfile']['show_phone_on_landing'] ?? false,
         ];
 
         if (!empty($data['password'])) {

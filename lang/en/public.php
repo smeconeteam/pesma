@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'landing-headline' => 'Pursue Your Studies at :name: Choose Between Islamic Boarding or Private Housing.',
+    'landing-headline' => 'Study While Boarding, or Just Rent a Room at :name',
     'landing-description' => 'offers a wide selection of rooms with comprehensive facilities at affordable prices',
     'view_rooms' => 'View Rooms',
     'register_now' => 'Register Now',
@@ -22,7 +22,7 @@ return [
     'price' => 'Price',
     'person' => 'person',
     'active' => 'Active',
-    'slots_available' => 'Available: :count slots',
+    'slots_available' => 'Available: :count space',
     'resident' => 'Resident',
 
     // Rooms Index Page
@@ -64,4 +64,15 @@ return [
     'back_to_home' => 'Back to Home',
     'filters' => 'Filters',
     'apply_filters' => 'Apply Filters',
+
+    // Policy Page
+    'policy' => [
+        'title' => 'Policy',
+        'updated_at' => 'Updated at: :date',
+        'back' => 'Back',
+        'active' => 'Active Policy',
+        'terms' => 'Terms & Conditions',
+        'read_carefully' => 'Please read carefully',
+        'footer_note' => 'This document is subject to change without prior notice.',
+    ],
 ];
