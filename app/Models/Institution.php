@@ -20,6 +20,13 @@ class Institution extends Model
         'website',
         'logo_path',
         'about_content',
+        'landing_headline',
+        'landing_description',
+        'landing_stats',
+    ];
+
+    protected $casts = [
+        'landing_stats' => 'array',
     ];
 
     protected static function boot()

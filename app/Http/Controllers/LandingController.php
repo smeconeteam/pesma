@@ -40,7 +40,20 @@ class LandingController extends Controller
                 ->count();
         });
 
-        return view('landing', compact('institution', 'rooms', 'totalRooms'));
+        // Stats dinamis dari database (cached 5 menit)
+        $totalAllRooms = cache()->remember('landing_total_all_rooms', 300, function () {
+            return Room::where('is_active', true)->count();
+        });
+
+        $activeResidents = cache()->remember('landing_active_residents', 300, function () {
+            return \App\Models\RoomResident::whereNull('check_out_date')->count();
+        });
+
+        $totalDorms = cache()->remember('landing_total_dorms', 300, function () {
+            return Dorm::count();
+        });
+
+        return view('landing', compact('institution', 'rooms', 'totalRooms', 'totalAllRooms', 'activeResidents', 'totalDorms'));
     }
 
     public function allRooms(Request $request)
