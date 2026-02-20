@@ -55,12 +55,12 @@
                     </div>
 
                     <div class="mt-6 grid grid-cols-2 gap-3">
-                        <a href="{{ route('resident.my-room') }}" class="inline-flex items-center justify-center gap-2 px-3 py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl font-bold text-xs text-white uppercase tracking-wide hover:from-green-700 hover:to-emerald-700 transition-all shadow-md">
+                        <a href="{{ localizedRoute('resident.my-room') }}" class="inline-flex items-center justify-center gap-2 px-3 py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl font-bold text-xs text-white uppercase tracking-wide hover:from-green-700 hover:to-emerald-700 transition-all shadow-md">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                             <span>{{ __('dashboard.my_room') }}</span>
                         </a>
 
-                        <a href="{{ route('resident.room-history') }}" class="inline-flex items-center justify-center gap-2 px-3 py-3 bg-white dark:bg-gray-700 border-2 border-green-200 dark:border-green-600 rounded-xl font-bold text-xs text-green-700 dark:text-green-400 uppercase tracking-wide hover:bg-green-50 dark:hover:bg-gray-600 hover:border-green-300 dark:hover:border-green-500 transition-all shadow-md">
+                        <a href="{{ localizedRoute('resident.room-history') }}" class="inline-flex items-center justify-center gap-2 px-3 py-3 bg-white dark:bg-gray-700 border-2 border-green-200 dark:border-green-600 rounded-xl font-bold text-xs text-green-700 dark:text-green-400 uppercase tracking-wide hover:bg-green-50 dark:hover:bg-gray-600 hover:border-green-300 dark:hover:border-green-500 transition-all shadow-md">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             <span>{{ __('dashboard.room_history') }}</span>
                         </a>
@@ -95,8 +95,8 @@
                             </div>
                         </div>
                         
-                        @if(\Illuminate\Support\Facades\Route::has('resident.bills'))
-                        <a href="{{ route('resident.bills') }}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm">
+                        @if(\Illuminate\Support\Facades\Route::has('resident.bills.id') || \Illuminate\Support\Facades\Route::has('resident.bills.en'))
+                        <a href="{{ localizedRoute('resident.bills') }}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm">
                             {{ __('bills.view_all') }}
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                         </a>
@@ -177,8 +177,8 @@
                             </div>
                         </div>
                         
-                        @if(\Illuminate\Support\Facades\Route::has('resident.payment-history'))
-                        <a href="{{ route('resident.payment-history') }}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm">
+                        @if(\Illuminate\Support\Facades\Route::has('resident.payment-history.id') || \Illuminate\Support\Facades\Route::has('resident.payment-history.en'))
+                        <a href="{{ localizedRoute('resident.payment-history') }}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm">
                             {{ __('bills.view_all') }}
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                         </a>
@@ -265,7 +265,8 @@
             </div>
 
             {{-- CARD 4: PIC KAMAR --}}
-            @if (!empty($picInfo))
+            @if (!$isYouPic)
+                @if (!empty($picInfo))
                 <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-lg sm:rounded-2xl rounded-xl border border-gray-100 dark:border-gray-800 transition-colors duration-200">
                     <div class="p-5 sm:p-7">
                         <div class="flex items-center gap-3 mb-5">
@@ -326,6 +327,7 @@
                         </div>
                     </div>
                 </div>
+                @endif
             @endif
 
             {{-- CARD 5: KONTAK --}}

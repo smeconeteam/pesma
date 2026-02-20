@@ -21,7 +21,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('public.registration.store') }}" enctype="multipart/form-data" class="space-y-8">
+        <form method="POST" action="{{ localizedRoute('public.registration.store') }}" enctype="multipart/form-data" class="space-y-8">
             @csrf
 
             {{-- AKUN --}}
@@ -268,7 +268,7 @@
                     <label for="agreed_to_policy" class="cursor-pointer text-sm text-gray-700 dark:text-gray-300">
                         {{ __('registration.policy_agree') }} 
                         <a 
-                            href="{{ route('public.policy') }}" 
+                            href="{{ localizedRoute('public.policy') }}" 
                             target="_blank"
                             rel="opener"
                             class="font-semibold text-green-700 underline decoration-2 underline-offset-2 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"

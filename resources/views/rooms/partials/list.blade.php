@@ -21,9 +21,9 @@
             @endif
         </p>
         @if (request()->hasAny(['search', 'dorm_id', 'room_type_id', 'resident_category_id']))
-            <a href="{{ route('rooms.available') }}" class="btn-primary">{{ __('public.reset_filter') }}</a>
+            <a href="{{ localizedRoute('rooms.available') }}" class="btn-primary">{{ __('public.reset_filter') }}</a>
         @else
-            <a href="{{ route('home') }}" class="btn-primary">{{ __('public.back_to_home') }}</a>
+            <a href="{{ localizedRoute('home') }}" class="btn-primary">{{ __('public.back_to_home') }}</a>
         @endif
     </div>
 @endif
