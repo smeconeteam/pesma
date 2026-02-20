@@ -4,16 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreRegistrationRequest;
 use App\Models\Country;
+use Illuminate\Http\Request;
 use App\Models\Dorm;
 use App\Models\Policy;
 use App\Models\Registration;
 use App\Models\ResidentCategory;
+use App\Models\Room;
 use App\Models\RoomType;
 use Illuminate\Support\Facades\DB;
 
 class PublicRegistrationController extends Controller
 {
-    public function create()
+    public function create(Request $request)
     {
         $indoId = Country::query()->where('iso2', 'ID')->value('id');
 
@@ -24,7 +26,7 @@ class PublicRegistrationController extends Controller
         $roomAvailability = DB::table('rooms')
             ->join('blocks', 'rooms.block_id', '=', 'blocks.id')
             ->join('dorms', 'blocks.dorm_id', '=', 'dorms.id')
-            ->leftJoin('room_residents', function($join) {
+            ->leftJoin('room_residents', function ($join) {
                 $join->on('rooms.id', '=', 'room_residents.room_id')
                     ->whereNull('room_residents.check_out_date');
             })
@@ -43,11 +45,11 @@ class PublicRegistrationController extends Controller
             )
             ->groupBy('dorms.id', 'rooms.room_type_id', 'rooms.resident_category_id')
             ->get()
-            ->map(function($item) {
+            ->map(function ($item) {
                 $item->available_capacity = $item->total_capacity - $item->occupied_count;
                 return $item;
             })
-            ->filter(function($item) {
+            ->filter(function ($item) {
                 return $item->available_capacity > 0;
             })
             ->values();
@@ -60,6 +62,18 @@ class PublicRegistrationController extends Controller
             'indoCountryId'      => $indoId,
             'policy'             => $policy,
             'roomAvailability'   => $roomAvailability,
+            'prefill' => [
+                'room_id'               => $request->integer('room_id') ?: null,
+                'preferred_dorm_id'     => $request->integer('preferred_dorm_id') ?: null,
+                'preferred_room_type_id' => $request->integer('preferred_room_type_id') ?: null,
+                'resident_category_id'  => $request->integer('resident_category_id') ?: null,
+            ],
+
+            // ✅ Jika ada room_id, ambil detail kamarnya untuk ditampilkan
+            'prefillRoom' => $request->filled('room_id')
+                ? Room::with(['block.dorm', 'roomType', 'residentCategory'])
+                ->find($request->integer('room_id'))
+                : null,
         ]);
     }
 

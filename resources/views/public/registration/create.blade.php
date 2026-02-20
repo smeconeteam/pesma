@@ -6,19 +6,19 @@
         </div>
 
         @if ($errors->any())
-            <div class="mb-8 rounded-xl border border-red-200 bg-red-50 p-6 text-red-700 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400">
-                <div class="mb-2 flex items-center gap-2 font-bold">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
-                    {{ __('registration.error_title') }}
-                </div>
-                <ul class="list-disc space-y-1 pl-5">
-                    @foreach ($errors->all() as $e)
-                        <li>{{ $e }}</li>
-                    @endforeach
-                </ul>
+        <div class="mb-8 rounded-xl border border-red-200 bg-red-50 p-6 text-red-700 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400">
+            <div class="mb-2 flex items-center gap-2 font-bold">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                {{ __('registration.error_title') }}
             </div>
+            <ul class="list-disc space-y-1 pl-5">
+                @foreach ($errors->all() as $e)
+                <li>{{ $e }}</li>
+                @endforeach
+            </ul>
+        </div>
         @endif
 
         <form method="POST" action="{{ route('public.registration.store') }}" enctype="multipart/form-data" class="space-y-8">
@@ -51,19 +51,17 @@
                     <div class="md:col-span-2">
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.password') }}</label>
                         <div class="relative">
-                            <input 
+                            <input
                                 id="password"
-                                name="password" 
-                                type="password" 
+                                name="password"
+                                type="password"
                                 value="123456789"
-                                class="w-full rounded-lg border-gray-300 pr-10 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                            >
-                            
+                                class="w-full rounded-lg border-gray-300 pr-10 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+
                             <button
                                 type="button"
                                 onclick="togglePasswordField()"
-                                class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                            >
+                                class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                                 <svg id="eye-icon-reg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -95,14 +93,16 @@
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.resident_category') }} <span class="text-red-500">*</span></label>
-                        <select id="resident_category_id" name="resident_category_id" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" required>
+                        <select id="resident_category_id" name="resident_category_id" ... required>
                             <option value="">{{ __('registration.select_option') }}</option>
                             @foreach ($residentCategories as $cat)
-                                <option value="{{ $cat->id }}" @selected(old('resident_category_id') == $cat->id)>
-                                    {{ $cat->name }}
-                                </option>
+                            {{-- ✅ Prioritas: old() dulu, baru prefill dari kamar --}}
+                            <option value="{{ $cat->id }}"
+                                @selected(old('resident_category_id', $prefill['resident_category_id'])==$cat->id)>
+                                {{ $cat->name }}
+                            </option>
                             @endforeach
-                        </select>
+                            </select>
                     </div>
 
                     <div>
@@ -114,8 +114,8 @@
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.gender') }} <span class="text-red-500">*</span></label>
                         <select name="gender" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" required>
                             <option value="">{{ __('registration.select_option') }}</option>
-                            <option value="M" @selected(old('gender') === 'M')>{{ __('registration.male') }}</option>
-                            <option value="F" @selected(old('gender') === 'F')>{{ __('registration.female') }}</option>
+                            <option value="M" @selected(old('gender')==='M' )>{{ __('registration.male') }}</option>
+                            <option value="F" @selected(old('gender')==='F' )>{{ __('registration.female') }}</option>
                         </select>
                     </div>
 
@@ -169,8 +169,8 @@
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.citizenship') }} <span class="text-red-500">*</span></label>
                         <select id="citizenship_status" name="citizenship_status" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" required>
-                            <option value="WNI" @selected(old('citizenship_status', 'WNI') === 'WNI')>WNI</option>
-                            <option value="WNA" @selected(old('citizenship_status') === 'WNA')>WNA</option>
+                            <option value="WNI" @selected(old('citizenship_status', 'WNI' )==='WNI' )>WNI</option>
+                            <option value="WNA" @selected(old('citizenship_status')==='WNA' )>WNA</option>
                         </select>
                     </div>
 
@@ -179,9 +179,9 @@
                         <select id="country_id" name="country_id" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" required>
                             <option value="">{{ __('registration.select_option') }}</option>
                             @foreach ($countries as $c)
-                                <option value="{{ $c->id }}" @selected(old('country_id', $indoCountryId) == $c->id)>
-                                    {{ $c->name }}
-                                </option>
+                            <option value="{{ $c->id }}" @selected(old('country_id', $indoCountryId)==$c->id)>
+                                {{ $c->name }}
+                            </option>
                             @endforeach
                         </select>
                     </div>
@@ -225,10 +225,13 @@
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.branch') }}</label>
-                        <select id="preferred_dorm_id" name="preferred_dorm_id" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                        <select id="preferred_dorm_id" name="preferred_dorm_id" ...>
                             <option value="">{{ __('registration.select_branch') }}</option>
                             @foreach ($dorms as $d)
-                                <option value="{{ $d->id }}" @selected(old('preferred_dorm_id') == $d->id)>{{ $d->name }}</option>
+                                <option value="{{ $d->id }}"
+                                    @selected(old('preferred_dorm_id', $prefill['preferred_dorm_id']) == $d->id)>
+                                    {{ $d->name }}
+                                </option>
                             @endforeach
                         </select>
                         <p id="dorm-info" class="mt-2 text-xs font-medium hidden"></p>
@@ -236,13 +239,45 @@
 
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.room_type') }}</label>
-                        <select id="preferred_room_type_id" name="preferred_room_type_id" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                        <select id="preferred_room_type_id" name="preferred_room_type_id" ...>
                             <option value="">{{ __('registration.select_room_type') }}</option>
                             @foreach ($roomTypes as $rt)
-                                <option value="{{ $rt->id }}" @selected(old('preferred_room_type_id') == $rt->id)>{{ $rt->name }}</option>
+                                <option value="{{ $rt->id }}"
+                                    @selected(old('preferred_room_type_id', $prefill['preferred_room_type_id']) == $rt->id)>
+                                    {{ $rt->name }}
+                                </option>
                             @endforeach
                         </select>
                         <p id="room-type-info" class="mt-2 text-xs font-medium hidden"></p>
+                    </div>
+
+                    <div>
+                        {{-- Hidden field untuk simpan room spesifik --}}
+                        <input type="hidden" name="preferred_room_id" value="{{ old('preferred_room_id', $prefill['room_id']) }}">
+
+                        {{-- Tampilkan info kamar jika datang dari halaman detail kamar --}}
+                        @if($prefillRoom)
+                        <div class="md:col-span-2">
+                            <div class="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+                                <svg class="h-5 w-5 shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <div class="text-sm text-green-800 dark:text-green-200">
+                                    <span class="font-semibold">Kamar dipilih:</span>
+                                    {{ $prefillRoom->block->dorm->name }} — Nomor {{ $prefillRoom->number }}
+                                    ({{ $prefillRoom->roomType->name }})
+                                </div>
+                                {{-- Tombol batalkan pilihan kamar spesifik --}}
+                                <a href="{{ route('public.registration.create', array_filter([
+                                    'preferred_dorm_id'      => $prefill['preferred_dorm_id'],
+                                    'preferred_room_type_id' => $prefill['preferred_room_type_id'],
+                                    'resident_category_id'   => $prefill['resident_category_id'],
+                                ])) }}" class="ml-auto text-xs text-green-700 underline hover:text-green-900">
+                                    Ubah
+                                </a>
+                            </div>
+                        </div>
+                        @endif
                     </div>
 
                     <div>
@@ -255,57 +290,53 @@
 
             {{-- CHECKBOX KEBIJAKAN --}}
             @if($policy)
-                <div class="flex items-start space-x-3 rounded-xl border border-green-200 bg-green-50 p-5 dark:border-green-900/40 dark:bg-green-900/20">
-                    <input 
-                        type="checkbox" 
-                        name="agreed_to_policy" 
-                        id="agreed_to_policy" 
-                        value="1"
-                        class="mt-1 h-5 w-5 flex-shrink-0 cursor-pointer rounded border-gray-300 text-green-600 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-800 dark:ring-offset-gray-900"
-                        {{ old('agreed_to_policy') ? 'checked' : '' }}
-                        required
-                    >
-                    <label for="agreed_to_policy" class="cursor-pointer text-sm text-gray-700 dark:text-gray-300">
-                        {{ __('registration.policy_agree') }} 
-                        <a 
-                            href="{{ route('public.policy') }}" 
-                            target="_blank"
-                            rel="opener"
-                            class="font-semibold text-green-700 underline decoration-2 underline-offset-2 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
-                        >
-                            {{ __('registration.policy_link') }}
-                        </a>
-                        <span class="text-red-500 font-bold ml-1">*</span>
-                    </label>
-                </div>
-                
-                @error('agreed_to_policy')
-                    <p class="mt-2 text-sm text-red-600 dark:text-red-400 pl-8">{{ $message }}</p>
-                @enderror
+            <div class="flex items-start space-x-3 rounded-xl border border-green-200 bg-green-50 p-5 dark:border-green-900/40 dark:bg-green-900/20">
+                <input
+                    type="checkbox"
+                    name="agreed_to_policy"
+                    id="agreed_to_policy"
+                    value="1"
+                    class="mt-1 h-5 w-5 flex-shrink-0 cursor-pointer rounded border-gray-300 text-green-600 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-800 dark:ring-offset-gray-900"
+                    {{ old('agreed_to_policy') ? 'checked' : '' }}
+                    required>
+                <label for="agreed_to_policy" class="cursor-pointer text-sm text-gray-700 dark:text-gray-300">
+                    {{ __('registration.policy_agree') }}
+                    <a
+                        href="{{ route('public.policy') }}"
+                        target="_blank"
+                        rel="opener"
+                        class="font-semibold text-green-700 underline decoration-2 underline-offset-2 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300">
+                        {{ __('registration.policy_link') }}
+                    </a>
+                    <span class="text-red-500 font-bold ml-1">*</span>
+                </label>
+            </div>
+
+            @error('agreed_to_policy')
+            <p class="mt-2 text-sm text-red-600 dark:text-red-400 pl-8">{{ $message }}</p>
+            @enderror
             @else
-                <div class="rounded-xl border border-yellow-200 bg-yellow-50 p-5 dark:border-yellow-900/40 dark:bg-yellow-900/20">
-                    <p class="flex items-center gap-2 text-sm font-medium text-yellow-800 dark:text-yellow-400">
-                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                        </svg>
-                        {{ __('registration.policy_unavailable') }}
-                    </p>
-                </div>
+            <div class="rounded-xl border border-yellow-200 bg-yellow-50 p-5 dark:border-yellow-900/40 dark:bg-yellow-900/20">
+                <p class="flex items-center gap-2 text-sm font-medium text-yellow-800 dark:text-yellow-400">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    {{ __('registration.policy_unavailable') }}
+                </p>
+            </div>
             @endif
 
             {{-- TOMBOL SUBMIT --}}
             <div class="flex items-center justify-end gap-3 pt-4">
-                <a 
-                    href="{{ url('/') }}" 
-                    class="rounded-lg border border-gray-300 bg-white px-6 py-2.5 text-center font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:focus:ring-offset-gray-900"
-                >
+                <a
+                    href="{{ url('/') }}"
+                    class="rounded-lg border border-gray-300 bg-white px-6 py-2.5 text-center font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:focus:ring-offset-gray-900">
                     {{ __('registration.cancel') }}
                 </a>
-                <button 
-                    type="submit" 
+                <button
+                    type="submit"
                     class="rounded-lg bg-green-600 px-6 py-2.5 text-center font-medium text-white shadow-md transition-all hover:bg-green-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-green-500 dark:hover:bg-green-600 dark:focus:ring-offset-gray-900"
-                    @if(!$policy) disabled title="{{ __('registration.policy_unavailable') }}" @endif
-                >
+                    @if(!$policy) disabled title="{{ __('registration.policy_unavailable') }}" @endif>
                     {{ __('registration.submit') }}
                 </button>
             </div>
@@ -319,7 +350,7 @@
             const passwordInput = document.getElementById('password');
             const eyeIcon = document.getElementById('eye-icon-reg');
             const eyeSlashIcon = document.getElementById('eye-slash-icon-reg');
-            
+
             if (passwordInput.type === 'password') {
                 passwordInput.type = 'text';
                 eyeIcon.classList.add('hidden');
@@ -341,7 +372,7 @@
             const dormInfo = document.getElementById('dorm-info');
             const roomTypeInfo = document.getElementById('room-type-info');
             const indoId = @json($indoCountryId);
-            
+
             // Translations
             const trans = {
                 no_branch_available: "{{ __('registration.no_branch_available') }}",
@@ -384,10 +415,10 @@
                 let availableDormsCount = 0;
                 Array.from(dormSelect.options).forEach((option, idx) => {
                     if (idx === 0) return; // skip placeholder
-                    
+
                     const dormId = parseInt(option.value);
-                    const hasAvailability = roomAvailability.some(r => 
-                        r.dorm_id === dormId && 
+                    const hasAvailability = roomAvailability.some(r =>
+                        r.dorm_id === dormId &&
                         (r.resident_category_id === parseInt(categoryId) || r.resident_category_id === null) &&
                         r.available_capacity > 0
                     );
@@ -436,9 +467,9 @@
                 let availableRoomTypesCount = 0;
                 Array.from(roomTypeSelect.options).forEach((option, idx) => {
                     if (idx === 0) return; // skip placeholder
-                    
+
                     const roomTypeId = parseInt(option.value);
-                    
+
                     // Jika ada dorm dipilih, filter berdasarkan dorm dan kategori
                     // Jika tidak ada dorm, filter berdasarkan kategori saja (ada di semua dorm)
                     const hasAvailability = roomAvailability.some(r => {
@@ -446,7 +477,7 @@
                         const matchRoomType = r.room_type_id === roomTypeId;
                         const matchDorm = dormId ? r.dorm_id === parseInt(dormId) : true;
                         const hasCapacity = r.available_capacity > 0;
-                        
+
                         return matchCategory && matchRoomType && matchDorm && hasCapacity;
                     });
 
@@ -485,6 +516,7 @@
             // Initial sync
             syncCountry();
             filterDorms();
+            filterRoomTypes();
         })();
     </script>
     @endpush
