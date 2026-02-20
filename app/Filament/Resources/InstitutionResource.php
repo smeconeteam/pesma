@@ -155,6 +155,29 @@ class InstitutionResource extends Resource
                                     ->nullable()
                                     ->placeholder('Klik di sini untuk mulai menulis tentang asrama...'),
                             ]),
+
+                        Tab::make('Landing Page')
+                            ->schema([
+                                Forms\Components\Section::make('Headline & Deskripsi')
+                                    ->description('Kustomisasi teks utama yang ditampilkan di halaman depan.')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('landing_headline')
+                                            ->label('Headline')
+                                            ->placeholder('Contoh: Kuliah Sambil Mondok, atau Kos Aja, Bisa di PPM elFIRA')
+                                            ->helperText('Teks judul besar di bagian atas landing page.')
+                                            ->required()
+                                            ->maxLength(255)
+                                            ->columnSpanFull(),
+
+                                        Forms\Components\Textarea::make('landing_description')
+                                            ->label('Deskripsi')
+                                            ->placeholder('Contoh: Menyediakan berbagai pilihan kamar dengan fasilitas lengkap dan harga terjangkau')
+                                            ->helperText('Teks deskripsi di bawah headline.')
+                                            ->required()
+                                            ->rows(2)
+                                            ->columnSpanFull(),
+                                    ]),
+                            ]),
                     ])
                     ->columnSpan(2)
             ]);

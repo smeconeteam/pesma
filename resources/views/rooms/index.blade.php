@@ -4,7 +4,7 @@
     <div class="mx-auto max-w-7xl py-12">
         <!-- Breadcrumb -->
         <div class="mb-6 flex gap-2 px-4 text-sm text-gray-600 sm:px-6 lg:px-8 dark:text-gray-400">
-            <a href="{{ route('home') }}" class="text-green-600 hover:underline dark:text-green-400">{{ __('public.home') }}</a>
+            <a href="{{ localizedRoute('home') }}" class="text-green-600 hover:underline dark:text-green-400">{{ __('public.home') }}</a>
             <span>/</span>
             <span>{{ __('public.rooms_available') }}</span>
         </div>
@@ -17,7 +17,7 @@
 
         <!-- Search and Filter Section -->
         <div class="relative mx-4 rounded-2xl bg-white p-6 shadow-sm sm:mx-6 lg:mx-8 dark:bg-gray-800 dark:shadow-gray-900/10">
-            <form method="GET" action="{{ route('rooms.available') }}" class="flex flex-wrap items-center gap-4">
+            <form method="GET" action="{{ localizedRoute('rooms.available') }}" class="flex flex-wrap items-center gap-4">
                 <!-- Search Input -->
                 <div class="relative min-w-[280px] flex-1">
                     <svg class="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -111,7 +111,7 @@
                 <!-- Filter Buttons -->
                 <div class="flex gap-3">
                     @if (request()->hasAny(['search', 'dorm_id', 'room_type_id', 'resident_category_id']))
-                        <a href="{{ route('rooms.available') }}" class="inline-flex items-center gap-1 rounded-md bg-green-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
+                        <a href="{{ localizedRoute('rooms.available') }}" class="inline-flex items-center gap-1 rounded-md bg-green-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>

@@ -169,7 +169,7 @@
                     </div>
 
                     {{-- Filter --}}
-                    <form method="GET" action="{{ route('resident.bills') }}" class="mb-6">
+                    <form method="GET" action="{{ localizedRoute('resident.bills') }}" class="mb-6">
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ __('bills.status') }}</label>
@@ -249,14 +249,14 @@
                         </div>
                         <div class="flex gap-2">
                             @if ($currentPage > 1)
-                            <a href="{{ route('resident.bills', array_merge(request()->except('page'), ['page' => $currentPage - 1])) }}" 
+                            <a href="{{ localizedRoute('resident.bills', array_merge(request()->except('page'), ['page' => $currentPage - 1])) }}" 
                                class="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
                                 {{ __('bills.previous') }}
                             </a>
                             @endif
                             
                             @if ($currentPage < $totalPages)
-                            <a href="{{ route('resident.bills', array_merge(request()->except('page'), ['page' => $currentPage + 1])) }}" 
+                            <a href="{{ localizedRoute('resident.bills', array_merge(request()->except('page'), ['page' => $currentPage + 1])) }}" 
                                class="px-4 py-2 bg-blue-600 border border-blue-600 rounded-lg text-sm font-medium text-white hover:bg-blue-700">
                                 {{ __('bills.next') }}
                             </a>
