@@ -20,7 +20,7 @@
                     {{ __('contact.main_admin') }}
                 </h2>
 
-                <div class="grid grid-cols-1 justify-center gap-8 md:grid-cols-2 lg:grid-cols-3">
+                <div class="flex flex-wrap justify-center gap-8">
                     @foreach ($mainAdmins as $admin)
                         @php
                             $profile = $admin->adminProfile ?? $admin->residentProfile;
@@ -33,7 +33,7 @@
                                 $waNumber = '62' . substr($waNumber, 1);
                             }
                         @endphp
-                        <div class="flex h-full flex-col items-center overflow-hidden rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-lg transition-shadow duration-300 hover:shadow-xl dark:border-gray-700 dark:bg-gray-800">
+                        <div class="flex h-full shrink-0 flex-col items-center overflow-hidden rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-lg transition-shadow duration-300 hover:shadow-xl dark:border-gray-700 dark:bg-gray-800">
                             <div class="mb-6 h-32 w-32 overflow-hidden rounded-full border-4 border-green-100 bg-gray-100 dark:border-green-900 dark:bg-gray-700">
                                 @if ($photo)
                                     <img src="{{ Storage::url($photo) }}" alt="{{ $admin->name }}" class="h-full w-full object-cover">
