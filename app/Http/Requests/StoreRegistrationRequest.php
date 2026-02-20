@@ -49,6 +49,7 @@ class StoreRegistrationRequest extends FormRequest
             // Preferensi (sekarang optional)
             'preferred_dorm_id' => 'nullable|exists:dorms,id',
             'preferred_room_type_id' => 'nullable|exists:room_types,id',
+            'preferred_room_id' => 'nullable|exists:rooms,id',
             'planned_check_in_date' => 'nullable|date|after_or_equal:today',
 
             // Kebijakan

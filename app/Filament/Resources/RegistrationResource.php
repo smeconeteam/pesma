@@ -292,7 +292,7 @@ class RegistrationResource extends Resource
                             ->label('Cabang Yang Diinginkan')
                             ->options(function (Forms\Get $get) {
                                 $categoryId = $get('resident_category_id');
-                                
+
                                 if (blank($categoryId)) {
                                     return Dorm::query()
                                         ->where('is_active', true)
@@ -310,8 +310,8 @@ class RegistrationResource extends Resource
                                     ->where(function ($q) use ($categoryId) {
                                         // Kamar dengan kategori yang sama
                                         $q->where('rooms.resident_category_id', $categoryId)
-                                        // ATAU kamar tanpa kategori (NULL)
-                                        ->orWhereNull('rooms.resident_category_id');
+                                            // ATAU kamar tanpa kategori (NULL)
+                                            ->orWhereNull('rooms.resident_category_id');
                                     })
                                     ->distinct()
                                     ->pluck('dorms.id');
@@ -327,8 +327,9 @@ class RegistrationResource extends Resource
                             ->afterStateUpdated(function (Forms\Set $set) {
                                 $set('preferred_room_type_id', null);
                             })
-                            ->disabled(fn (Forms\Get $get) => blank($get('resident_category_id')))
-                            ->helperText(fn (Forms\Get $get) => 
+                            ->disabled(fn(Forms\Get $get) => blank($get('resident_category_id')))
+                            ->helperText(
+                                fn(Forms\Get $get) =>
                                 blank($get('resident_category_id'))
                                     ? 'Pilih kategori penghuni terlebih dahulu'
                                     : 'Hanya cabang dengan kamar sesuai kategori yang ditampilkan'
@@ -340,7 +341,7 @@ class RegistrationResource extends Resource
                             ->options(function (Forms\Get $get) {
                                 $categoryId = $get('resident_category_id');
                                 $dormId = $get('preferred_dorm_id');
-                                
+
                                 if (blank($categoryId) || blank($dormId)) {
                                     return [];
                                 }
@@ -354,7 +355,7 @@ class RegistrationResource extends Resource
                                     ->where('room_types.is_active', true)
                                     ->where(function ($q) use ($categoryId) {
                                         $q->where('rooms.resident_category_id', $categoryId)
-                                        ->orWhereNull('rooms.resident_category_id');
+                                            ->orWhereNull('rooms.resident_category_id');
                                     })
                                     ->distinct()
                                     ->pluck('room_types.id');
@@ -366,7 +367,8 @@ class RegistrationResource extends Resource
                             })
                             ->searchable()
                             ->native(false)
-                            ->live() // ✅ Reactive saat cabang/kategori berubah
+                            ->live()
+                            ->afterStateUpdated(fn(Forms\Set $set) => $set('preferred_room_id', null))
                             ->disabled(function (Forms\Get $get) {
                                 return blank($get('resident_category_id')) || blank($get('preferred_dorm_id'));
                             })
@@ -380,6 +382,52 @@ class RegistrationResource extends Resource
                                 return 'Hanya tipe kamar yang tersedia di cabang terpilih';
                             })
                             ->nullable(),
+
+                        Forms\Components\Select::make('preferred_room_id')
+                            ->label('Nomor Kamar Yang Diinginkan')
+                            ->options(function (Forms\Get $get) {
+                                $categoryId = $get('resident_category_id');
+                                $dormId     = $get('preferred_dorm_id');
+                                $roomTypeId = $get('preferred_room_type_id');
+
+                                if (blank($categoryId) || blank($dormId) || blank($roomTypeId)) {
+                                    return [];
+                                }
+
+                                return \App\Models\Room::query()
+                                    ->whereHas(
+                                        'block',
+                                        fn($q) => $q
+                                            ->where('is_active', true)
+                                            ->where('dorm_id', $dormId)
+                                    )
+                                    ->where('is_active', true)
+                                    ->where('room_type_id', $roomTypeId)
+                                    ->where(function ($q) use ($categoryId) {
+                                        $q->where('resident_category_id', $categoryId)
+                                            ->orWhereNull('resident_category_id');
+                                    })
+                                    ->get()
+                                    ->filter(fn($room) => $room->available_capacity > 0)
+                                    ->mapWithKeys(fn($room) => [
+                                        $room->id => "No. {$room->number} (sisa {$room->available_capacity} tempat)",
+                                    ]);
+                            })
+                            ->searchable()
+                            ->native(false)
+                            ->disabled(function (Forms\Get $get) {
+                                return blank($get('resident_category_id'))
+                                    || blank($get('preferred_dorm_id'))
+                                    || blank($get('preferred_room_type_id'));
+                            })
+                            ->helperText(function (Forms\Get $get) {
+                                if (blank($get('resident_category_id')))   return 'Pilih kategori penghuni terlebih dahulu';
+                                if (blank($get('preferred_dorm_id')))      return 'Pilih cabang terlebih dahulu';
+                                if (blank($get('preferred_room_type_id'))) return 'Pilih tipe kamar terlebih dahulu';
+                                return 'Opsional. Hanya kamar yang masih ada kapasitas yang ditampilkan';
+                            })
+                            ->nullable()
+                            ->columnSpanFull(),
                     ]),
             ]);
     }

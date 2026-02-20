@@ -54,6 +54,29 @@ class PublicRegistrationController extends Controller
             })
             ->values();
 
+        // Ambil semua kamar aktif yang masih ada kapasitas untuk dropdown nomor kamar
+        $availableRooms = Room::with(['block.dorm', 'roomType', 'residentCategory'])
+            ->where('is_active', true)
+            ->whereNull('deleted_at')
+            ->whereHas(
+                'block',
+                fn($q) => $q->where('is_active', true)->whereNull('deleted_at')
+                    ->whereHas('dorm', fn($q2) => $q2->where('is_active', true)->whereNull('deleted_at'))
+            )
+            ->orderBy('number')
+            ->get()
+            ->filter(fn($room) => $room->available_capacity > 0)
+            ->values();
+
+        $prefill = [
+            'room_id'                => $request->integer('room_id') ?: null,
+            'preferred_dorm_id'      => $request->integer('preferred_dorm_id') ?: null,
+            'preferred_room_type_id' => $request->integer('preferred_room_type_id') ?: null,
+            'resident_category_id'   => $request->integer('resident_category_id') ?: null,
+        ];
+
+        $fromRoom = !empty($prefill['room_id']);
+
         return view('public.registration.create', [
             'residentCategories' => ResidentCategory::query()->orderBy('name')->get(['id', 'name']),
             'dorms'              => Dorm::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
@@ -62,17 +85,12 @@ class PublicRegistrationController extends Controller
             'indoCountryId'      => $indoId,
             'policy'             => $policy,
             'roomAvailability'   => $roomAvailability,
-            'prefill' => [
-                'room_id'               => $request->integer('room_id') ?: null,
-                'preferred_dorm_id'     => $request->integer('preferred_dorm_id') ?: null,
-                'preferred_room_type_id' => $request->integer('preferred_room_type_id') ?: null,
-                'resident_category_id'  => $request->integer('resident_category_id') ?: null,
-            ],
-
-            // ✅ Jika ada room_id, ambil detail kamarnya untuk ditampilkan
-            'prefillRoom' => $request->filled('room_id')
+            'availableRooms'     => $availableRooms,
+            'prefill'            => $prefill,
+            'fromRoom'           => $fromRoom,
+            'prefillRoom'        => $fromRoom
                 ? Room::with(['block.dorm', 'roomType', 'residentCategory'])
-                ->find($request->integer('room_id'))
+                ->find($prefill['room_id'])
                 : null,
         ]);
     }
