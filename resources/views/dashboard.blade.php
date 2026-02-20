@@ -265,7 +265,8 @@
             </div>
 
             {{-- CARD 4: PIC KAMAR --}}
-            @if (!empty($picInfo))
+            @if (!$isYouPic)
+                @if (!empty($picInfo))
                 <div class="bg-white dark:bg-gray-900 overflow-hidden shadow-lg sm:rounded-2xl rounded-xl border border-gray-100 dark:border-gray-800 transition-colors duration-200">
                     <div class="p-5 sm:p-7">
                         <div class="flex items-center gap-3 mb-5">
@@ -326,6 +327,7 @@
                         </div>
                     </div>
                 </div>
+                @endif
             @endif
 
             {{-- CARD 5: KONTAK --}}
