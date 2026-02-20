@@ -30,7 +30,7 @@ return [
     // Rooms Index Page
     'home' => 'Beranda',
     'find_dream_room' => 'Temukan kamar impian Anda dari :count kamar yang tersedia',
-    'search_placeholder' => 'Cari kamar, nomor, cabang, tipe...',
+    'search_placeholder' => 'Cari: Cabang A Komplek B Nomor 101...',
     'all_branches' => 'Semua Cabang',
     'all_room_types' => 'Semua Tipe Kamar',
     'all_categories' => 'Semua Kategori',
