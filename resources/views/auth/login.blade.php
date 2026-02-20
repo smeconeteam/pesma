@@ -1,13 +1,13 @@
 <x-public-layout>
     <div class="mx-auto max-w-2xl px-4 py-12 sm:px-6 lg:px-8">
-        <div class="mb-10 text-center">
-            <h1 class="text-3xl font-extrabold text-gray-900 sm:text-4xl dark:text-white">{{ __('auth.login_title') }}</h1>
-            <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">{{ __('auth.login_subtitle') }}</p>
-        </div>
-
         <x-auth-session-status class="mb-4" :status="session('status')" />
 
         <section class="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg sm:p-8 dark:border-gray-700 dark:bg-gray-800">
+            <div class="mb-8 text-center">
+                <h1 class="text-3xl font-extrabold text-gray-900 sm:text-4xl dark:text-white">{{ __('auth.login_title') }}</h1>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">{{ __('auth.login_subtitle') }}</p>
+            </div>
+
             <form method="POST" action="{{ route('login') }}" class="space-y-6">
 
                 @csrf

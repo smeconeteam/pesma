@@ -1,13 +1,13 @@
 <x-public-layout>
     <div class="mx-auto max-w-2xl px-4 py-12 sm:px-6 lg:px-8">
-        <div class="mb-10 text-center">
-            <h1 class="text-3xl font-extrabold text-gray-900 sm:text-4xl dark:text-white">{{ __('auth.forgot_password_title') }}</h1>
-            <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">{{ __('auth.forgot_password_subtitle') }}</p>
-        </div>
-
         <x-auth-session-status class="mb-4" :status="session('status')" />
 
         <section class="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg sm:p-8 dark:border-gray-700 dark:bg-gray-800">
+            <div class="mb-8 text-center">
+                <h1 class="text-3xl font-extrabold text-gray-900 sm:text-4xl dark:text-white">{{ __('auth.forgot_password_title') }}</h1>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">{{ __('auth.forgot_password_subtitle') }}</p>
+            </div>
+
             <div class="mb-8 flex items-center gap-3 border-b border-gray-100 pb-4 dark:border-gray-700">
                 <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
                     <svg class="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
