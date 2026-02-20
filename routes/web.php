@@ -39,43 +39,46 @@ Route::get('/about', [LandingController::class, 'about'])->name('about.en');
 // =====================
 Route::middleware(['auth', 'verified', 'resident.only'])->group(function () {
 
-    // Dashboard resident (same in both languages)
-    Route::get('/dashboard', [DashboardController::class, 'index'])
-        ->name('dashboard');
+    // Indonesian Routes (Santri)
+    Route::prefix('santri')->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.id');
+        
+        // Resident Menu (Indonesian)
+        Route::get('/kamar-saya', MyRoomController::class)->name('resident.my-room.id');
+        Route::get('/riwayat-kamar', [RoomHistoryController::class, 'index'])->name('resident.room-history.id');
+        Route::get('/tagihan', [BillsController::class, 'index'])->name('resident.bills.id');
+        Route::get('/riwayat-pembayaran', [\App\Http\Controllers\Resident\PaymentHistoryController::class, 'index'])->name('resident.payment-history.id');
+        
+        // Profile (Indonesian)
+        Route::get('/profil', [ProfileController::class, 'edit'])->name('profile.edit.id');
+        Route::patch('/profil', [ProfileController::class, 'update'])->name('profile.update.id');
+        Route::delete('/profil', [ProfileController::class, 'destroy'])->name('profile.destroy.id');
+    });
 
-    // My Room
-    Route::get('/kamar-saya', MyRoomController::class)
-        ->name('resident.my-room.id');
-    Route::get('/my-room', MyRoomController::class)
-        ->name('resident.my-room.en');
+    // English Routes (Student)
+    Route::prefix('student')->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.en');
 
-    // Room History
-    Route::get('/riwayat-kamar', [RoomHistoryController::class, 'index'])
-        ->name('resident.room-history.id');
-    Route::get('/room-history', [RoomHistoryController::class, 'index'])
-        ->name('resident.room-history.en');
+        // Resident Menu (English)
+        Route::get('/my-room', MyRoomController::class)->name('resident.my-room.en');
+        Route::get('/room-history', [RoomHistoryController::class, 'index'])->name('resident.room-history.en');
+        Route::get('/bills', [BillsController::class, 'index'])->name('resident.bills.en');
+        Route::get('/payment-history', [\App\Http\Controllers\Resident\PaymentHistoryController::class, 'index'])->name('resident.payment-history.en');
 
-    // Bills
-    Route::get('/tagihan', [BillsController::class, 'index'])
-        ->name('resident.bills.id');
-    Route::get('/bills', [BillsController::class, 'index'])
-        ->name('resident.bills.en');
+        // Profile (English)
+        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit.en');
+        Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update.en');
+        Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy.en');
+    });
 
-    // Payment History
-    Route::get('/riwayat-pembayaran', [\App\Http\Controllers\Resident\PaymentHistoryController::class, 'index'])
-        ->name('resident.payment-history.id');
-    Route::get('/payment-history', [\App\Http\Controllers\Resident\PaymentHistoryController::class, 'index'])
-        ->name('resident.payment-history.en');
+    // Legacy Redirects
+    Route::get('/dashboard', function() {
+        return redirect(localizedRoute('dashboard'));
+    })->name('dashboard');
 
-    // Profile routes (same URL in both languages)
-    Route::get('/profile', [ProfileController::class, 'edit'])
-        ->name('profile.edit');
-
-    Route::patch('/profile', [ProfileController::class, 'update'])
-        ->name('profile.update');
-
-    Route::delete('/profile', [ProfileController::class, 'destroy'])
-        ->name('profile.destroy');
+    Route::get('/profile', function() {
+        return redirect(localizedRoute('profile.edit'));
+    })->name('profile.edit');
 });
 
 // =====================

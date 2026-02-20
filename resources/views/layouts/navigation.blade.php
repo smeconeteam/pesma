@@ -12,7 +12,7 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
         <div class="flex h-16 justify-between">
             <!-- Logo -->
             <div class="flex shrink-0 items-center">
-                <a href="{{ route('dashboard') }}" class="flex items-center gap-3">
+                <a href="{{ localizedRoute('dashboard') }}" class="flex items-center gap-3">
                     @if ($institution?->logo_path)
                         <img src="{{ Storage::url($institution->logo_path) }}" alt="Logo {{ $institution->dormitory_name }}" class="h-10 w-10 object-contain">
                     @else
@@ -27,7 +27,7 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
 
             <!-- Desktop Navigation Links (Dashboard Only) -->
             <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                <x-nav-link :href="localizedRoute('dashboard')" :active="request()->routeIs('dashboard.*')">
                     {{ __('navigation.dashboard') }}
                 </x-nav-link>
 
@@ -152,7 +152,7 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
                                     </div>
 
                                     <div class="py-2">
-                                        <a href="{{ route('profile.edit') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 transition-colors duration-150 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">
+                                        <a href="{{ localizedRoute('profile.edit') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 transition-colors duration-150 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">
                                             <svg class="h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                             </svg>
@@ -217,7 +217,7 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
     <div :class="{ 'block': open, 'hidden': !open }" class="hidden bg-white sm:hidden dark:bg-gray-900">
         <div class="space-y-1 pb-3 pt-2">
             @if (Route::has('dashboard'))
-                <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                <x-responsive-nav-link :href="localizedRoute('dashboard')" :active="request()->routeIs('dashboard.*')">
                     {{ __('navigation.dashboard') }}
                 </x-responsive-nav-link>
             @endif
@@ -247,7 +247,7 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
             @endif
 
             @if (Route::has('profile.edit'))
-                <x-responsive-nav-link :href="route('profile.edit')" :active="request()->routeIs('profile.edit')">
+                <x-responsive-nav-link :href="localizedRoute('profile.edit')" :active="request()->routeIs('profile.edit.*')">
                     {{ __('navigation.profile') }}
                 </x-responsive-nav-link>
             @endif
