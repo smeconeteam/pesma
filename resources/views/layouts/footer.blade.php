@@ -23,18 +23,18 @@
             <div class="footer-section">
                 <h4 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">{{ __('footer.quick_links') }}</h4>
                 <ul class="flex flex-col">
-                    <a href="{{ route('rooms.available') }}" class="transition-all duration-100 hover:text-green-600 hover:underline dark:hover:text-green-400">{{ __('footer.rooms_available') }}</a>
-                    <a href="{{ route('public.registration.create') }}" class="transition-all duration-100 hover:text-green-600 hover:underline dark:hover:text-green-400">{{ __('footer.registration') }}</a>
+                    <a href="{{ localizedRoute('rooms.available') }}" class="transition-all duration-100 hover:text-green-600 hover:underline dark:hover:text-green-400">{{ __('footer.rooms_available') }}</a>
+                    <a href="{{ localizedRoute('public.registration.create') }}" class="transition-all duration-100 hover:text-green-600 hover:underline dark:hover:text-green-400">{{ __('footer.registration') }}</a>
                     <a href="{{ route('login') }}" class="transition-all duration-100 hover:text-green-600 hover:underline dark:hover:text-green-400">{{ __('footer.login') }}</a>
                 </ul>
             </div>
             <div class="footer-section">
                 <h4 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">{{ __('footer.information') }}</h4>
                 <ul class="flex flex-col">
-                    <a href="{{ route('about') }}" class="transition-all duration-100 hover:text-green-600 hover:underline dark:hover:text-green-400">{{ __('footer.about_us') }}</a>
+                    <a href="{{ localizedRoute('about') }}" class="transition-all duration-100 hover:text-green-600 hover:underline dark:hover:text-green-400">{{ __('footer.about_us') }}</a>
 
-                    <a href="{{ route('public.policy') }}" class="transition-all duration-100 hover:text-green-600 hover:underline">{{ __('footer.terms_conditions') }}</a>
-                    <a href="{{ route('contact') }}" class="transition-all duration-100 hover:text-green-600 hover:underline">{{ __('footer.contact') }}</a>
+                    <a href="{{ localizedRoute('public.policy') }}" class="transition-all duration-100 hover:text-green-600 hover:underline">{{ __('footer.terms_conditions') }}</a>
+                    <a href="{{ localizedRoute('contact') }}" class="transition-all duration-100 hover:text-green-600 hover:underline">{{ __('footer.contact') }}</a>
                 </ul>
             </div>
         </div>

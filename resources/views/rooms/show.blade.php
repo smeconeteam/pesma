@@ -3,9 +3,9 @@
     <div class="mx-auto max-w-7xl py-8">
         <!-- Breadcrumb -->
         <div class="mb-6 flex flex-wrap items-center gap-2 px-4 text-sm text-gray-500 sm:px-6 lg:px-8">
-            <a href="{{ route('home') }}" class="text-green-600 transition-colors hover:text-green-700 hover:underline">{{ __('public.home') }}</a>
+            <a href="{{ localizedRoute('home') }}" class="text-green-600 transition-colors hover:text-green-700 hover:underline">{{ __('public.home') }}</a>
             <span class="text-gray-400">/</span>
-            <a href="{{ route('rooms.available') }}" class="text-green-600 transition-colors hover:text-green-700 hover:underline">{{ __('public.rooms_available') }}</a>
+            <a href="{{ localizedRoute('rooms.available') }}" class="text-green-600 transition-colors hover:text-green-700 hover:underline">{{ __('public.rooms_available') }}</a>
             <span class="text-gray-400">/</span>
             <span class="font-medium text-gray-900">{{ $room->code }}</span>
         </div>
@@ -228,7 +228,7 @@
                 <h3 class="mb-2 px-4 py-2 text-2xl font-semibold text-gray-900 md:text-3xl dark:text-white">Rp{{ number_format($room->monthly_rate ?? $room->roomType->default_monthly_rate, 0, ',', '.') }}<span class="text-xl font-normal text-gray-600 dark:text-gray-400">{{ __('public.per_month') }}</span></h3>
 
                 <div class="flex gap-4 px-4 pb-3 md:flex-col md:items-stretch md:pb-4">
-                    <a href="{{ route('public.registration.create') }}" class="flex w-full items-center justify-center rounded-md bg-green-600 px-3 py-2 text-base font-bold text-white transition-all hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700">
+                    <a href="{{ localizedRoute('public.registration.create') }}" class="flex w-full items-center justify-center rounded-md bg-green-600 px-3 py-2 text-base font-bold text-white transition-all hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700">
                         {{ __('public.submit_booking') }}
                     </a>
 

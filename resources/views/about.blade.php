@@ -2,7 +2,7 @@
     <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <!-- Breadcrumb -->
         <div class="mb-6 flex gap-2 px-4 text-sm text-gray-600 sm:px-6 lg:px-8 dark:text-gray-400">
-            <a href="{{ route('home') }}" class="text-green-600 hover:underline dark:text-green-400">{{ __('public.home') }}</a>
+            <a href="{{ localizedRoute('home') }}" class="text-green-600 hover:underline dark:text-green-400">{{ __('public.home') }}</a>
             <span>/</span>
             <span>{{ __('public.about') }}</span>
         </div>

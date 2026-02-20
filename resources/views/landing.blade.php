@@ -7,7 +7,7 @@
 
             <div class="mt-2 flex gap-2">
                 <a href="#rooms" class="rounded-md bg-gray-100 px-4 py-3 text-center text-sm font-medium text-green-600 ring-1 ring-inset ring-green-600 transition-colors hover:bg-green-600 hover:text-white dark:bg-gray-800 dark:text-green-400 dark:ring-green-500 dark:hover:bg-green-600 dark:hover:text-white">{{ __('public.view_rooms') }}</a>
-                <a href="{{ route('public.registration.create') }}" class="items-center rounded-md bg-green-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">{{ __('public.register_now') }}</a>
+                <a href="{{ localizedRoute('public.registration.create') }}" class="items-center rounded-md bg-green-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">{{ __('public.register_now') }}</a>
             </div>
         </div>
     </section>
@@ -38,7 +38,7 @@
                 <p class="text-sm text-gray-600 dark:text-gray-400">{{ __('public.choose_best_room') }}</p>
             </div>
             @if ($totalRooms > 6)
-                <a href="{{ route('rooms.available') }}" class="hidden items-center rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 md:inline-flex dark:bg-green-500 dark:hover:bg-green-600">
+                <a href="{{ localizedRoute('rooms.available') }}" class="hidden items-center rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 md:inline-flex dark:bg-green-500 dark:hover:bg-green-600">
                     {{ __('public.view_all') }} ({{ $totalRooms }})
                 </a>
             @endif
@@ -53,7 +53,7 @@
 
             @if ($totalRooms > 6)
                 <div class="view-all-wrapper">
-                    <a href="{{ route('rooms.available') }}" class="inline-flex items-center rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 md:hidden dark:bg-green-500 dark:hover:bg-green-600">
+                    <a href="{{ localizedRoute('rooms.available') }}" class="inline-flex items-center rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 md:hidden dark:bg-green-500 dark:hover:bg-green-600">
                         {{ __('public.view_all') }} ({{ $totalRooms }})
                     </a>
                 </div>
