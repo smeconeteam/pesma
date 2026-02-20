@@ -16,7 +16,7 @@ class EnsureUserIsResident
         }
 
         if (!$user->hasRole('resident')) {
-            return redirect()->route('no-access');
+            return redirect(localizedRoute('no-access'));
         }
 
         return $next($request);
