@@ -93,7 +93,7 @@
                     </div>
 
                     {{-- Filter --}}
-                    <form method="GET" action="{{ route('resident.payment-history') }}" class="mb-6">
+                    <form method="GET" action="{{ localizedRoute('resident.payment-history') }}" class="mb-6">
                         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div>
                                 <label class="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">

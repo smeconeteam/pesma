@@ -3,9 +3,9 @@
     <div class="mx-auto max-w-7xl py-8">
         <!-- Breadcrumb -->
         <div class="mb-6 flex flex-wrap items-center gap-2 px-4 text-sm text-gray-500 sm:px-6 lg:px-8">
-            <a href="{{ route('home') }}" class="text-green-600 transition-colors hover:text-green-700 hover:underline">{{ __('public.home') }}</a>
+            <a href="{{ localizedRoute('home') }}" class="text-green-600 transition-colors hover:text-green-700 hover:underline">{{ __('public.home') }}</a>
             <span class="text-gray-400">/</span>
-            <a href="{{ route('rooms.available') }}" class="text-green-600 transition-colors hover:text-green-700 hover:underline">{{ __('public.rooms_available') }}</a>
+            <a href="{{ localizedRoute('rooms.available') }}" class="text-green-600 transition-colors hover:text-green-700 hover:underline">{{ __('public.rooms_available') }}</a>
             <span class="text-gray-400">/</span>
             <span class="font-medium text-gray-900">{{ $room->code }}</span>
         </div>
@@ -58,7 +58,7 @@
                     <div class="inline-flex rounded-md bg-gray-100 px-3 py-1 text-center text-sm font-medium text-blue-600 ring-1 ring-inset ring-blue-400">{{ $room->roomType->name }}</div>
                     <div class="inline-flex rounded-md bg-gray-100 px-3 py-1 text-center text-sm font-medium text-purple-600 ring-1 ring-inset ring-purple-400">{{ $room->residentCategory->name }}</div>
                 </div>
-                <h2 class="text-3xl font-semibold">{{ $room->block->dorm->name }} {{ __('public.number') }} {{ $room->number }}</h2>
+                <h2 class="text-3xl font-semibold">{{ $room->block->dorm->name }} {{ __('public.complex') }} {{ $room->block->name }} {{ __('public.number') }} {{ $room->number }}</h2>
 
                 <div class="flex flex-col gap-2">
                     <div class="flex items-start gap-3">
@@ -228,7 +228,7 @@
                 <h3 class="mb-2 px-4 py-2 text-2xl font-semibold text-gray-900 md:text-3xl dark:text-white">Rp{{ number_format($room->monthly_rate ?? $room->roomType->default_monthly_rate, 0, ',', '.') }}<span class="text-xl font-normal text-gray-600 dark:text-gray-400">{{ __('public.per_month') }}</span></h3>
 
                 <div class="flex gap-4 px-4 pb-3 md:flex-col md:items-stretch md:pb-4">
-                    <a href="{{ route('public.registration.create', [
+                    <a href="{{ localizedRoute('public.registration.create', [
                                 'room_id'               => $room->id,
                                 'preferred_dorm_id'     => $room->block->dorm_id,
                                 'preferred_room_type_id'=> $room->room_type_id,

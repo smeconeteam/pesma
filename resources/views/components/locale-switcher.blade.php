@@ -76,7 +76,12 @@
                             });
 
                             if (response.ok) {
-                                window.location.reload();
+                                const data = await response.json();
+                                if (data.url) {
+                                    window.location.href = data.url;
+                                } else {
+                                    window.location.reload();
+                                }
                             } else {
                                 this.setCookie('locale', locale, 365);
                                 window.location.reload();

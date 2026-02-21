@@ -4,7 +4,7 @@
     <div class="mx-auto max-w-7xl py-12">
         <!-- Breadcrumb -->
         <div class="mb-6 flex gap-2 px-4 text-sm text-gray-600 sm:px-6 lg:px-8 dark:text-gray-400">
-            <a href="{{ route('home') }}" class="text-green-600 hover:underline dark:text-green-400">{{ __('public.home') }}</a>
+            <a href="{{ localizedRoute('home') }}" class="text-green-600 hover:underline dark:text-green-400">{{ __('public.home') }}</a>
             <span>/</span>
             <span>{{ __('public.rooms_available') }}</span>
         </div>
@@ -17,7 +17,7 @@
 
         <!-- Search and Filter Section -->
         <div class="relative mx-4 rounded-2xl bg-white p-6 shadow-sm sm:mx-6 lg:mx-8 dark:bg-gray-800 dark:shadow-gray-900/10">
-            <form method="GET" action="{{ route('rooms.available') }}" class="flex flex-wrap items-center gap-4">
+            <form method="GET" action="{{ localizedRoute('rooms.available') }}" class="flex flex-wrap items-center gap-4">
                 <!-- Search Input -->
                 <div class="relative min-w-[280px] flex-1">
                     <svg class="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -111,7 +111,7 @@
                 <!-- Filter Buttons -->
                 <div class="flex gap-3">
                     @if (request()->hasAny(['search', 'dorm_id', 'room_type_id', 'resident_category_id']))
-                        <a href="{{ route('rooms.available') }}" class="inline-flex items-center gap-1 rounded-md bg-green-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
+                        <a href="{{ localizedRoute('rooms.available') }}" class="inline-flex items-center gap-1 rounded-md bg-green-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -123,35 +123,45 @@
             </form>
 
             <!-- Active Filters Display -->
-            @if (request()->hasAny(['search', 'dorm_id', 'room_type_id', 'resident_category_id']))
+            @if (request()->hasAny(['dorm_id', 'room_type_id', 'resident_category_id']))
                 <div class="mt-4 flex flex-wrap items-center gap-2 text-sm">
                     <span class="text-gray-600">{{ __('public.active_filters') }}</span>
-                    @if (request('search'))
-                        <span class="rounded-2xl bg-green-600 px-2 text-white transition-all duration-100 hover:bg-green-700">
-                            "{{ request('search') }}"
-                        </span>
-                    @endif
                     @if (request('dorm_id'))
                         @php $selectedDorm = $dorms->firstWhere('id', request('dorm_id')); @endphp
                         @if ($selectedDorm)
-                            <span class="rounded-2xl bg-green-600 px-2 text-white transition-all duration-100 hover:bg-green-700">
+                            <span class="inline-flex items-center gap-1 rounded-2xl bg-green-600 px-3 py-1 text-white transition-all duration-100 hover:bg-green-700">
                                 {{ $selectedDorm->name }}
+                                <a href="{{ request()->fullUrlWithQuery(['dorm_id' => null]) }}" class="ml-1 text-white/70 hover:text-white">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                                    </svg>
+                                </a>
                             </span>
                         @endif
                     @endif
                     @if (request('room_type_id'))
                         @php $selectedType = $roomTypes->firstWhere('id', request('room_type_id')); @endphp
                         @if ($selectedType)
-                            <span class="rounded-2xl bg-green-600 px-2 text-white transition-all duration-100 hover:bg-green-700">
+                            <span class="inline-flex items-center gap-1 rounded-2xl bg-green-600 px-3 py-1 text-white transition-all duration-100 hover:bg-green-700">
                                 {{ $selectedType->name }}
+                                <a href="{{ request()->fullUrlWithQuery(['room_type_id' => null]) }}" class="ml-1 text-white/70 hover:text-white">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                                    </svg>
+                                </a>
                             </span>
                         @endif
                     @endif
                     @if (request('resident_category_id'))
                         @php $selectedCategory = $residentCategories->firstWhere('id', request('resident_category_id')); @endphp
                         @if ($selectedCategory)
-                            <span class="rounded-2xl bg-green-600 px-2 text-white transition-all duration-100 hover:bg-green-700">
+                            <span class="inline-flex items-center gap-1 rounded-2xl bg-green-600 px-3 py-1 text-white transition-all duration-100 hover:bg-green-700">
                                 {{ $selectedCategory->name }}
+                                <a href="{{ request()->fullUrlWithQuery(['resident_category_id' => null]) }}" class="ml-1 text-white/70 hover:text-white">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                                    </svg>
+                                </a>
                             </span>
                         @endif
                     @endif
