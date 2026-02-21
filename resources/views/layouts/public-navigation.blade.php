@@ -12,7 +12,7 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
         <div class="flex h-16 items-center justify-between">
             <!-- Logo -->
             <div class="flex shrink-0 items-center">
-                <a href="{{ route('home') }}" class="flex items-center gap-3">
+                <a href="{{ localizedRoute('home') }}" class="flex items-center gap-3">
                     @if ($institution?->logo_path)
                         <img src="{{ Storage::url($institution->logo_path) }}" alt="Logo {{ $institution->dormitory_name }}" class="h-10 w-10 object-contain">
                     @else
@@ -27,16 +27,16 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
 
             <!-- Desktop Navigation Links -->
             <div class="hidden space-x-8 sm:flex">
-                <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'border-green-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600' }} inline-flex items-center border-b-2 px-1 pt-1 transition-colors">
+                <a href="{{ localizedRoute('home') }}" class="{{ request()->routeIs('home') || request()->routeIs('home.*') ? 'border-green-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600' }} inline-flex items-center border-b-2 px-1 pt-1 transition-colors">
                     {{ __('navigation.home') }}
                 </a>
-                <a href="{{ route('rooms.available') }}" class="{{ request()->routeIs('rooms.available') || request()->routeIs('rooms.show') ? 'border-green-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600' }} inline-flex items-center border-b-2 px-1 pt-1 transition-colors">
+                <a href="{{ localizedRoute('rooms.available') }}" class="{{ request()->routeIs('rooms.available.*') || request()->routeIs('rooms.show.*') ? 'border-green-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600' }} inline-flex items-center border-b-2 px-1 pt-1 transition-colors">
                     {{ __('navigation.available_rooms') }}
                 </a>
-                <a href="{{ route('about') }}" class="{{ request()->routeIs('about') ? 'border-green-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600' }} inline-flex items-center border-b-2 px-1 pt-1 transition-colors">
+                <a href="{{ localizedRoute('about') }}" class="{{ request()->routeIs('about.*') ? 'border-green-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600' }} inline-flex items-center border-b-2 px-1 pt-1 transition-colors">
                     {{ __('navigation.about') }}
                 </a>
-                <a href="{{ route('contact') }}" class="{{ request()->routeIs('contact') ? 'border-green-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600' }} inline-flex items-center border-b-2 px-1 pt-1 transition-colors">
+                <a href="{{ localizedRoute('contact') }}" class="{{ request()->routeIs('contact.*') ? 'border-green-500 text-gray-900 dark:text-gray-100' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600' }} inline-flex items-center border-b-2 px-1 pt-1 transition-colors">
                     {{ __('navigation.contact') }}
                 </a>
             </div>
@@ -73,8 +73,8 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
                             </a>
                         @endif
 
-                        @if (Route::has('public.registration.create'))
-                            <a href="{{ route('public.registration.create') }}" class="inline-flex items-center rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
+                        @if (Route::has('public.registration.create.id') || Route::has('public.registration.create.en'))
+                            <a href="{{ localizedRoute('public.registration.create') }}" class="inline-flex items-center rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
                                 {{ __('navigation.register') }}
                             </a>
                         @endif
@@ -106,17 +106,17 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
     <!-- Mobile Menu -->
     <div :class="{ 'h-auto block': open, 'hidden h-0': !open }" class="hidden h-0 bg-white transition-all duration-200 sm:hidden dark:bg-gray-900">
         <div class="space-y-1 px-2 pb-3 pt-2">
-            <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' }} block rounded-md px-3 py-2 text-base font-medium transition-colors">
+            <a href="{{ localizedRoute('home') }}" class="{{ request()->routeIs('home') || request()->routeIs('home.*') ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' }} block rounded-md px-3 py-2 text-base font-medium transition-colors">
                 {{ __('navigation.home') }}
             </a>
-            <a href="{{ route('rooms.available') }}" class="{{ request()->routeIs('rooms.available') || request()->routeIs('rooms.show') ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' }} block rounded-md px-3 py-2 text-base font-medium transition-colors">
+            <a href="{{ localizedRoute('rooms.available') }}" class="{{ request()->routeIs('rooms.available.*') || request()->routeIs('rooms.show.*') ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' }} block rounded-md px-3 py-2 text-base font-medium transition-colors">
                 {{ __('navigation.available_rooms') }}
             </a>
-            <a href="{{ route('about') }}" class="{{ request()->routeIs('about') ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' }} block rounded-md px-3 py-2 text-base font-medium transition-colors">
+            <a href="{{ localizedRoute('about') }}" class="{{ request()->routeIs('about.*') ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' }} block rounded-md px-3 py-2 text-base font-medium transition-colors">
                 {{ __('navigation.about') }}
             </a>
-            <a href="{{ route('contact') }}" class="{{ request()->routeIs('contact') ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' }} block rounded-md px-3 py-2 text-base font-medium transition-colors">
-                Kontak
+            <a href="{{ localizedRoute('contact') }}" class="{{ request()->routeIs('contact.*') ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' }} block rounded-md px-3 py-2 text-base font-medium transition-colors">
+                {{ __('navigation.contact') }}
             </a>
 
             <div class="mt-2 border-t border-gray-200 pt-2 dark:border-gray-700">
@@ -136,8 +136,8 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
                             </a>
                         @endif
 
-                        @if (Route::has('public.registration.create'))
-                            <a href="{{ route('public.registration.create') }}" class="block w-full rounded-md bg-green-600 px-3 py-2 text-center text-base font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
+                        @if (Route::has('public.registration.create.id') || Route::has('public.registration.create.en'))
+                            <a href="{{ localizedRoute('public.registration.create') }}" class="block w-full rounded-md bg-green-600 px-3 py-2 text-center text-base font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
                                 {{ __('navigation.register') }}
                             </a>
                         @endif

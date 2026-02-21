@@ -13,68 +13,106 @@ use Illuminate\Support\Facades\Route;
 
 // Landing Page for Public
 Route::get('/', [LandingController::class, 'index'])->name('home');
-Route::get('/kontak', [LandingController::class, 'contact'])->name('contact');
-Route::get('/kamar-tersedia', [LandingController::class, 'allRooms'])->name('rooms.available');
-Route::get('/kamar/{code}', [LandingController::class, 'showRoom'])->name('rooms.show');
-Route::get('/tentang', [LandingController::class, 'about'])->name('about');
 
 // =====================
-// Resident Routes
+// Localized Public Routes — both ID and EN slugs are registered
+// =====================
+
+// Contact
+Route::get('/kontak', [LandingController::class, 'contact'])->name('contact.id');
+Route::get('/contact', [LandingController::class, 'contact'])->name('contact.en');
+
+// Available Rooms
+Route::get('/kamar-tersedia', [LandingController::class, 'allRooms'])->name('rooms.available.id');
+Route::get('/rooms-available', [LandingController::class, 'allRooms'])->name('rooms.available.en');
+
+// Room Detail
+Route::get('/kamar/{code}', [LandingController::class, 'showRoom'])->name('rooms.show.id');
+Route::get('/room/{code}', [LandingController::class, 'showRoom'])->name('rooms.show.en');
+
+// About
+Route::get('/tentang', [LandingController::class, 'about'])->name('about.id');
+Route::get('/about', [LandingController::class, 'about'])->name('about.en');
+
+// =====================
+// Resident Routes (with localized slugs)
 // =====================
 Route::middleware(['auth', 'verified', 'resident.only'])->group(function () {
 
-    // Dashboard resident
-    Route::get('/dashboard', [DashboardController::class, 'index'])
-        ->name('dashboard');
+    // Indonesian Routes (Santri)
+    Route::prefix('santri')->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.id');
+        
+        // Resident Menu (Indonesian)
+        Route::get('/kamar-saya', MyRoomController::class)->name('resident.my-room.id');
+        Route::get('/riwayat-kamar', [RoomHistoryController::class, 'index'])->name('resident.room-history.id');
+        Route::get('/tagihan', [BillsController::class, 'index'])->name('resident.bills.id');
+        Route::get('/riwayat-pembayaran', [\App\Http\Controllers\Resident\PaymentHistoryController::class, 'index'])->name('resident.payment-history.id');
+        
+        // Profile (Indonesian)
+        Route::get('/profil', [ProfileController::class, 'edit'])->name('profile.edit.id');
+        Route::patch('/profil', [ProfileController::class, 'update'])->name('profile.update.id');
+        Route::delete('/profil', [ProfileController::class, 'destroy'])->name('profile.destroy.id');
+    });
 
-    // Halaman Kamar Saya (read-only)
-    Route::get('/kamar-saya', MyRoomController::class)
-        ->name('resident.my-room');
+    // English Routes (Student)
+    Route::prefix('student')->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.en');
 
-    // Riwayat Kamar
-    Route::get('/riwayat-kamar', [RoomHistoryController::class, 'index'])
-        ->name('resident.room-history');
+        // Resident Menu (English)
+        Route::get('/my-room', MyRoomController::class)->name('resident.my-room.en');
+        Route::get('/room-history', [RoomHistoryController::class, 'index'])->name('resident.room-history.en');
+        Route::get('/bills', [BillsController::class, 'index'])->name('resident.bills.en');
+        Route::get('/payment-history', [\App\Http\Controllers\Resident\PaymentHistoryController::class, 'index'])->name('resident.payment-history.en');
 
-    // Halaman Tagihan Lengkap
-    Route::get('/tagihan', [BillsController::class, 'index'])
-        ->name('resident.bills');
+        // Profile (English)
+        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit.en');
+        Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update.en');
+        Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy.en');
+    });
 
-    // Halaman Riwayat Pembayaran
-    Route::get('/riwayat-pembayaran', [\App\Http\Controllers\Resident\PaymentHistoryController::class, 'index'])
-        ->name('resident.payment-history');
+    // Legacy Redirects
+    Route::get('/dashboard', function() {
+        return redirect(localizedRoute('dashboard'));
+    })->name('dashboard');
 
-    // Profile routes
-    Route::get('/profile', [ProfileController::class, 'edit'])
-        ->name('profile.edit');
-
-    Route::patch('/profile', [ProfileController::class, 'update'])
-        ->name('profile.update');
-
-    Route::delete('/profile', [ProfileController::class, 'destroy'])
-        ->name('profile.destroy');
+    Route::get('/profile', function() {
+        return redirect(localizedRoute('profile.edit'));
+    })->name('profile.edit');
 });
 
 // =====================
 // Public Routes
 // =====================
+Route::get('/akses-ditolak', function () {
+    return view('no-access');
+})->name('no-access.id');
 Route::get('/no-access', function () {
     return view('no-access');
-})->name('no-access');
+})->name('no-access.en');
 
 // =====================
-// Public Registration
+// Public Registration (with localized slugs)
 // =====================
 Route::get('/pendaftaran', [PublicRegistrationController::class, 'create'])
-    ->name('public.registration.create');
+    ->name('public.registration.create.id');
+Route::get('/registration', [PublicRegistrationController::class, 'create'])
+    ->name('public.registration.create.en');
 
 Route::post('/pendaftaran', [PublicRegistrationController::class, 'store'])
-    ->name('public.registration.store');
+    ->name('public.registration.store.id');
+Route::post('/registration', [PublicRegistrationController::class, 'store'])
+    ->name('public.registration.store.en');
 
 Route::get('/pendaftaran/berhasil', [PublicRegistrationController::class, 'success'])
-    ->name('public.registration.success');
+    ->name('public.registration.success.id');
+Route::get('/registration/success', [PublicRegistrationController::class, 'success'])
+    ->name('public.registration.success.en');
 
 Route::get('/kebijakan', [PublicRegistrationController::class, 'policy'])
-    ->name('public.policy');
+    ->name('public.policy.id');
+Route::get('/policy', [PublicRegistrationController::class, 'policy'])
+    ->name('public.policy.en');
 
 Route::delete('/profile/hapus-foto', [ProfileController::class, 'deletePhoto'])
     ->name('profile.delete-photo')

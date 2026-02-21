@@ -1,6 +1,6 @@
 @props(['room'])
 
-<a href="{{ route('rooms.show', $room->code) }}" class="group overflow-hidden rounded-2xl bg-white shadow-md transition-all duration-200 ease-in hover:scale-[1.02] hover:shadow-lg dark:bg-gray-800 dark:shadow-gray-900/20">
+<a href="{{ localizedRoute('rooms.show', $room->code) }}" class="group overflow-hidden rounded-2xl bg-white shadow-md transition-all duration-200 ease-in hover:scale-[1.02] hover:shadow-lg dark:bg-gray-800 dark:shadow-gray-900/20">
     <div class="relative h-[200px] w-full bg-gray-200 dark:bg-gray-700" @if ($room->thumbnail) style="background-image: url('{{ asset('storage/' . $room->thumbnail) }}'); background-size: cover; background-position: center;" @else style="background-image: url('https://placehold.net/600x400.png');  background-size: cover; background-position: center;" @endif>
         @if ($room->is_active)
             <div class="absolute right-2 top-2 rounded-xl bg-green-500 px-3 py-1 text-xs font-bold text-white shadow-sm">{{ $room->residentCategory->name ?? __('public.active') }}</div>
@@ -9,7 +9,7 @@
     <div class="space-y-3 p-4">
         <div>
             <div class="text-lg font-bold text-gray-900 line-clamp-2 dark:text-white">
-                {{ $room->block->dorm->name }} {{ __('public.number') }} {{ $room->number }}
+                {{ $room->block->dorm->name }} {{ __('public.complex') }} {{ $room->block->name }} {{ __('public.number') }} {{ $room->number }}
             </div>
             <div class="mt-1 flex flex-wrap gap-2">
                  <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-900/30 dark:text-green-400 dark:ring-green-500/30">

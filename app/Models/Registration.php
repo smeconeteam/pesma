@@ -34,6 +34,7 @@ class Registration extends Model
         'photo_path',
         'preferred_dorm_id',
         'preferred_room_type_id',
+        'preferred_room_id',
         'planned_check_in_date',
         'approved_by',
         'approved_at',
@@ -73,6 +74,11 @@ class Registration extends Model
     public function preferredRoomType(): BelongsTo
     {
         return $this->belongsTo(RoomType::class, 'preferred_room_type_id');
+    }
+
+    public function preferredRoom(): BelongsTo
+    {
+        return $this->belongsTo(Room::class, 'preferred_room_id');
     }
 
     public function approvedBy(): BelongsTo

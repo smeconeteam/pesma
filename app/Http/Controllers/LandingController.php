@@ -40,7 +40,20 @@ class LandingController extends Controller
                 ->count();
         });
 
-        return view('landing', compact('institution', 'rooms', 'totalRooms'));
+        // Stats dinamis dari database (cached 5 menit)
+        $totalAllRooms = cache()->remember('landing_total_all_rooms', 300, function () {
+            return Room::where('is_active', true)->count();
+        });
+
+        $activeResidents = cache()->remember('landing_active_residents', 300, function () {
+            return \App\Models\RoomResident::whereNull('check_out_date')->count();
+        });
+
+        $totalDorms = cache()->remember('landing_total_dorms', 300, function () {
+            return Dorm::count();
+        });
+
+        return view('landing', compact('institution', 'rooms', 'totalRooms', 'totalAllRooms', 'activeResidents', 'totalDorms'));
     }
 
     public function allRooms(Request $request)
@@ -81,8 +94,24 @@ class LandingController extends Controller
         if ($request->filled('search')) {
             $search = trim($request->search);
 
+            // Try to parse format: "{dorm} Komplek {block} Nomor {number}"
+            if (preg_match('/^(.+?)\s+(?:Komplek|Complex|Blok|Block)\s+(.+?)\s+(?:Nomor|Number)\s+(\d+)$/i', $search, $matches)) {
+                $dormName = trim($matches[1]);
+                $blockName = trim($matches[2]);
+                $roomNumber = trim($matches[3]);
+
+                $query->where(function ($q) use ($dormName, $blockName, $roomNumber) {
+                    $q->whereHas('block.dorm', function ($q) use ($dormName) {
+                        $q->where('name', 'like', "%{$dormName}%");
+                    })
+                    ->whereHas('block', function ($q) use ($blockName) {
+                         $q->where('name', 'like', "%{$blockName}%");
+                    })
+                    ->where('number', $roomNumber);
+                });
+            }
             // Try to parse format: "{dorm} Nomor {number} Tipe {type}"
-            if (preg_match('/^(.+?)\s+Nomor\s+(\d+)\s+Tipe\s+(.+)$/i', $search, $matches)) {
+            elseif (preg_match('/^(.+?)\s+Nomor\s+(\d+)\s+Tipe\s+(.+)$/i', $search, $matches)) {
                 $dormName = trim($matches[1]);
                 $roomNumber = trim($matches[2]);
                 $roomType = trim($matches[3]);
@@ -109,10 +138,24 @@ class LandingController extends Controller
                         ->where('number', $roomNumber);
                 });
             }
+            // Try to parse format: "{dorm} Komplek {block}"
+            elseif (preg_match('/^(.+?)\s+(?:Komplek|Complex|Blok|Block)\s+(.+?)$/i', $search, $matches)) {
+                $dormName = trim($matches[1]);
+                $blockName = trim($matches[2]);
+
+                $query->where(function ($q) use ($dormName, $blockName) {
+                    $q->whereHas('block.dorm', function ($q) use ($dormName) {
+                        $q->where('name', 'like', "%{$dormName}%");
+                    })
+                        ->whereHas('block', function ($q) use ($blockName) {
+                            $q->where('name', 'like', "%{$blockName}%");
+                        });
+                });
+            }
             // Fallback to original logic
             else {
                 // Clean search term
-                $cleanSearch = trim(preg_replace('/(cabang|komplek|tipe|kamar|nomor|kategori)\s+/i', '', $search));
+                $cleanSearch = trim(preg_replace('/(cabang|branch|komplek|complex|blok|block|tipe|type|kamar|room|nomor|number|kategori|category)\s+/i', '', $search));
 
                 if (!empty($cleanSearch)) {
                     $query->where(function ($q) use ($cleanSearch) {
