@@ -9,7 +9,7 @@
     <div class="space-y-3 p-4">
         <div>
             <div class="text-lg font-bold text-gray-900 line-clamp-2 dark:text-white">
-                {{ $room->block->dorm->name }} {{ __('public.number') }} {{ $room->number }}
+                {{ $room->block->dorm->name }} {{ __('public.complex') }} {{ $room->block->name }} {{ __('public.number') }} {{ $room->number }}
             </div>
             <div class="mt-1 flex flex-wrap gap-2">
                  <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-900/30 dark:text-green-400 dark:ring-green-500/30">

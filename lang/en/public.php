@@ -17,7 +17,7 @@ return [
     'no_rooms_available' => 'No rooms available at the moment',
     'number' => 'Number',
     'type' => 'Type',
-    'complex' => 'Complex',
+    'complex' => 'Block',
     'branch' => 'Branch',
     'per_month' => '/month',
     'month' => 'month',
@@ -30,7 +30,7 @@ return [
     // Rooms Index Page
     'home' => 'Home',
     'find_dream_room' => 'Find your dream room from :count available rooms',
-    'search_placeholder' => 'Search room, number, branch, type...',
+    'search_placeholder' => 'Search: Branch A Block B Number 101...',
     'all_branches' => 'All Branches',
     'all_room_types' => 'All Room Types',
     'all_categories' => 'All Categories',

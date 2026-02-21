@@ -123,35 +123,45 @@
             </form>
 
             <!-- Active Filters Display -->
-            @if (request()->hasAny(['search', 'dorm_id', 'room_type_id', 'resident_category_id']))
+            @if (request()->hasAny(['dorm_id', 'room_type_id', 'resident_category_id']))
                 <div class="mt-4 flex flex-wrap items-center gap-2 text-sm">
                     <span class="text-gray-600">{{ __('public.active_filters') }}</span>
-                    @if (request('search'))
-                        <span class="rounded-2xl bg-green-600 px-2 text-white transition-all duration-100 hover:bg-green-700">
-                            "{{ request('search') }}"
-                        </span>
-                    @endif
                     @if (request('dorm_id'))
                         @php $selectedDorm = $dorms->firstWhere('id', request('dorm_id')); @endphp
                         @if ($selectedDorm)
-                            <span class="rounded-2xl bg-green-600 px-2 text-white transition-all duration-100 hover:bg-green-700">
+                            <span class="inline-flex items-center gap-1 rounded-2xl bg-green-600 px-3 py-1 text-white transition-all duration-100 hover:bg-green-700">
                                 {{ $selectedDorm->name }}
+                                <a href="{{ request()->fullUrlWithQuery(['dorm_id' => null]) }}" class="ml-1 text-white/70 hover:text-white">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                                    </svg>
+                                </a>
                             </span>
                         @endif
                     @endif
                     @if (request('room_type_id'))
                         @php $selectedType = $roomTypes->firstWhere('id', request('room_type_id')); @endphp
                         @if ($selectedType)
-                            <span class="rounded-2xl bg-green-600 px-2 text-white transition-all duration-100 hover:bg-green-700">
+                            <span class="inline-flex items-center gap-1 rounded-2xl bg-green-600 px-3 py-1 text-white transition-all duration-100 hover:bg-green-700">
                                 {{ $selectedType->name }}
+                                <a href="{{ request()->fullUrlWithQuery(['room_type_id' => null]) }}" class="ml-1 text-white/70 hover:text-white">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                                    </svg>
+                                </a>
                             </span>
                         @endif
                     @endif
                     @if (request('resident_category_id'))
                         @php $selectedCategory = $residentCategories->firstWhere('id', request('resident_category_id')); @endphp
                         @if ($selectedCategory)
-                            <span class="rounded-2xl bg-green-600 px-2 text-white transition-all duration-100 hover:bg-green-700">
+                            <span class="inline-flex items-center gap-1 rounded-2xl bg-green-600 px-3 py-1 text-white transition-all duration-100 hover:bg-green-700">
                                 {{ $selectedCategory->name }}
+                                <a href="{{ request()->fullUrlWithQuery(['resident_category_id' => null]) }}" class="ml-1 text-white/70 hover:text-white">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                                    </svg>
+                                </a>
                             </span>
                         @endif
                     @endif

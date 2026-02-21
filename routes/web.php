@@ -84,9 +84,12 @@ Route::middleware(['auth', 'verified', 'resident.only'])->group(function () {
 // =====================
 // Public Routes
 // =====================
+Route::get('/akses-ditolak', function () {
+    return view('no-access');
+})->name('no-access.id');
 Route::get('/no-access', function () {
     return view('no-access');
-})->name('no-access');
+})->name('no-access.en');
 
 // =====================
 // Public Registration (with localized slugs)

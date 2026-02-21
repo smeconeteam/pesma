@@ -58,7 +58,7 @@
                     <div class="inline-flex rounded-md bg-gray-100 px-3 py-1 text-center text-sm font-medium text-blue-600 ring-1 ring-inset ring-blue-400">{{ $room->roomType->name }}</div>
                     <div class="inline-flex rounded-md bg-gray-100 px-3 py-1 text-center text-sm font-medium text-purple-600 ring-1 ring-inset ring-purple-400">{{ $room->residentCategory->name }}</div>
                 </div>
-                <h2 class="text-3xl font-semibold">{{ $room->block->dorm->name }} {{ __('public.number') }} {{ $room->number }}</h2>
+                <h2 class="text-3xl font-semibold">{{ $room->block->dorm->name }} {{ __('public.complex') }} {{ $room->block->name }} {{ __('public.number') }} {{ $room->number }}</h2>
 
                 <div class="flex flex-col gap-2">
                     <div class="flex items-start gap-3">
