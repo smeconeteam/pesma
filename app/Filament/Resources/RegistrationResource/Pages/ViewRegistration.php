@@ -110,8 +110,23 @@ class ViewRegistration extends ViewRecord
             InfoSection::make('Preferensi Kamar')
                 ->columns(2)
                 ->schema([
-                    TextEntry::make('preferredDorm.name')->label('Cabang Pilihan')->placeholder('-'),
-                    TextEntry::make('preferredRoomType.name')->label('Tipe Kamar Pilihan')->placeholder('-'),
+                    TextEntry::make('preferredDorm.name')
+                        ->label('Cabang Pilihan')
+                        ->placeholder('-'),
+
+                    TextEntry::make('preferredRoomType.name')
+                        ->label('Tipe Kamar Pilihan')
+                        ->placeholder('-'),
+
+                    TextEntry::make('preferredRoom.number')
+                        ->label('Nomor Kamar Pilihan')
+                        ->placeholder('-')
+                        ->formatStateUsing(function ($state, $record) {
+                            if (!$state) return '-';
+                            $room = $record->preferredRoom;
+                            return "No. {$room->number} (sisa {$room->available_capacity} tempat)";
+                        }),
+
                     TextEntry::make('planned_check_in_date')
                         ->label('Rencana Tanggal Masuk')
                         ->date('d M Y')
