@@ -28,7 +28,14 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        // If the intended URL points to admin panel, forget it
+        // so resident login never redirects to /admin
+        $intended = session('url.intended', '');
+        if (str_starts_with(parse_url($intended, PHP_URL_PATH) ?? '', '/admin')) {
+            session()->forget('url.intended');
+        }
+
+        return redirect()->intended(localizedRoute('dashboard'));
     }
 
     /**
