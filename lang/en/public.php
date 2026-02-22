@@ -5,7 +5,7 @@ return [
     'landing-description' => 'offers a wide selection of rooms with comprehensive facilities at affordable prices',
     'view_rooms' => 'View Rooms',
     'register_now' => 'Register Now',
-    'rooms_available' => 'Total Rooms',
+    'rooms_available' => 'Available Rooms',
     'active_residents' => 'Active Residents',
     'total_branches' => 'Branches',
     'full_facilities' => 'Full Facilities',
