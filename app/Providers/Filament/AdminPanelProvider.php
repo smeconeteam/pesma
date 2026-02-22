@@ -54,34 +54,39 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Asrama')
                     ->icon('heroicon-o-building-office-2')
                     ->collapsed(true),
-                
+
                 NavigationGroup::make('Penghuni')
                     ->icon('heroicon-o-user-group')
                     ->collapsed(true),
-                
+
                 NavigationGroup::make('Keuangan')
                     ->icon('heroicon-o-banknotes')
                     ->collapsed(true),
-                
+
                 NavigationGroup::make('Pengaturan')
                     ->icon('heroicon-o-cog-6-tooth')
                     ->collapsed(true),
             ])
             ->authGuard('web')
             ->defaultThemeMode(ThemeMode::Light)
-            
+
             // Set favicon dinamis
             ->favicon($faviconUrl)
-            
+
             // User menu items
             ->userMenuItems([
                 'profile' => MenuItem::make()
                     ->label('Profile Saya')
-                    ->url(fn (): string => route('filament.admin.resources.profile-saya.index'))
+                    ->url(fn(): string => route('filament.admin.resources.profile-saya.index'))
                     ->icon('heroicon-o-user-circle')
-                    ->visible(fn (): bool => auth()->user()?->hasRole('main_admin') ?? false),
+                    ->visible(fn(): bool => auth()->user()?->hasRole('main_admin') ?? false),
+                'resident_dashboard' => MenuItem::make()
+                    ->label(fn(): string => __('navigation.resident_dashboard'))
+                    ->url(fn(): string => localizedRoute('dashboard'))
+                    ->icon('heroicon-o-home')
+                    ->visible(fn(): bool => auth()->user()?->hasRole('resident') ?? false),
             ])
-            
+
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
