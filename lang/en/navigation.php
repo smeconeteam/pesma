@@ -19,4 +19,6 @@ return [
     'available_rooms' => 'Available Rooms',
     'about' => 'About',
     'contact' => 'Contact',
+    'admin_panel' => 'Admin Panel',
+    'resident_dashboard' => 'Resident Dashboard',
 ];

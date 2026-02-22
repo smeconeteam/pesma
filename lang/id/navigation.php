@@ -20,5 +20,7 @@ return [
     'about' => 'Tentang',
     'contact' => 'Kontak',
 
+    'admin_panel' => 'Panel Admin',
+    'resident_dashboard' => 'Dashboard Penghuni',
 
 ];

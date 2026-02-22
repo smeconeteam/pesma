@@ -58,17 +58,24 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
                 <x-locale-switcher :short="true" class="cursor-pointer" select-class="cursor-pointer text-sm rounded-md shadow-sm focus:border-green-500 focus:ring-green-500" />
 
                 @auth
-                    @if (Route::has('dashboard'))
-                        <a href="{{ route('dashboard') }}" class="inline-flex items-center rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
-                            {{ __('navigation.dashboard') }}
-                        </a>
-                    @endif
+                    <div class="flex gap-2">
+                        @if (Route::has('dashboard'))
+                            <a href="{{ route('dashboard') }}" class="inline-flex rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-medium text-green-600 ring-1 ring-inset ring-green-600 transition-colors hover:bg-green-600 hover:text-white dark:bg-gray-800 dark:text-green-400 dark:ring-green-500 dark:hover:bg-green-600 dark:hover:text-white">
+                                {{ __('navigation.dashboard') }}
+                            </a>
+                        @endif
+                        @if (auth()->user()->canAccessPanel(\Filament\Facades\Filament::getPanel('admin')))
+                            <a href="{{ route('filament.admin.pages.dashboard') }}" class="inline-flex items-center rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
+                                {{ __('navigation.admin_panel') }}
+                            </a>
+                        @endif
+                    </div>
                 @endauth
 
                 @guest
                     <div class="flex items-center gap-3">
                         @if (Route::has('login'))
-                            <a href="{{ route('login') }}" class="inline-flex w-full rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-medium text-green-600 ring-1 ring-inset ring-green-600 transition-colors hover:bg-green-600 hover:text-white">
+                            <a href="{{ route('login') }}" class="inline-flex w-full rounded-md bg-gray-100 px-3 py-2 text-center text-sm font-medium text-green-600 ring-1 ring-inset ring-green-600 transition-colors hover:bg-green-600 hover:text-white dark:bg-gray-800 dark:text-green-400 dark:ring-green-500 dark:hover:bg-green-600 dark:hover:text-white">
                                 {{ __('navigation.login') }}
                             </a>
                         @endif
@@ -121,17 +128,24 @@ $watch('darkMode', val => document.documentElement.classList.toggle('dark', val)
 
             <div class="mt-2 border-t border-gray-200 pt-2 dark:border-gray-700">
                 @auth
-                    @if (Route::has('dashboard'))
-                        <a href="{{ route('dashboard') }}" class="mb-2 block rounded-md bg-green-600 px-3 py-2 text-base font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
-                            {{ __('navigation.dashboard') }}
-                        </a>
-                    @endif
+                    <div class="flex w-full items-center gap-2">
+                        @if (Route::has('dashboard'))
+                            <a href="{{ route('dashboard') }}" class="my-2 block w-full rounded-md bg-gray-100 px-3 py-2 text-center text-base font-medium text-green-600 ring ring-inset ring-green-600 transition-colors hover:bg-green-600 hover:text-white dark:bg-gray-800 dark:text-green-400 dark:ring-green-500 dark:hover:bg-green-600 dark:hover:text-white">
+                                {{ __('navigation.dashboard') }}
+                            </a>
+                        @endif
+                        @if (auth()->user()->canAccessPanel(\Filament\Facades\Filament::getPanel('admin')))
+                            <a href="{{ route('filament.admin.pages.dashboard') }}" class="my-2 block w-full rounded-md bg-green-600 px-3 py-2 text-center text-base font-medium text-white transition-colors hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
+                                {{ __('navigation.admin_panel') }}
+                            </a>
+                        @endif
+                    </div>
                 @endauth
 
                 @guest
                     <div class="flex w-full items-center justify-between gap-2">
                         @if (Route::has('login'))
-                            <a href="{{ route('login') }}" class="block w-full rounded-md bg-gray-100 px-3 py-2 text-center text-base font-medium text-green-600 ring ring-inset ring-green-600 transition-colors hover:bg-green-600 hover:text-white">
+                            <a href="{{ route('login') }}" class="block w-full rounded-md bg-gray-100 px-3 py-2 text-center text-base font-medium text-green-600 ring ring-inset ring-green-600 transition-colors hover:bg-green-600 hover:text-white dark:bg-gray-800 dark:text-green-400 dark:ring-green-500 dark:hover:bg-green-600 dark:hover:text-white">
                                 {{ __('navigation.login') }}
                             </a>
                         @endif
