@@ -3,7 +3,7 @@
 return [
     'title' => 'Hubungi Kami',
     'main_admin' => 'Administrator Utama',
-    'dorm_admin_branch' => 'Pengurus Asrama (Cabang)',
+    'dorm_admin_branch' => 'Pengurus Asrama Cabang',
     'dorm_admin' => 'Pengurus Asrama',
     'contact_unavailable' => 'Kontak Tidak Tersedia',
     'contact_via_whatsapp' => 'Hubungi via WhatsApp',
