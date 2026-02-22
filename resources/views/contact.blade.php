@@ -126,11 +126,11 @@
                                         </a>
                                     @endif
                                 </div>
+                            </div>
+                        </div>
                     @endforeach
+                @endforeach
             </div>
         </div>
-        @endforeach
-    </div>
-    </div>
     </div>
 </x-public-layout>
