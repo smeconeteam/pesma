@@ -5,7 +5,7 @@ return [
     'landing-description' => 'menyediakan berbagai pilihan kamar dengan fasilitas lengkap dan harga terjangkau',
     'view_rooms' => 'Lihat Kamar',
     'register_now' => 'Daftar Sekarang',
-    'rooms_available' => 'Total Kamar',
+    'rooms_available' => 'Kamar Tersedia',
     'active_residents' => 'Penghuni Aktif',
     'total_branches' => 'Cabang',
     'full_facilities' => 'Fasilitas Lengkap',
