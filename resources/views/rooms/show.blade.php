@@ -52,8 +52,8 @@
         </div>
 
         <!-- Main Layout -->
-        <div class="relative flex flex-col px-4 sm:px-6 md:flex-row lg:px-8">
-            <div class="md:flex-2/3 flex flex-col gap-4 md:pr-20">
+        <div class="relative flex flex-col md:flex-row">
+            <div class="md:flex-2/3 flex flex-col gap-4 px-4 sm:px-6 md:pr-20 lg:px-8">
                 <div class="flex items-center gap-2">
                     <div class="inline-flex rounded-md bg-gray-100 px-3 py-1 text-center text-sm font-medium text-blue-600 ring-1 ring-inset ring-blue-400">{{ $room->roomType->name }}</div>
                     <div class="inline-flex rounded-md bg-gray-100 px-3 py-1 text-center text-sm font-medium text-purple-600 ring-1 ring-inset ring-purple-400">{{ $room->residentCategory->name }}</div>
@@ -218,12 +218,13 @@
                                 @endforeach
                             </ul>
                         </div>
-
                     @endif
+
+                    <div class="my-2 h-px bg-gray-200 dark:bg-gray-700"></div>
                 </div>
             </div>
 
-            <div class="shadow-t md:flex-1/3 md:top-18 fixed bottom-0 left-0 right-0 z-10 shrink-0 bg-white shadow-md md:sticky md:bottom-auto md:h-min md:w-auto md:rounded-xl dark:bg-gray-800 dark:shadow-gray-900/20">
+            <div class="shadow-t md:flex-1/3 md:top-18 sticky -bottom-4 left-0 right-0 z-10 mt-4 w-full shrink-0 bg-white pb-4 shadow-md md:sticky md:bottom-auto md:mt-0 md:h-min md:w-auto md:rounded-xl md:pb-0 dark:bg-gray-800 dark:shadow-gray-900/20">
                 <div class="text-md {{ $room->available_capacity < 3 ? 'bg-red-600' : 'bg-green-600' }} w-full px-4 py-2 font-medium text-white md:rounded-t-xl">{{ __('public.slots_available', ['count' => $room->available_capacity]) }}</div>
                 <h3 class="mb-2 px-4 py-2 text-2xl font-semibold text-gray-900 md:text-3xl dark:text-white">Rp{{ number_format($room->monthly_rate ?? $room->roomType->default_monthly_rate, 0, ',', '.') }}<span class="text-xl font-normal text-gray-600 dark:text-gray-400">{{ __('public.per_month') }}</span></h3>
 
