@@ -165,8 +165,12 @@ class BillResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->visible(fn($record) => !$record->trashed()),
 
-                Tables\Actions\DeleteAction::make()
-                    ->visible(fn($record) => !$record->trashed() && $record->canBeDeleted()),
+                Tables\Actions\Action::make('pay')
+                    ->label('Bayar')
+                    ->icon('heroicon-o-credit-card')
+                    ->color('success')
+                    ->url(fn(Bill $record) => BillPaymentResource::getUrl('create', ['bill_id' => $record->id]))
+                    ->visible(fn(Bill $record) => !$record->trashed() && in_array($record->status, ['issued', 'partial', 'overdue'])),
 
                 Tables\Actions\RestoreAction::make()
                     ->label('Pulihkan')
