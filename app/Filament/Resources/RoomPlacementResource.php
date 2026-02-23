@@ -39,9 +39,42 @@ class RoomPlacementResource extends Resource
         return $u?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin']) ?? false;
     }
 
+    public static function applyBranchScope(Builder $query): Builder
+    {
+        $user = auth()->user();
+        if ($user && $user->hasRole('branch_admin')) {
+            $dormIds = $user->branchDormIds();
+            return $query->where(function ($q) use ($dormIds) {
+                // 1. Sedang punya kamar aktif di cabang ini
+                $q->whereHas('activeRoomResident.room.block', function ($subQ) use ($dormIds) {
+                    $subQ->whereIn('dorm_id', $dormIds);
+                })
+                // 2. ATAU sudah keluar (tidak punya kamar aktif sama sekali), tapi kamar terakhirnya di cabang ini
+                ->orWhere(function ($subQ) use ($dormIds) {
+                    $subQ->whereDoesntHave('activeRoomResident')
+                         ->whereHas('roomResidents.room.block', function ($subSubQ) use ($dormIds) {
+                             $subSubQ->whereIn('dorm_id', $dormIds);
+                         });
+                })
+                // 3. ATAU belum pernah punya kamar di manapun, tapi pendaftarannya memilih cabang ini ATAU belum memilih cabang (tanpa preferensi)
+                ->orWhere(function ($subQ) use ($dormIds) {
+                    $subQ->whereDoesntHave('roomResidents')
+                         ->whereHas('registrations', function ($regQ) use ($dormIds) {
+                            $regQ->where('status', 'approved')
+                                 ->where(function ($q) use ($dormIds) {
+                                     $q->whereIn('preferred_dorm_id', $dormIds)
+                                       ->orWhereNull('preferred_dorm_id');
+                                 });
+                         });
+                });
+            });
+        }
+        return $query;
+    }
+
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
+        $query = parent::getEloquentQuery()
             ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
             ->whereHas(
                 'residentProfile',
@@ -53,6 +86,8 @@ class RoomPlacementResource extends Resource
                 'residentProfile.country',
                 'activeRoomResident.room.block.dorm',
             ]);
+
+        return static::applyBranchScope($query);
     }
 
     public static function table(Table $table): Table
@@ -127,6 +162,40 @@ class RoomPlacementResource extends Resource
                             $q->whereHas('residentProfile', fn(Builder $p) => $p->where('gender', $gender));
                         });
                     })
+                    ->native(false),
+
+                Tables\Filters\SelectFilter::make('dorm_id')
+                    ->label('Cabang')
+                    ->options(fn () => Dorm::query()->orderBy('name')->pluck('name', 'id'))
+                    ->query(function (Builder $query, array $data) {
+                        return $query->when($data['value'] ?? null, function (Builder $q, $dormId) {
+                            $q->where(function ($subQ) use ($dormId) {
+                                // 1. Aktif di kamar cabang ini
+                                $subQ->whereHas('activeRoomResident.room.block', function ($subSubQ) use ($dormId) {
+                                    $subSubQ->where('dorm_id', $dormId);
+                                })
+                                // 2. ATAU sudah keluar (tidak punya kamar aktif di cabang mana pun), tapi pernah di cabang ini
+                                ->orWhere(function ($subSubQ) use ($dormId) {
+                                    $subSubQ->whereDoesntHave('activeRoomResident')
+                                            ->whereHas('roomResidents.room.block', function ($subSubSubQ) use ($dormId) {
+                                                $subSubSubQ->where('dorm_id', $dormId);
+                                            });
+                                })
+                                // 3. ATAU belum pernah punya kamar, dan saat daftar milih cabang ini ATAU belum memilih cabang
+                                ->orWhere(function ($subSubQ) use ($dormId) {
+                                    $subSubQ->whereDoesntHave('roomResidents')
+                                            ->whereHas('registrations', function ($regQ) use ($dormId) {
+                                                $regQ->where('status', 'approved')
+                                                     ->where(function ($q) use ($dormId) {
+                                                         $q->where('preferred_dorm_id', $dormId)
+                                                           ->orWhereNull('preferred_dorm_id');
+                                                     });
+                                            });
+                                });
+                            });
+                        });
+                    })
+                    ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'main_admin']))
                     ->native(false),
             ])
             ->actions([
