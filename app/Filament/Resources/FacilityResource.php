@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\FacilityResource\Pages;
 use App\Models\Facility;
+use App\Models\Room;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -32,6 +33,8 @@ class FacilityResource extends Resource
     protected static ?int $navigationSort = 7;
 
     protected static ?string $pluralLabel = 'Fasilitas';
+
+    protected static ?string $modelLabel = 'Fasilitas';
 
    public static function form(Form $form): Form
     {
@@ -173,6 +176,19 @@ class FacilityResource extends Resource
                             ->columnSpan(1),
                     ])
                     ->columns(2),
+
+                Forms\Components\Section::make('Kamar yang Diberlakukan')
+                    ->description('Pilih kamar yang akan memiliki fasilitas ini.')
+                    ->schema([
+                        Forms\Components\Select::make('rooms')
+                            ->label('Kamar')
+                            ->relationship('rooms', 'id')
+                            ->multiple()
+                            ->preload()
+                            ->searchable()
+                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->code . ' - ' . ($record->block?->dorm?->name ?? '') . ' ' . ($record->block?->name ?? ''))
+                            ->columnSpanFull(),
+                    ]),
             ]);
     }
 
@@ -209,9 +225,21 @@ class FacilityResource extends Resource
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\IconColumn::make('icon')
-                    ->label('Icon')
-                    ->icon(fn (string $state): string => $state),
+                Tables\Columns\TextColumn::make('icon')
+                    ->label('Ikon')
+                    ->formatStateUsing(function ($state) {
+                        if (!$state) return '-';
+                        try {
+                            $svgHtml = svg($state, 'w-4 h-4 inline-block')->toHtml();
+                        } catch (\Exception $e) {
+                            $svgHtml = '';
+                        }
+                        $label = IconService::getAllIcons()[$state] ?? $state;
+                        return new \Illuminate\Support\HtmlString(
+                            '<div class="flex items-center gap-2">' . $svgHtml . '<span>' . $label . '</span></div>'
+                        );
+                    })
+                    ->html(),
 
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('Status')
@@ -308,7 +336,7 @@ class FacilityResource extends Resource
                     ]),
 
                 Tables\Actions\EditAction::make()
-                    ->label('Edit')
+                    ->label('Ubah')
                     ->visible(fn ($livewire) => ($livewire->activeTab ?? null) !== 'terhapus'),
                     
                 Tables\Actions\DeleteAction::make()
