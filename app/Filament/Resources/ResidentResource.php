@@ -63,23 +63,47 @@ class ResidentResource extends Resource
             return $query;
         }
 
-        // Branch admin: hanya penghuni di cabangnya (yang masih aktif penempatan kamar)
+        // Branch admin: penghuni berkamar di cabangnya + belum berkamar + pernah keluar dari cabangnya
         if ($user->hasRole('branch_admin')) {
             $dormIds = $user->branchDormIds()->toArray();
 
-            return $query->whereHas('roomResidents', function (Builder $q) use ($dormIds) {
-                $q->whereNull('check_out_date')
-                    ->whereHas('room.block', fn(Builder $b) => $b->whereIn('dorm_id', $dormIds));
+            return $query->where(function (Builder $q) use ($dormIds) {
+                // 1. Berkamar aktif di cabangnya
+                $q->whereHas('roomResidents', function (Builder $rr) use ($dormIds) {
+                    $rr->whereNull('check_out_date')
+                        ->whereHas('room.block', fn(Builder $b) => $b->whereIn('dorm_id', $dormIds));
+                })
+                    // 2. Belum pernah punya kamar sama sekali
+                    ->orWhereDoesntHave('roomResidents')
+                    // 3. Sudah keluar dari cabangnya (history terakhirnya di cabang ini)
+                    ->orWhere(function (Builder $sub) use ($dormIds) {
+                        $sub->whereDoesntHave('roomResidents', fn(Builder $rr) => $rr->whereNull('check_out_date'))
+                            ->whereHas('roomResidents', function (Builder $rr) use ($dormIds) {
+                                $rr->whereHas('room.block', fn(Builder $b) => $b->whereIn('dorm_id', $dormIds));
+                            });
+                    });
             });
         }
 
-        // Block admin: hanya penghuni di kompleknya (yang masih aktif penempatan kamar)
+        // Block admin: penghuni di kompleknya + belum berkamar + pernah keluar dari kompleknya
         if ($user->hasRole('block_admin')) {
             $blockIds = $user->blockIds()->toArray();
 
-            return $query->whereHas('roomResidents', function (Builder $q) use ($blockIds) {
-                $q->whereNull('check_out_date')
-                    ->whereHas('room', fn(Builder $room) => $room->whereIn('block_id', $blockIds));
+            return $query->where(function (Builder $q) use ($blockIds) {
+                // 1. Berkamar aktif di kompleknya
+                $q->whereHas('roomResidents', function (Builder $rr) use ($blockIds) {
+                    $rr->whereNull('check_out_date')
+                        ->whereHas('room', fn(Builder $room) => $room->whereIn('block_id', $blockIds));
+                })
+                    // 2. Belum pernah punya kamar sama sekali
+                    ->orWhereDoesntHave('roomResidents')
+                    // 3. Sudah keluar dari kompleknya
+                    ->orWhere(function (Builder $sub) use ($blockIds) {
+                        $sub->whereDoesntHave('roomResidents', fn(Builder $rr) => $rr->whereNull('check_out_date'))
+                            ->whereHas('roomResidents', function (Builder $rr) use ($blockIds) {
+                                $rr->whereHas('room', fn(Builder $room) => $room->whereIn('block_id', $blockIds));
+                            });
+                    });
             });
         }
 
@@ -177,7 +201,7 @@ class ResidentResource extends Resource
 
                         // Cek apakah pernah punya kamar
                         $hasRoomHistory = $record->roomResidents()->exists();
-                        
+
                         // Cek apakah punya kamar aktif
                         $hasActiveRoom = $record->roomResidents()
                             ->whereNull('check_out_date')
@@ -208,7 +232,8 @@ class ResidentResource extends Resource
                         default => $state,
                     })
                     ->sortable(query: function (Builder $query, string $direction): Builder {
-                        return $query->orderByRaw("
+                        return $query->orderByRaw(
+                            "
                             CASE
                                 WHEN users.is_active = 0 THEN 4
                                 WHEN EXISTS (SELECT 1 FROM room_residents WHERE room_residents.user_id = users.id AND room_residents.check_out_date IS NULL) THEN 1
@@ -255,7 +280,7 @@ class ResidentResource extends Resource
                     ->native(false)
                     ->query(function (Builder $query, array $data) {
                         $status = $data['value'] ?? null;
-                        
+
                         if (!$status) {
                             return $query;
                         }
@@ -267,22 +292,22 @@ class ResidentResource extends Resource
                             } elseif ($status === 'registered') {
                                 // Status Terdaftar: akun aktif DAN belum pernah punya kamar
                                 $q->where('is_active', true)
-                                ->whereDoesntHave('roomResidents');
+                                    ->whereDoesntHave('roomResidents');
                             } elseif ($status === 'active') {
                                 // Status Aktif: akun aktif DAN punya kamar aktif
                                 $q->where('is_active', true)
-                                ->whereHas('roomResidents', function (Builder $rr) {
-                                    $rr->whereNull('check_out_date');
-                                });
+                                    ->whereHas('roomResidents', function (Builder $rr) {
+                                        $rr->whereNull('check_out_date');
+                                    });
                             } elseif ($status === 'checkout') {
                                 // Status Keluar: akun aktif DAN pernah punya kamar tapi sekarang sudah checkout
                                 $q->where('is_active', true)
-                                ->whereHas('roomResidents', function (Builder $rr) {
-                                    $rr->whereNotNull('check_out_date');
-                                })
-                                ->whereDoesntHave('roomResidents', function (Builder $rr) {
-                                    $rr->whereNull('check_out_date');
-                                });
+                                    ->whereHas('roomResidents', function (Builder $rr) {
+                                        $rr->whereNotNull('check_out_date');
+                                    })
+                                    ->whereDoesntHave('roomResidents', function (Builder $rr) {
+                                        $rr->whereNull('check_out_date');
+                                    });
                             }
                         });
                     }),
@@ -553,6 +578,67 @@ class ResidentResource extends Resource
                             return ! (method_exists($record, 'trashed') && $record->trashed());
                         }),
 
+                    // Tempatkan ke kamar (hanya untuk penghuni belum berkamar)
+                    Tables\Actions\Action::make('place')
+                        ->label('Tempatkan')
+                        ->icon('heroicon-o-map-pin')
+                        ->color('success')
+                        ->visible(function (User $record) {
+                            $user = auth()->user();
+
+                            if (! $user?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin'])) {
+                                return false;
+                            }
+
+                            if (method_exists($record, 'trashed') && $record->trashed()) {
+                                return false;
+                            }
+
+                            // Hanya tampil jika penghuni belum punya kamar aktif
+                            return ! $record->roomResidents()
+                                ->whereNull('check_out_date')
+                                ->exists();
+                        })
+                        ->url(fn(User $record) => RoomPlacementResource::getUrl('place', ['record' => $record]))
+                        ->openUrlInNewTab(false),
+
+                    // Pindah Kamar / Pindah Cabang
+                    Tables\Actions\Action::make('transfer')
+                        ->label('Pindah Kamar')
+                        ->icon('heroicon-o-arrow-right-circle')
+                        ->color('info')
+                        ->visible(function (User $record) {
+                            $user = auth()->user();
+
+                            if (! $user?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin'])) {
+                                return false;
+                            }
+
+                            if (method_exists($record, 'trashed') && $record->trashed()) {
+                                return false;
+                            }
+
+                            // Hanya tampil jika penghuni punya kamar aktif
+                            $hasActiveRoom = $record->roomResidents()
+                                ->whereNull('check_out_date')
+                                ->exists();
+
+                            if (! $hasActiveRoom) return false;
+
+                            // Branch admin: hanya bisa memindahkan penghuni dari cabangnya
+                            if ($user->hasRole('branch_admin')) {
+                                $dormIds = $user->branchDormIds()->toArray();
+                                return $record->roomResidents()
+                                    ->whereNull('check_out_date')
+                                    ->whereHas('room.block', fn($b) => $b->whereIn('dorm_id', $dormIds))
+                                    ->exists();
+                            }
+
+                            return true;
+                        })
+                        ->url(fn(User $record) => RoomPlacementResource::getUrl('transfer', ['record' => $record]))
+                        ->openUrlInNewTab(false),
+
                     Tables\Actions\Action::make('checkout')
                         ->label('Keluar')
                         ->icon('heroicon-o-arrow-left-on-rectangle')
@@ -560,8 +646,8 @@ class ResidentResource extends Resource
                         ->visible(function (User $record) {
                             $user = auth()->user();
 
-                            // Hanya super_admin dan main_admin yang bisa checkout
-                            if (!$user?->hasAnyRole(['super_admin', 'main_admin'])) {
+                            // Super admin, main admin, dan branch admin bisa checkout
+                            if (!$user?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin'])) {
                                 return false;
                             }
 
@@ -571,9 +657,22 @@ class ResidentResource extends Resource
                             }
 
                             // Hanya tampil jika penghuni memiliki kamar aktif
-                            return $record->roomResidents()
+                            $hasActiveRoom = $record->roomResidents()
                                 ->whereNull('check_out_date')
                                 ->exists();
+
+                            if (! $hasActiveRoom) return false;
+
+                            // Branch admin: hanya bisa checkout penghuni dari cabangnya
+                            if ($user->hasRole('branch_admin')) {
+                                $dormIds = $user->branchDormIds()->toArray();
+                                return $record->roomResidents()
+                                    ->whereNull('check_out_date')
+                                    ->whereHas('room.block', fn($b) => $b->whereIn('dorm_id', $dormIds))
+                                    ->exists();
+                            }
+
+                            return true;
                         })
                         ->url(fn(User $record) => RoomPlacementResource::getUrl('checkout', ['record' => $record]))
                         ->openUrlInNewTab(false),
@@ -652,7 +751,8 @@ class ResidentResource extends Resource
                         }),
                 ]),
             ])
-            ->defaultSort(fn (Builder $query) => 
+            ->defaultSort(
+                fn(Builder $query) =>
                 $query->orderByRaw("
                     CASE
                         WHEN users.is_active = 0 THEN 4

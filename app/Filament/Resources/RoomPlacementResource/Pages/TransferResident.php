@@ -9,6 +9,7 @@ use App\Models\Room;
 use App\Models\RoomHistory;
 use App\Models\RoomResident;
 use App\Models\User;
+use App\Services\AdminPrivilegeService;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
@@ -33,6 +34,9 @@ class TransferResident extends Page implements HasActions
 
     public ?array $data = [];
     public User $record;
+
+    /** Scope admin aktif milik penghuni ini (null jika bukan admin) */
+    public ?array $activeAdminScope = null;
 
     public function mount(User $record): void
     {
@@ -63,12 +67,25 @@ class TransferResident extends Page implements HasActions
             }
         }
 
+        // Simpan info scope admin agar bisa ditampilkan di form
+        $scope = app(AdminPrivilegeService::class)->getActiveAdminScope($record);
+        if ($scope) {
+            $this->activeAdminScope = [
+                'type'       => $scope->type,
+                'type_label' => $scope->type === 'branch' ? 'Admin Cabang' : 'Admin Komplek',
+                'dorm_name'  => $scope->dorm?->name ?? '-',
+                'block_name' => $scope->block?->name ?? '-',
+            ];
+        }
+
         $currentRoom = $record->activeRoomResident->room;
 
         $this->form->fill([
             'transfer_date' => now()->toDateString(),
             'new_dorm_id'   => $currentRoom->block->dorm_id,
             'new_block_id'  => $currentRoom->block_id,
+            // Default: pindahkan jabatan (lebih aman bagi pengguna)
+            'admin_action'  => 'move',
         ]);
     }
 
@@ -91,12 +108,12 @@ class TransferResident extends Page implements HasActions
     {
         $currentRoomResident = $this->record->activeRoomResident;
         $authUser            = auth()->user();
+        $isAdmin             = ! is_null($this->activeAdminScope);
 
         $minTransferDate = $currentRoomResident?->check_in_date
             ? Carbon::parse($currentRoomResident->check_in_date)->toDateString()
             : null;
 
-        // Semua cabang aktif boleh dipilih sebagai tujuan (termasuk beda cabang)
         $dormOptions = Dorm::query()
             ->where('is_active', true)
             ->orderBy('name')
@@ -104,7 +121,8 @@ class TransferResident extends Page implements HasActions
 
         return $form
             ->schema([
-                Forms\Components\Section::make('Informasi Kamar Saat Ini')
+                //  Informasi kamar saat ini 
+                Forms\Components\Section::make('Informasi Saat Ini')
                     ->columns(2)
                     ->schema([
                         Forms\Components\Placeholder::make('resident_name')
@@ -115,15 +133,58 @@ class TransferResident extends Page implements HasActions
                             ->label('Kamar Saat Ini')
                             ->content(function () use ($currentRoomResident) {
                                 if (! $currentRoomResident) return '-';
-
                                 $room  = $currentRoomResident->room;
                                 $block = $room->block;
                                 $dorm  = $block->dorm;
-
-                                return "{$dorm->name} - {$block->name} - {$room->code}";
+                                return "{$dorm->name} — {$block->name} — {$room->code}";
                             }),
+
+                        // Tampilkan info jabatan jika penghuni adalah admin
+                        Forms\Components\Placeholder::make('admin_info')
+                            ->label('Jabatan Admin')
+                            ->content(function () use ($isAdmin) {
+                                if (! $isAdmin) return '-';
+                                $s = $this->activeAdminScope;
+                                return "{$s['type_label']} · Cabang: {$s['dorm_name']} · Komplek: {$s['block_name']}";
+                            })
+                            ->visible($isAdmin)
+                            ->columnSpanFull(),
                     ]),
 
+                //  Peringatan & pilihan untuk admin 
+                Forms\Components\Section::make('Pengaturan Jabatan Admin')
+                    ->visible($isAdmin)
+                    ->schema([
+                        Forms\Components\Placeholder::make('admin_warning_text')
+                            ->label('')
+                            ->content(new \Illuminate\Support\HtmlString('
+                                <div class="bg-amber-50 border border-amber-300 rounded-lg p-4 mb-2">
+                                    <p class="text-sm text-amber-900 font-semibold mb-1">⚠ Penghuni ini menjabat sebagai <strong>'
+                                . e($this->activeAdminScope['type_label'] ?? '')
+                                . '</strong></p>
+                                    <p class="text-sm text-amber-800">
+                                        Pilih tindakan yang akan dilakukan terhadap jabatan adminnya setelah dipindahkan.
+                                    </p>
+                                </div>
+                            '))
+                            ->columnSpanFull(),
+
+                        Forms\Components\Radio::make('admin_action')
+                            ->label('Tindakan pada Jabatan Admin')
+                            ->options([
+                                'move'   => 'Pindahkan jabatan ke lokasi kamar baru',
+                                'revoke' => 'Cabut jabatan admin',
+                            ])
+                            ->descriptions([
+                                'move'   => 'Jabatan dipertahankan. Scope admin (cabang/komplek) diperbarui ke lokasi kamar yang baru.',
+                                'revoke' => 'Jabatan dicabut sepenuhnya. Penghuni kembali menjadi warga biasa.',
+                            ])
+                            ->default('move')
+                            ->required()
+                            ->columnSpanFull(),
+                    ]),
+
+                //  Kamar tujuan 
                 Forms\Components\Section::make('Kamar Tujuan')
                     ->columns(2)
                     ->description(
@@ -156,7 +217,7 @@ class TransferResident extends Page implements HasActions
                             ->reactive()
                             ->required()
                             ->disabled(fn(Forms\Get $get) => blank($get('new_dorm_id')))
-                            ->helperText(fn(Forms\Get $get) => blank($get('new_dorm_id')) ? 'Pilih cabang dulu untuk menampilkan komplek.' : null)
+                            ->helperText(fn(Forms\Get $get) => blank($get('new_dorm_id')) ? 'Pilih cabang dulu.' : null)
                             ->afterStateUpdated(fn(Forms\Set $set) => $set('new_room_id', null)),
 
                         Forms\Components\Select::make('new_room_id')
@@ -214,12 +275,8 @@ class TransferResident extends Page implements HasActions
                                         ->whereNull('check_out_date')
                                         ->count();
 
-                                    $capacity  = (int) ($room->capacity ?? 0);
-                                    $available = $capacity - $activeCount;
-
-                                    if ($available <= 0) {
-                                        continue;
-                                    }
+                                    $available = ($room->capacity ?? 0) - $activeCount;
+                                    if ($available <= 0) continue;
 
                                     $labelGender  = $activeGender
                                         ? ($activeGender === 'M' ? 'Laki-laki' : 'Perempuan')
@@ -234,8 +291,7 @@ class TransferResident extends Page implements HasActions
                                 }
 
                                 return $options;
-                            })
-                            ->helperText(fn(Forms\Get $get) => blank($get('new_block_id')) ? 'Pilih komplek dulu.' : null),
+                            }),
 
                         Forms\Components\DatePicker::make('transfer_date')
                             ->label('Tanggal Pindah')
@@ -270,23 +326,33 @@ class TransferResident extends Page implements HasActions
                             ->nullable(),
                     ]),
 
-                // Peringatan jika tujuan adalah cabang lain
+                //  Peringatan pindah cabang (muncul reaktif) 
                 Forms\Components\Section::make()
                     ->schema([
                         Forms\Components\Placeholder::make('cross_branch_warning')
                             ->label('')
-                            ->content(function (Forms\Get $get) use ($currentRoomResident) {
-                                $newDormId     = $get('new_dorm_id');
-                                $currentDormId = $currentRoomResident?->room?->block?->dorm_id;
+                            ->content(function (Forms\Get $get) use ($currentRoomResident, $isAdmin) {
+                                $newDormId     = (int) $get('new_dorm_id');
+                                $currentDormId = (int) ($currentRoomResident?->room?->block?->dorm_id ?? 0);
+                                $adminAction   = $get('admin_action');
 
-                                if ($newDormId && $currentDormId && $newDormId != $currentDormId) {
-                                    $newDorm = Dorm::find($newDormId);
+                                if ($newDormId && $currentDormId && $newDormId !== $currentDormId) {
+                                    $newDorm   = Dorm::find($newDormId);
+                                    $adminNote = '';
+
+                                    if ($isAdmin && $adminAction === 'move') {
+                                        $adminNote = '<br><span class="font-semibold">Jabatan admin akan dipindahkan ke cabang <em>' . e($newDorm?->name) . '</em>.</span>';
+                                    } elseif ($isAdmin && $adminAction === 'revoke') {
+                                        $adminNote = '<br><span class="font-semibold">Jabatan admin akan dicabut.</span>';
+                                    }
+
                                     return new \Illuminate\Support\HtmlString('
                                         <div class="bg-orange-50 border border-orange-300 rounded-lg p-4">
-                                            <p class="text-sm text-orange-800">
-                                                <strong>⚠ Pindah Cabang:</strong> Penghuni akan dipindahkan ke cabang 
-                                                <strong>' . e($newDorm?->name) . '</strong>. 
-                                                Setelah dipindahkan, admin cabang asal tidak lagi memiliki akses ke penghuni ini.
+                                            <p class="text-sm text-orange-900">
+                                                <strong>⚠ Pindah Cabang:</strong> Penghuni akan dipindahkan ke cabang
+                                                <strong>' . e($newDorm?->name) . '</strong>.
+                                                Admin cabang asal tidak lagi memiliki akses ke penghuni ini setelah dipindahkan.'
+                                        . $adminNote . '
                                             </p>
                                         </div>
                                     ');
@@ -326,6 +392,7 @@ class TransferResident extends Page implements HasActions
             $isPic              = (bool) ($data['is_pic'] ?? false);
             $gender             = $this->record->residentProfile?->gender;
             $residentCategoryId = $this->record->residentProfile?->resident_category_id;
+            $adminAction        = $data['admin_action'] ?? null; // 'move' atau 'revoke'
 
             $currentRoomResident = $this->record->activeRoomResident;
 
@@ -342,7 +409,7 @@ class TransferResident extends Page implements HasActions
             $wasPic    = $currentRoomResident->is_pic;
             $oldRoomId = $currentRoomResident->room_id;
 
-            // Tutup kamar lama
+            //  Tutup kamar lama 
             RoomResident::withoutEvents(function () use ($currentRoomResident, $transferDate) {
                 $currentRoomResident->update([
                     'check_out_date' => $transferDate->toDateString(),
@@ -358,7 +425,7 @@ class TransferResident extends Page implements HasActions
                     'notes'          => $data['notes'] ?? 'Pindah kamar',
                 ]);
 
-            // Validasi kamar tujuan
+            //  Validasi kamar tujuan 
             RoomResident::query()
                 ->where('room_id', $newRoomId)
                 ->whereNull('check_out_date')
@@ -417,6 +484,7 @@ class TransferResident extends Page implements HasActions
 
             $transferDateStr = $transferDate->toDateString();
 
+            //  Buka kamar baru (withoutEvents agar observer tidak terpicu, jabatan admin ditangani eksplisit di bawah) 
             $existingSameDay = RoomResident::query()
                 ->where('user_id', $this->record->id)
                 ->where('room_id', $newRoomId)
@@ -424,13 +492,13 @@ class TransferResident extends Page implements HasActions
                 ->first();
 
             if ($existingSameDay) {
-                $newRoomResident = RoomResident::withoutEvents(function () use ($existingSameDay, $isPic) {
+                RoomResident::withoutEvents(function () use ($existingSameDay, $isPic) {
                     $existingSameDay->update([
                         'check_out_date' => null,
                         'is_pic'         => $isPic,
                     ]);
-                    return $existingSameDay;
                 });
+                $newRoomResident = $existingSameDay;
 
                 RoomHistory::create([
                     'user_id'          => $this->record->id,
@@ -444,8 +512,9 @@ class TransferResident extends Page implements HasActions
                     'recorded_by'      => auth()->id(),
                 ]);
             } else {
-                $newRoomResident = RoomResident::withoutEvents(function () use ($newRoomId, $transferDateStr, $isPic) {
-                    return RoomResident::create([
+                $newRoomResident = null;
+                RoomResident::withoutEvents(function () use ($newRoomId, $transferDateStr, $isPic, &$newRoomResident) {
+                    $newRoomResident = RoomResident::create([
                         'user_id'        => $this->record->id,
                         'room_id'        => $newRoomId,
                         'check_in_date'  => $transferDateStr,
@@ -467,13 +536,31 @@ class TransferResident extends Page implements HasActions
                 ]);
             }
 
-            // Pastikan penghuni tetap aktif
+            //  Tangani jabatan admin secara EKSPLISIT 
+            $service = app(AdminPrivilegeService::class);
+            $scope   = $service->getActiveAdminScope($this->record);
+
+            if ($scope) {
+                // Ambil dorm_id dan block_id kamar baru
+                $newRoom    = Room::with('block')->find($newRoomId);
+                $newDormId  = (int) $newRoom->block->dorm_id;
+                $newBlockId = (int) $newRoom->block_id;
+
+                if ($adminAction === 'revoke') {
+                    $service->revokeAdmin($this->record);
+                } else {
+                    // 'move': pindahkan scope ke lokasi baru
+                    $service->updateScopeToLocation($this->record, $newDormId, $newBlockId);
+                }
+            }
+
+            //  Pastikan status penghuni tetap aktif 
             $this->record->forceFill(['is_active' => true])->save();
             if ($this->record->residentProfile) {
                 $this->record->residentProfile->forceFill(['status' => 'active'])->save();
             }
 
-            // Assign PIC baru di kamar lama jika yang pindah adalah PIC
+            //  Assign PIC baru di kamar lama jika yang pindah adalah PIC 
             if ($wasPic) {
                 $newPicForOldRoom = RoomResident::where('room_id', $oldRoomId)
                     ->whereNull('check_out_date')
