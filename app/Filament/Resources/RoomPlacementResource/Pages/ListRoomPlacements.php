@@ -14,12 +14,14 @@ class ListRoomPlacements extends ListRecords
 
     protected function baseCountQuery(): Builder
     {
-        return User::query()
+        $query = User::query()
             ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
             // ✅ Tidak filter is_active, karena user tetap aktif meski sudah keluar
             ->whereHas('residentProfile', fn(Builder $q) => 
                 $q->whereIn('status', ['registered', 'active'])
             );
+            
+        return static::getResource()::applyBranchScope($query);
     }
 
     public function getTabs(): array
@@ -57,7 +59,7 @@ class ListRoomPlacements extends ListRecords
             'keluar' => Tab::make('Keluar')
                 ->modifyQueryUsing(function (Builder $query) {
                     // ✅ Query penghuni yang sudah keluar
-                    return User::query()
+                    $query = User::query()
                         ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
                         // ✅ User TETAP AKTIF (tidak filter is_active)
                         ->whereHas('residentProfile', function (Builder $q) {
@@ -76,15 +78,18 @@ class ListRoomPlacements extends ListRecords
                             'residentProfile.country',
                             'roomResidents' => fn($q) => $q->latest('check_out_date')->limit(1)
                         ]);
+                        
+                    return static::getResource()::applyBranchScope($query);
                 })
                 ->badge(function () {
-                    return User::query()
+                    $query = User::query()
                         ->whereHas('roles', fn($q) => $q->where('name', 'resident'))
                         // ✅ Tidak filter is_active
                         ->whereHas('residentProfile', fn($q) => $q->where('status', 'inactive'))
                         ->whereHas('roomResidents', fn($q) => $q->whereNotNull('check_out_date'))
-                        ->whereDoesntHave('roomResidents', fn($q) => $q->whereNull('check_out_date'))
-                        ->count();
+                        ->whereDoesntHave('roomResidents', fn($q) => $q->whereNull('check_out_date'));
+
+                    return static::getResource()::applyBranchScope($query)->count();
                 })
                 ->badgeColor('danger'),
         ];
