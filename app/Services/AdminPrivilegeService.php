@@ -12,6 +12,9 @@ use Illuminate\Validation\ValidationException;
 
 class AdminPrivilegeService
 {
+    /**
+     * Cabut SEMUA jabatan admin cabang/komplek tanpa syarat.
+     */
     public function revokeAdmin(User $user): void
     {
         DB::transaction(function () use ($user) {
@@ -28,6 +31,50 @@ class AdminPrivilegeService
                 ->where('user_id', $user->id)
                 ->whereIn('type', ['branch', 'block'])
                 ->delete();
+        });
+    }
+
+    /**
+     * Evaluasi apakah jabatan admin perlu dicabut setelah penghuni PINDAH KAMAR.
+     *
+     * Aturan:
+     *  - branch_admin pindah ke dorm BERBEDA          → cabut jabatan
+     *  - branch_admin pindah komplek di dorm SAMA     → pertahankan, update scope block_id
+     *  - block_admin  pindah ke block BERBEDA          → cabut jabatan (walau dorm sama)
+     *  - Bukan admin                                   → tidak ada yang dilakukan
+     *
+     * @param  User $user          Penghuni yang dipindahkan
+     * @param  int  $newDormId     Dorm tujuan
+     * @param  int  $newBlockId    Block tujuan
+     */
+    public function evaluateOnTransfer(User $user, int $newDormId, int $newBlockId): void
+    {
+        DB::transaction(function () use ($user, $newDormId, $newBlockId) {
+            $scope = AdminScope::query()
+                ->where('user_id', $user->id)
+                ->whereIn('type', ['branch', 'block'])
+                ->first();
+
+            // Tidak menjabat → tidak ada yang perlu dilakukan
+            if (! $scope) {
+                return;
+            }
+
+            if ($scope->type === 'branch') {
+                if ($newDormId !== (int) $scope->dorm_id) {
+                    // Pindah ke cabang lain → cabut jabatan
+                    $this->revokeAdmin($user);
+                } else {
+                    // Masih di cabang yang sama → pertahankan jabatan, update block_id scope
+                    $scope->update(['block_id' => $newBlockId]);
+                }
+            } elseif ($scope->type === 'block') {
+                if ($newBlockId !== (int) $scope->block_id) {
+                    // Pindah ke komplek berbeda (cabang sama atau beda) → cabut jabatan
+                    $this->revokeAdmin($user);
+                }
+                // Jika block_id sama (edge case: pindah ke kamar lain di komplek yg sama) → pertahankan
+            }
         });
     }
 
@@ -67,10 +114,10 @@ class AdminPrivilegeService
             $this->revokeAdmin($user);
 
             $roleName = $type === 'branch' ? 'branch_admin' : 'block_admin';
-            $role = Role::firstOrCreate(['name' => $roleName]);
+            $role     = Role::firstOrCreate(['name' => $roleName]);
             $user->roles()->syncWithoutDetaching([$role->id]);
 
-            // simpan scope; untuk branch admin tetap simpan block_id (agar pindah komplek => mismatch)
+            // simpan scope; untuk branch_admin tetap simpan block_id (agar pindah komplek terdeteksi)
             $scope = AdminScope::create([
                 'user_id'  => $user->id,
                 'type'     => $type,
@@ -93,7 +140,6 @@ class AdminPrivilegeService
             // re-assign total biar konsisten (cabut dulu lalu assign lagi)
             $newScope = $this->assignAdmin($user, $type);
 
-            // hapus scope lama (kalau assignAdmin sudah hapus semua scope, ini aman)
             $scope->refresh();
             return $newScope;
         });
@@ -114,9 +160,9 @@ class AdminPrivilegeService
 
             // Buat user
             $user = User::create([
-                'name' => $data['full_name'],
-                'email' => $data['email'],
-                'password' => Hash::make($data['password']),
+                'name'      => $data['full_name'],
+                'email'     => $data['email'],
+                'password'  => Hash::make($data['password']),
                 'is_active' => true,
             ]);
 
@@ -126,11 +172,11 @@ class AdminPrivilegeService
 
             // Buat admin profile
             $profileData = [
-                'user_id' => $user->id,
-                'national_id' => $data['national_id'],
-                'full_name' => $data['full_name'],
-                'gender' => $data['gender'],
-                'phone_number' => $data['phone_number'],
+                'user_id'               => $user->id,
+                'national_id'           => $data['national_id'],
+                'full_name'             => $data['full_name'],
+                'gender'                => $data['gender'],
+                'phone_number'          => $data['phone_number'],
                 'show_phone_on_landing' => $data['show_phone_on_landing'] ?? false,
             ];
 
@@ -163,11 +209,11 @@ class AdminPrivilegeService
 
             // Update user
             $userData = [
-                'name' => $data['full_name'],
+                'name'  => $data['full_name'],
                 'email' => $data['email'],
             ];
 
-            if (!empty($data['password'])) {
+            if (! empty($data['password'])) {
                 $userData['password'] = Hash::make($data['password']);
             }
 
@@ -175,10 +221,10 @@ class AdminPrivilegeService
 
             // Update admin profile
             $profileData = [
-                'national_id' => $data['national_id'],
-                'full_name' => $data['full_name'],
-                'gender' => $data['gender'],
-                'phone_number' => $data['phone_number'],
+                'national_id'           => $data['national_id'],
+                'full_name'             => $data['full_name'],
+                'gender'                => $data['gender'],
+                'phone_number'          => $data['phone_number'],
                 'show_phone_on_landing' => $data['show_phone_on_landing'] ?? false,
             ];
 
@@ -198,13 +244,8 @@ class AdminPrivilegeService
     public function deleteMainAdmin(User $user): void
     {
         DB::transaction(function () use ($user) {
-            // Soft delete admin profile
             $user->adminProfile()->delete();
-            
-            // JANGAN detach role agar masih bisa diquery
-            // Role akan tetap ada untuk identifikasi
             $user->update(['is_active' => false]);
-            // Soft delete user
             $user->delete();
         });
     }
@@ -215,15 +256,9 @@ class AdminPrivilegeService
     public function restoreMainAdmin(User $user): void
     {
         DB::transaction(function () use ($user) {
-            // Restore user
             $user->restore();
-            
             $user->update(['is_active' => true]);
-
-            // Restore admin profile
             $user->adminProfile()->restore();
-            
-            // Role sudah ada, tidak perlu re-attach
         });
     }
 
@@ -233,16 +268,13 @@ class AdminPrivilegeService
     public function forceDeleteMainAdmin(User $user): void
     {
         DB::transaction(function () use ($user) {
-            // Force delete admin profile
             $user->adminProfile()->forceDelete();
-            
-            // Detach role
+
             $role = Role::where('name', 'main_admin')->first();
             if ($role) {
                 $user->roles()->detach($role->id);
             }
-            
-            // Force delete user
+
             $user->forceDelete();
         });
     }
