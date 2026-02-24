@@ -17,8 +17,6 @@ class ViewTransaction extends ViewRecord
         return [
             Actions\EditAction::make()
                 ->visible(fn ($record) => !$record->bill_payment_id),
-            Actions\DeleteAction::make()
-                ->visible(fn ($record) => !$record->bill_payment_id),
         ];
     }
 

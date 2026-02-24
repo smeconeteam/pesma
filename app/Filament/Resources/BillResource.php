@@ -172,6 +172,10 @@ class BillResource extends Resource
                     ->url(fn(Bill $record) => BillPaymentResource::getUrl('create', ['bill_id' => $record->id]))
                     ->visible(fn(Bill $record) => !$record->trashed() && in_array($record->status, ['issued', 'partial', 'overdue'])),
 
+                Tables\Actions\DeleteAction::make()
+                    ->label('Hapus')
+                    ->visible(fn($record) => !$record->trashed()),
+
                 Tables\Actions\RestoreAction::make()
                     ->label('Pulihkan')
                     ->visible(

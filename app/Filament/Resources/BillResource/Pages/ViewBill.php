@@ -14,10 +14,7 @@ class ViewBill extends ViewRecord
 
     protected function getHeaderActions(): array
     {
-        return [
-            Actions\DeleteAction::make()
-                ->visible(fn($record) => $record->canBeDeleted()),
-        ];
+        return [];
     }
 
     public function infolist(Infolist $infolist): Infolist
