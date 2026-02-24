@@ -225,21 +225,9 @@ class FacilityResource extends Resource
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('icon')
+                Tables\Columns\ViewColumn::make('icon')
                     ->label('Ikon')
-                    ->formatStateUsing(function ($state) {
-                        if (!$state) return '-';
-                        try {
-                            $svgHtml = svg($state, 'w-4 h-4 inline-block')->toHtml();
-                        } catch (\Exception $e) {
-                            $svgHtml = '';
-                        }
-                        $label = IconService::getAllIcons()[$state] ?? $state;
-                        return new \Illuminate\Support\HtmlString(
-                            '<div class="flex items-center gap-2">' . $svgHtml . '<span>' . $label . '</span></div>'
-                        );
-                    })
-                    ->html(),
+                    ->view('filament.columns.icon-with-label'),
 
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('Status')
