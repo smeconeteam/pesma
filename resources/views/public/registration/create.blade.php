@@ -136,14 +136,14 @@
 
                     <div class="md:col-span-2">
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.photo') }}</label>
-                        <div class="cloud-upload relative overflow-hidden">
+                        <div class="bg-black/2 hover:bg-blue-500/4 dark:bg-white/3 relative overflow-hidden rounded-2xl border border-gray-200 transition-all duration-300 ease-in-out hover:border-blue-500 dark:border-gray-700 dark:hover:border-blue-500">
                             <input name="photo" type="file" id="photo-input" accept="image/*" class="absolute inset-0 z-10 cursor-pointer opacity-0" onchange="handlePublicPhotoPreview(event)">
-                            <div class="cloud-upload-container">
-                                <div class="cloud-icon" id="preview-icon"></div>
-                                <div id="preview-container" class="hidden mb-4">
-                                    <img id="photo-v-preview" src="#" alt="Preview" class="h-32 w-32 rounded-xl object-cover border-2 border-blue-500 shadow-lg mx-auto">
+                            <div class="flex flex-col items-center justify-center p-10 text-center">
+                                <div class="mb-4 h-14 w-14 flex-shrink-0 rounded-full bg-blue-500/10 transition-all duration-300 ease-in-out" id="preview-icon" style="background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.8' stroke='%233b82f6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z' /%3E%3C/svg%3E&quot;); background-repeat: no-repeat; background-position: center; background-size: 28px;"></div>
+                                <div id="preview-container" class="mb-4 hidden">
+                                    <img id="photo-v-preview" src="#" alt="Preview" class="mx-auto h-32 w-32 rounded-xl border-2 border-blue-500 object-cover shadow-lg">
                                 </div>
-                                <div class="cloud-upload-text">
+                                <div>
                                     <span class="font-semibold text-blue-500" id="upload-status">Klik untuk unggah</span> atau seret dan jatuhkan berkas Anda
                                     <p class="mt-1 text-xs opacity-70">PNG, JPG atau WEBP (Maks. 2MB)</p>
                                 </div>
@@ -358,107 +358,40 @@
     </div>
 
     @push('scripts')
-    <style>
-        /* CSS injection for public view since admin styles aren't loaded here */
-        .cloud-upload {
-            background-color: rgba(0, 0, 0, 0.02);
-            border: none;
-            border-radius: 16px;
-            transition: all 0.3s ease;
-        }
-        .dark .cloud-upload {
-            background-color: rgba(255, 255, 255, 0.03);
-            border: none;
-        }
-        .cloud-upload:hover {
-            border-color: #3b82f6;
-            background-color: rgba(59, 130, 246, 0.04);
-        }
-        .cloud-upload-container {
-            padding: 2.5rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-        }
-        .cloud-icon {
-            width: 56px;
-            height: 56px;
-            background: rgba(59, 130, 246, 0.1);
-            border-radius: 50%;
-            margin-bottom: 1rem;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.8' stroke='%233b82f6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z' /%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: center;
-            background-size: 28px;
-            transition: all 0.3s ease;
-        }
-    </style>
-    <script>
-        function handlePublicPhotoPreview(event) {
-            const file = event.target.files[0];
-            const icon = document.getElementById('preview-icon');
-            const container = document.getElementById('preview-container');
-            const preview = document.getElementById('photo-v-preview');
-            const status = document.getElementById('upload-status');
+        <script>
+            function handlePublicPhotoPreview(event) {
+                const file = event.target.files[0];
+                const icon = document.getElementById('preview-icon');
+                const container = document.getElementById('preview-container');
+                const preview = document.getElementById('photo-v-preview');
+                const status = document.getElementById('upload-status');
 
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    preview.src = e.target.result;
-                    container.classList.remove('hidden');
-                    icon.classList.add('hidden');
-                    status.textContent = "Berkas terpilih: " + (file.name.substring(0, 15) + "...");
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.src = e.target.result;
+                        container.classList.remove('hidden');
+                        icon.classList.add('hidden');
+                        status.textContent = "Berkas terpilih: " + (file.name.substring(0, 15) + "...");
+                    }
+                    reader.readAsDataURL(file);
                 }
-                reader.readAsDataURL(file);
             }
-        }
 
-        // Toggle Password Function
-        function togglePasswordField() {
-            const passwordInput = document.getElementById('password');
-            const eyeIcon = document.getElementById('eye-icon-reg');
-            const eyeSlashIcon = document.getElementById('eye-slash-icon-reg');
+            // Toggle Password Function
+            function togglePasswordField() {
+                const passwordInput = document.getElementById('password');
+                const eyeIcon = document.getElementById('eye-icon-reg');
+                const eyeSlashIcon = document.getElementById('eye-slash-icon-reg');
 
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                eyeIcon.classList.add('hidden');
-                eyeSlashIcon.classList.remove('hidden');
-            } else {
-                passwordInput.type = 'password';
-                eyeIcon.classList.remove('hidden');
-                eyeSlashIcon.classList.add('hidden');
-            }
-        }
-
-        // Form logic
-        (function() {
-            const fromRoom = @json($fromRoom);
-            const citizenship = document.getElementById('citizenship_status');
-            const country = document.getElementById('country_id');
-            const residentCategory = document.getElementById('resident_category_id');
-            const dormSelect = document.getElementById('preferred_dorm_id');
-            const roomTypeSelect = document.getElementById('preferred_room_type_id');
-            const roomSelect = document.getElementById('preferred_room_id'); // null jika fromRoom
-            const dormInfo = document.getElementById('dorm-info');
-            const roomTypeInfo = document.getElementById('room-type-info');
-            const indoId = @json($indoCountryId);
-
-            const trans = {
-                no_branch_available: "{{ __('registration.no_branch_available') }}",
-                branch_available: "{{ __('registration.branch_available') }}",
-                no_room_type_available: "{{ __('registration.no_room_type_available') }}",
-                no_room_type_available_cat: "{{ __('registration.no_room_type_available_cat') }}",
-                room_type_available: "{{ __('registration.room_type_available') }}",
-            };
-
-            const roomAvailability = @json($roomAvailability ?? []);
-
-            // ─── Sync negara ────────────────────────────────────────────────
-            function syncCountry() {
-                if (citizenship.value === 'WNI' && indoId && !country.value) {
-                    country.value = String(indoId);
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    eyeIcon.classList.add('hidden');
+                    eyeSlashIcon.classList.remove('hidden');
+                } else {
+                    passwordInput.type = 'password';
+                    eyeIcon.classList.remove('hidden');
+                    eyeSlashIcon.classList.add('hidden');
                 }
             }
 
@@ -492,235 +425,266 @@
                     }
                 }
 
-                // ─── Filter dropdown dorm ────────────────────────────────────────
-                function filterDorms() {
-                    const categoryId = residentCategory?.value;
-                    const selectedDormId = dormSelect?.value;
+                // Form logic
+                (function() {
+                    const fromRoom = @json($fromRoom);
+                    const citizenship = document.getElementById('citizenship_status');
+                    const country = document.getElementById('country_id');
+                    const residentCategory = document.getElementById('resident_category_id');
+                    const dormSelect = document.getElementById('preferred_dorm_id');
+                    const roomTypeSelect = document.getElementById('preferred_room_type_id');
+                    const roomSelect = document.getElementById('preferred_room_id'); // null jika fromRoom
+                    const dormInfo = document.getElementById('dorm-info');
+                    const roomTypeInfo = document.getElementById('room-type-info');
+                    const indoId = @json($indoCountryId);
 
-                    if (!categoryId) {
-                        if (dormSelect) dormSelect.value = '';
-                        if (roomTypeSelect) roomTypeSelect.value = '';
+                    const trans = {
+                        no_branch_available: "{{ __('registration.no_branch_available') }}",
+                        branch_available: "{{ __('registration.branch_available') }}",
+                        no_room_type_available: "{{ __('registration.no_room_type_available') }}",
+                        no_room_type_available_cat: "{{ __('registration.no_room_type_available_cat') }}",
+                        room_type_available: "{{ __('registration.room_type_available') }}",
+                    };
+
+                    const roomAvailability = @json($roomAvailability ?? []);
+
+                    // ─── Sync negara ────────────────────────────────────────────────
+                    function syncCountry() {
+                        if (citizenship.value === 'WNI' && indoId && !country.value) {
+                            country.value = String(indoId);
+                        }
+                    }
+
+                    // ─── Filter dropdown dorm ────────────────────────────────────────
+                    function filterDorms() {
+                        const categoryId = residentCategory?.value;
+                        const selectedDormId = dormSelect?.value;
+
+                        if (!categoryId) {
+                            if (dormSelect) dormSelect.value = '';
+                            if (roomTypeSelect) roomTypeSelect.value = '';
+                            Array.from(dormSelect?.options ?? []).forEach((opt, i) => {
+                                if (i > 0) opt.disabled = true;
+                            });
+                            Array.from(roomTypeSelect?.options ?? []).forEach((opt, i) => {
+                                if (i > 0) opt.disabled = true;
+                            });
+                            dormInfo?.classList.add('hidden');
+                            roomTypeInfo?.classList.add('hidden');
+                            return;
+                        }
+
+                        let count = 0;
                         Array.from(dormSelect?.options ?? []).forEach((opt, i) => {
-                            if (i > 0) opt.disabled = true;
+                            if (i === 0) return;
+                            const has = roomAvailability.some(r =>
+                                r.dorm_id === parseInt(opt.value) &&
+                                (r.resident_category_id === parseInt(categoryId) || r.resident_category_id === null) &&
+                                r.available_capacity > 0
+                            );
+                            opt.disabled = !has;
+                            if (has) count++;
                         });
+
+                        if (dormInfo) {
+                            if (count === 0) {
+                                dormInfo.textContent = trans.no_branch_available;
+                                dormInfo.classList.replace('text-gray-500', 'text-amber-600');
+                            } else {
+                                dormInfo.textContent = `${count} ${trans.branch_available}`;
+                                dormInfo.classList.replace('text-amber-600', 'text-gray-500');
+                            }
+                            dormInfo.classList.remove('hidden');
+                        }
+
+                        if (selectedDormId && dormSelect?.querySelector(`option[value="${selectedDormId}"]`)?.disabled) {
+                            dormSelect.value = '';
+                        }
+
+                        filterRoomTypes();
+                    }
+
+                    // ─── Filter dropdown tipe kamar ──────────────────────────────────
+                    function filterRoomTypes() {
+                        const categoryId = residentCategory?.value;
+                        const dormId = dormSelect?.value;
+                        const selectedRoomTypeId = roomTypeSelect?.value;
+
+                        if (!categoryId) {
+                            if (roomTypeSelect) roomTypeSelect.value = '';
+                            Array.from(roomTypeSelect?.options ?? []).forEach((opt, i) => {
+                                if (i > 0) opt.disabled = true;
+                            });
+                            roomTypeInfo?.classList.add('hidden');
+                            return;
+                        }
+
+                        let count = 0;
                         Array.from(roomTypeSelect?.options ?? []).forEach((opt, i) => {
-                            if (i > 0) opt.disabled = true;
+                            if (i === 0) return;
+                            const has = roomAvailability.some(r => {
+                                const matchCategory = r.resident_category_id === parseInt(categoryId) || r.resident_category_id === null;
+                                const matchType = r.room_type_id === parseInt(opt.value);
+                                const matchDorm = dormId ? r.dorm_id === parseInt(dormId) : true;
+                                return matchCategory && matchType && matchDorm && r.available_capacity > 0;
+                            });
+                            opt.disabled = !has;
+                            if (has) count++;
                         });
-                        dormInfo?.classList.add('hidden');
-                        roomTypeInfo?.classList.add('hidden');
-                        return;
+
+                        if (roomTypeInfo) {
+                            if (count === 0) {
+                                roomTypeInfo.textContent = dormId ? trans.no_room_type_available : trans.no_room_type_available_cat;
+                                roomTypeInfo.classList.replace('text-gray-500', 'text-amber-600');
+                            } else {
+                                roomTypeInfo.textContent = `${count} ${trans.room_type_available}`;
+                                roomTypeInfo.classList.replace('text-amber-600', 'text-gray-500');
+                            }
+                            roomTypeInfo.classList.remove('hidden');
+                        }
+
+                        if (selectedRoomTypeId && roomTypeSelect?.querySelector(`option[value="${selectedRoomTypeId}"]`)?.disabled) {
+                            roomTypeSelect.value = '';
+                        }
+
+                        // Ikut filter nomor kamar jika dropdown tersedia
+                        if (roomSelect) filterRoomOptions();
                     }
 
-                    let count = 0;
-                    Array.from(dormSelect?.options ?? []).forEach((opt, i) => {
-                        if (i === 0) return;
-                        const has = roomAvailability.some(r =>
-                            r.dorm_id === parseInt(opt.value) &&
-                            (r.resident_category_id === parseInt(categoryId) || r.resident_category_id === null) &&
-                            r.available_capacity > 0
-                        );
-                        opt.disabled = !has;
-                        if (has) count++;
-                    });
+                    // ─── Filter dropdown nomor kamar ─────────────────────────────────
+                    function filterRoomOptions() {
+                        if (!roomSelect) return;
+                        const dormId = dormSelect?.value ? parseInt(dormSelect.value) : null;
+                        const roomTypeId = roomTypeSelect?.value ? parseInt(roomTypeSelect.value) : null;
+                        const categoryId = residentCategory?.value ? parseInt(residentCategory.value) : null;
 
-                    if (dormInfo) {
-                        if (count === 0) {
-                            dormInfo.textContent = trans.no_branch_available;
-                            dormInfo.classList.replace('text-gray-500', 'text-amber-600');
+                        let anyVisible = false;
+                        Array.from(roomSelect.options).forEach((opt, i) => {
+                            if (i === 0) return; // skip placeholder
+                            const matchDorm = !dormId || parseInt(opt.dataset.dorm) === dormId;
+                            const matchType = !roomTypeId || parseInt(opt.dataset.roomType) === roomTypeId;
+                            const matchCategory = !categoryId || parseInt(opt.dataset.category) === categoryId;
+                            const visible = matchDorm && matchType && matchCategory;
+                            opt.hidden = !visible;
+                            opt.disabled = !visible;
+                            if (visible) anyVisible = true;
+                        });
+
+                        // Reset jika kamar yang dipilih sudah tersembunyi
+                        if (roomSelect.value) {
+                            const sel = roomSelect.options[roomSelect.selectedIndex];
+                            if (sel?.hidden) roomSelect.value = '';
+                        }
+                    }
+
+                    // ─── Pilih nomor kamar → auto-isi dorm, tipe kamar, & kategori ──
+                    function onRoomChange() {
+                        if (!roomSelect) return;
+                        const opt = roomSelect.options[roomSelect.selectedIndex];
+                        if (!opt?.value) return;
+
+                        // Set kategori dulu agar filterDorms tidak reset dorm
+                        if (residentCategory && opt.dataset.category) {
+                            residentCategory.value = opt.dataset.category;
+                        }
+                        if (dormSelect && opt.dataset.dorm) {
+                            dormSelect.value = opt.dataset.dorm;
+                        }
+                        filterDorms(); // filter dulu sebelum set tipe kamar
+
+                        if (roomTypeSelect && opt.dataset.roomType) {
+                            roomTypeSelect.value = opt.dataset.roomType;
+                        }
+                    }
+
+                    // ─── Validasi form untuk button submit ──────────────────────────────
+                    const submitBtn = document.getElementById('submitBtn');
+                    const form = document.querySelector('form');
+                    const policyAvailable = @json($policy);
+
+                    function validateForm() {
+                        // Field-field yang required (dengan tanda *)
+                        const requiredFields = [
+                            'email',
+                            'name',
+                            'resident_category_id',
+                            'full_name',
+                            'gender',
+                            'national_id',
+                            'birth_place',
+                            'birth_date',
+                            'student_id',
+                            'university_school',
+                            'citizenship_status',
+                            'country_id',
+                            'phone_number'
+                        ];
+
+                        // Cek apakah policy tersedia
+                        if (!policyAvailable) {
+                            submitBtn.disabled = true;
+                            submitBtn.title = "{{ __('registration.policy_unavailable') }}";
+                            return false;
+                        }
+
+                        // Cek apakah semua field required terisi
+                        let allFilled = true;
+                        for (let fieldName of requiredFields) {
+                            const field = form.querySelector(`[name="${fieldName}"]`);
+                            if (field && !field.value) {
+                                allFilled = false;
+                                break;
+                            }
+                        }
+
+                        // Cek policy checkbox jika policy tersedia
+                        if (policyAvailable) {
+                            const policyCheckbox = form.querySelector('input[name="agreed_to_policy"]');
+                            if (policyCheckbox && !policyCheckbox.checked) {
+                                allFilled = false;
+                            }
+                        }
+
+                        // Update button state
+                        submitBtn.disabled = !allFilled;
+                        if (!allFilled) {
+                            submitBtn.title = "{{ __('Silakan isi semua field yang ditandai dengan *') }}";
                         } else {
-                            dormInfo.textContent = `${count} ${trans.branch_available}`;
-                            dormInfo.classList.replace('text-amber-600', 'text-gray-500');
+                            submitBtn.title = '';
                         }
-                        dormInfo.classList.remove('hidden');
+
+                        return allFilled;
                     }
 
-                    if (selectedDormId && dormSelect?.querySelector(`option[value="${selectedDormId}"]`)?.disabled) {
-                        dormSelect.value = '';
-                    }
+                    // ─── Event listeners ─────────────────────────────────────────────
+                    citizenship.addEventListener('change', syncCountry);
 
-                    filterRoomTypes();
-                }
+                    // Tambahkan event listener untuk validasi form
+                    form?.addEventListener('change', validateForm);
+                    form?.addEventListener('input', validateForm);
 
-                // ─── Filter dropdown tipe kamar ──────────────────────────────────
-                function filterRoomTypes() {
-                    const categoryId = residentCategory?.value;
-                    const dormId = dormSelect?.value;
-                    const selectedRoomTypeId = roomTypeSelect?.value;
-
-                    if (!categoryId) {
-                        if (roomTypeSelect) roomTypeSelect.value = '';
-                        Array.from(roomTypeSelect?.options ?? []).forEach((opt, i) => {
-                            if (i > 0) opt.disabled = true;
+                    if (!fromRoom) {
+                        // Hanya aktifkan filter interaktif jika BUKAN dari halaman detail kamar
+                        residentCategory?.addEventListener('change', () => {
+                            filterDorms();
+                            filterRoomOptions();
                         });
-                        roomTypeInfo?.classList.add('hidden');
-                        return;
-                    }
-
-                    let count = 0;
-                    Array.from(roomTypeSelect?.options ?? []).forEach((opt, i) => {
-                        if (i === 0) return;
-                        const has = roomAvailability.some(r => {
-                            const matchCategory = r.resident_category_id === parseInt(categoryId) || r.resident_category_id === null;
-                            const matchType = r.room_type_id === parseInt(opt.value);
-                            const matchDorm = dormId ? r.dorm_id === parseInt(dormId) : true;
-                            return matchCategory && matchType && matchDorm && r.available_capacity > 0;
+                        dormSelect?.addEventListener('change', () => {
+                            filterRoomTypes();
+                            filterRoomOptions();
                         });
-                        opt.disabled = !has;
-                        if (has) count++;
-                    });
-
-                    if (roomTypeInfo) {
-                        if (count === 0) {
-                            roomTypeInfo.textContent = dormId ? trans.no_room_type_available : trans.no_room_type_available_cat;
-                            roomTypeInfo.classList.replace('text-gray-500', 'text-amber-600');
-                        } else {
-                            roomTypeInfo.textContent = `${count} ${trans.room_type_available}`;
-                            roomTypeInfo.classList.replace('text-amber-600', 'text-gray-500');
-                        }
-                        roomTypeInfo.classList.remove('hidden');
+                        roomTypeSelect?.addEventListener('change', filterRoomOptions);
+                        roomSelect?.addEventListener('change', onRoomChange);
                     }
 
-                    if (selectedRoomTypeId && roomTypeSelect?.querySelector(`option[value="${selectedRoomTypeId}"]`)?.disabled) {
-                        roomTypeSelect.value = '';
-                    }
-
-                    // Ikut filter nomor kamar jika dropdown tersedia
-                    if (roomSelect) filterRoomOptions();
-                }
-
-                // ─── Filter dropdown nomor kamar ─────────────────────────────────
-                function filterRoomOptions() {
-                    if (!roomSelect) return;
-                    const dormId = dormSelect?.value ? parseInt(dormSelect.value) : null;
-                    const roomTypeId = roomTypeSelect?.value ? parseInt(roomTypeSelect.value) : null;
-                    const categoryId = residentCategory?.value ? parseInt(residentCategory.value) : null;
-
-                    let anyVisible = false;
-                    Array.from(roomSelect.options).forEach((opt, i) => {
-                        if (i === 0) return; // skip placeholder
-                        const matchDorm = !dormId || parseInt(opt.dataset.dorm) === dormId;
-                        const matchType = !roomTypeId || parseInt(opt.dataset.roomType) === roomTypeId;
-                        const matchCategory = !categoryId || parseInt(opt.dataset.category) === categoryId;
-                        const visible = matchDorm && matchType && matchCategory;
-                        opt.hidden = !visible;
-                        opt.disabled = !visible;
-                        if (visible) anyVisible = true;
-                    });
-
-                    // Reset jika kamar yang dipilih sudah tersembunyi
-                    if (roomSelect.value) {
-                        const sel = roomSelect.options[roomSelect.selectedIndex];
-                        if (sel?.hidden) roomSelect.value = '';
-                    }
-                }
-
-                // ─── Pilih nomor kamar → auto-isi dorm, tipe kamar, & kategori ──
-                function onRoomChange() {
-                    if (!roomSelect) return;
-                    const opt = roomSelect.options[roomSelect.selectedIndex];
-                    if (!opt?.value) return;
-
-                    // Set kategori dulu agar filterDorms tidak reset dorm
-                    if (residentCategory && opt.dataset.category) {
-                        residentCategory.value = opt.dataset.category;
-                    }
-                    if (dormSelect && opt.dataset.dorm) {
-                        dormSelect.value = opt.dataset.dorm;
-                    }
-                    filterDorms(); // filter dulu sebelum set tipe kamar
-
-                    if (roomTypeSelect && opt.dataset.roomType) {
-                        roomTypeSelect.value = opt.dataset.roomType;
-                    }
-                }
-
-                // ─── Validasi form untuk button submit ──────────────────────────────
-                const submitBtn = document.getElementById('submitBtn');
-                const form = document.querySelector('form');
-                const policyAvailable = @json($policy);
-
-                function validateForm() {
-                    // Field-field yang required (dengan tanda *)
-                    const requiredFields = [
-                        'email',
-                        'name',
-                        'resident_category_id',
-                        'full_name',
-                        'gender',
-                        'national_id',
-                        'birth_place',
-                        'birth_date',
-                        'student_id',
-                        'university_school',
-                        'citizenship_status',
-                        'country_id',
-                        'phone_number'
-                    ];
-
-                    // Cek apakah policy tersedia
-                    if (!policyAvailable) {
-                        submitBtn.disabled = true;
-                        submitBtn.title = "{{ __('registration.policy_unavailable') }}";
-                        return false;
-                    }
-
-                    // Cek apakah semua field required terisi
-                    let allFilled = true;
-                    for (let fieldName of requiredFields) {
-                        const field = form.querySelector(`[name="${fieldName}"]`);
-                        if (field && !field.value) {
-                            allFilled = false;
-                            break;
-                        }
-                    }
-
-                    // Cek policy checkbox jika policy tersedia
-                    if (policyAvailable) {
-                        const policyCheckbox = form.querySelector('input[name="agreed_to_policy"]');
-                        if (policyCheckbox && !policyCheckbox.checked) {
-                            allFilled = false;
-                        }
-                    }
-
-                    // Update button state
-                    submitBtn.disabled = !allFilled;
-                    if (!allFilled) {
-                        submitBtn.title = "{{ __('Silakan isi semua field yang ditandai dengan *') }}";
-                    } else {
-                        submitBtn.title = '';
-                    }
-
-                    return allFilled;
-                }
-
-                // ─── Event listeners ─────────────────────────────────────────────
-                citizenship.addEventListener('change', syncCountry);
-
-                // Tambahkan event listener untuk validasi form
-                form?.addEventListener('change', validateForm);
-                form?.addEventListener('input', validateForm);
-
-                if (!fromRoom) {
-                    // Hanya aktifkan filter interaktif jika BUKAN dari halaman detail kamar
-                    residentCategory?.addEventListener('change', () => {
+                    // ─── Initial run ─────────────────────────────────────────────────
+                    syncCountry();
+                    if (!fromRoom) {
                         filterDorms();
                         filterRoomOptions();
-                    });
-                    dormSelect?.addEventListener('change', () => {
-                        filterRoomTypes();
-                        filterRoomOptions();
-                    });
-                    roomTypeSelect?.addEventListener('change', filterRoomOptions);
-                    roomSelect?.addEventListener('change', onRoomChange);
-                }
-
-                // ─── Initial run ─────────────────────────────────────────────────
-                syncCountry();
-                if (!fromRoom) {
-                    filterDorms();
-                    filterRoomOptions();
-                }
-                validateForm(); // Validasi initial state
+                    }
+                    validateForm(); // Validasi initial state
+                })();
             })();
         </script>
     @endpush
