@@ -69,10 +69,10 @@ return [
 
     // Policy Page
     'policy' => [
-        'title' => 'Kebijakan',
+        'title' => 'Ketentuan',
         'updated_at' => 'Diperbarui: :date',
         'back' => 'Kembali',
-        'active' => 'Kebijakan Aktif',
+        'active' => 'Ketentuan Aktif',
         'terms' => 'Syarat & Ketentuan',
         'read_carefully' => 'Harap baca dengan seksama',
         'footer_note' => 'Dokumen ini dapat berubah sewaktu-waktu tanpa pemberitahuan terlebih dahulu.',
