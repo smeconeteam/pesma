@@ -43,7 +43,7 @@ class RegistrationResource extends Resource
     public static function canViewAny(): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
+        return $u?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin']) ?? false;
     }
 
     public static function canCreate(): bool
@@ -56,7 +56,7 @@ class RegistrationResource extends Resource
     {
         $u = auth()->user();
         return $record->status === 'pending'
-            && ($u?->hasAnyRole(['super_admin', 'main_admin']) ?? false);
+            && ($u?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin']) ?? false);
     }
 
     public static function canDelete(Model $record): bool
@@ -67,19 +67,19 @@ class RegistrationResource extends Resource
     public static function canForceDelete(Model $record): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
+        return $u?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin']) ?? false;
     }
 
     public static function canForceDeleteAny(): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
+        return $u?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin']) ?? false;
     }
 
     public static function canView(Model $record): bool
     {
         $u = auth()->user();
-        return $u?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
+        return $u?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin']) ?? false;
     }
 
     public static function form(Form $form): Form
@@ -435,7 +435,7 @@ class RegistrationResource extends Resource
     public static function table(Table $table): Table
     {
         $user = auth()->user();
-        $canApproveReject = $user?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
+        $canApproveReject = $user?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin']) ?? false;
 
         return $table
             ->columns([

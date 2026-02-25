@@ -9,20 +9,41 @@ class RoomResidentRevokeAdminObserver
 {
     public function created(RoomResident $roomResident): void
     {
-        // hanya cek ketika record ini aktif (check_out_date null)
         if (! is_null($roomResident->check_out_date)) {
             return;
         }
 
-        // cek mismatch berdasarkan kamar aktif terbaru
-        app(AdminPrivilegeService::class)->revokeAdmin($roomResident->user);
+        $room = $roomResident->room()->with('block')->first();
+        if (! $room?->block) {
+            return;
+        }
+
+        app(AdminPrivilegeService::class)->evaluateOnTransfer(
+            $roomResident->user,
+            (int) $room->block->dorm_id,
+            (int) $room->block_id,
+        );
     }
 
     public function updated(RoomResident $roomResident): void
     {
-        // setiap update yang bisa mempengaruhi status aktif/pindah
-        if ($roomResident->wasChanged(['room_id', 'check_in_date', 'check_out_date'])) {
-            app(AdminPrivilegeService::class)->revokeAdmin($roomResident->user);
+        // Penutupan kamar lama saat transfer — ditangani di tempat lain
+        if ($roomResident->wasChanged('check_out_date') && ! $roomResident->wasChanged('room_id')) {
+            return;
+        }
+
+        // Edge case: room_id berubah langsung pada record aktif
+        if ($roomResident->wasChanged('room_id') && is_null($roomResident->check_out_date)) {
+            $room = $roomResident->room()->with('block')->first();
+            if (! $room?->block) {
+                return;
+            }
+
+            app(AdminPrivilegeService::class)->evaluateOnTransfer(
+                $roomResident->user,
+                (int) $room->block->dorm_id,
+                (int) $room->block_id,
+            );
         }
     }
 }

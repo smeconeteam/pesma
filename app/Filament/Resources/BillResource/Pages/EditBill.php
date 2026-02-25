@@ -179,10 +179,7 @@ class EditBill extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [
-            Actions\DeleteAction::make()
-                ->visible(fn($record) => $record->canBeDeleted()),
-        ];
+        return [];
     }
 
     protected function mutateFormDataBeforeSave(array $data): array

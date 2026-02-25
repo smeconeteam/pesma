@@ -10,6 +10,8 @@ class EditRoomRule extends EditRecord
 {
     protected static string $resource = RoomRuleResource::class;
 
+    protected static ?string $title = 'Ubah Peraturan Kamar';
+
     protected function getHeaderActions(): array
     {
         return [

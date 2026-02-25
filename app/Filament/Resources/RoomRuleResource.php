@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\RoomRuleResource\Pages;
 use App\Models\RoomRule;
+use App\Models\Room;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -32,6 +33,8 @@ class RoomRuleResource extends Resource
     protected static ?string $navigationLabel = 'Peraturan Kamar';
 
     protected static ?string $pluralLabel = 'Peraturan Kamar';
+
+    protected static ?string $modelLabel = 'Peraturan Kamar';
 
    public static function form(Form $form): Form
     {
@@ -139,6 +142,19 @@ class RoomRuleResource extends Resource
                             ->columnSpan(1),
                     ])
                     ->columns(2),
+
+                Forms\Components\Section::make('Kamar yang Diberlakukan')
+                    ->description('Pilih kamar yang akan diberlakukan peraturan ini.')
+                    ->schema([
+                        Forms\Components\Select::make('rooms')
+                            ->label('Kamar')
+                            ->relationship('rooms', 'id')
+                            ->multiple()
+                            ->preload()
+                            ->searchable()
+                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->code . ' - ' . ($record->block?->dorm?->name ?? '') . ' ' . ($record->block?->name ?? ''))
+                            ->columnSpanFull(),
+                    ]),
             ]);
     }
 
@@ -157,9 +173,9 @@ class RoomRuleResource extends Resource
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\IconColumn::make('icon')
-                    ->label('Icon')
-                    ->icon(fn (string $state): string => $state),
+                Tables\Columns\ViewColumn::make('icon')
+                    ->label('Ikon')
+                    ->view('filament.columns.icon-with-label'),
 
                 Tables\Columns\IconColumn::make('is_active')
                     ->label('Status')
@@ -229,7 +245,7 @@ class RoomRuleResource extends Resource
                     ]),
 
                 Tables\Actions\EditAction::make()
-                    ->label('Edit')
+                    ->label('Ubah')
                     ->visible(fn ($livewire) => ($livewire->activeTab ?? null) !== 'terhapus'),
                     
                 Tables\Actions\DeleteAction::make()

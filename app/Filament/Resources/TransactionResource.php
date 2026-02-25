@@ -24,6 +24,17 @@ class TransactionResource extends Resource
     protected static ?string $pluralModelLabel = 'Kas';
     protected static ?int $navigationSort = 1;
 
+    public static function canAccess(): bool
+    {
+        $u = auth()->user();
+        return $u?->hasAnyRole(['super_admin', 'main_admin']) ?? false;
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canAccess();
+    }
+
     public static function form(Form $form): Form
     {
         return $form

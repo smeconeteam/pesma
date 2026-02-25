@@ -46,18 +46,6 @@ class BillResource extends Resource
                     ->sortable()
                     ->default('Belum terdaftar'),
 
-                Tables\Columns\TextColumn::make('billingType.name')
-                    ->label('Jenis')
-                    ->sortable()
-                    ->badge()
-                    ->color('info'),
-
-                Tables\Columns\TextColumn::make('room.code')
-                    ->label('Kamar')
-                    ->sortable()
-                    ->default('Belum punya kamar')
-                    ->formatStateUsing(fn($state) => $state ?? 'Belum punya kamar'),
-
                 Tables\Columns\TextColumn::make('total_amount')
                     ->label('Total')
                     ->money('IDR')
@@ -70,6 +58,18 @@ class BillResource extends Resource
                     ->sortable()
                     ->color(fn($record) => $record->remaining_amount > 0 ? 'danger' : 'success')
                     ->weight('bold'),
+
+                Tables\Columns\TextColumn::make('billingType.name')
+                    ->label('Jenis')
+                    ->sortable()
+                    ->badge()
+                    ->color('info'),
+
+                Tables\Columns\TextColumn::make('room.code')
+                    ->label('Kamar')
+                    ->sortable()
+                    ->default('Belum punya kamar')
+                    ->formatStateUsing(fn($state) => $state ?? 'Belum punya kamar'),
 
                 Tables\Columns\BadgeColumn::make('status')
                     ->label('Status')
@@ -165,8 +165,16 @@ class BillResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->visible(fn($record) => !$record->trashed()),
 
+                Tables\Actions\Action::make('pay')
+                    ->label('Bayar')
+                    ->icon('heroicon-o-credit-card')
+                    ->color('success')
+                    ->url(fn(Bill $record) => BillPaymentResource::getUrl('create', ['bill_id' => $record->id]))
+                    ->visible(fn(Bill $record) => !$record->trashed() && in_array($record->status, ['issued', 'partial', 'overdue'])),
+
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn($record) => !$record->trashed() && $record->canBeDeleted()),
+                    ->label('Hapus')
+                    ->visible(fn($record) => !$record->trashed()),
 
                 Tables\Actions\RestoreAction::make()
                     ->label('Pulihkan')

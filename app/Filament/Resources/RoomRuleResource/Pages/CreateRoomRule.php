@@ -10,6 +10,8 @@ class CreateRoomRule extends CreateRecord
 {
     protected static string $resource = RoomRuleResource::class;
 
+    protected static ?string $title = 'Buat Peraturan Kamar';
+
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
