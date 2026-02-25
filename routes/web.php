@@ -107,9 +107,9 @@ Route::get('/pendaftaran/berhasil', [PublicRegistrationController::class, 'succe
 Route::get('/registration/success', [PublicRegistrationController::class, 'success'])
     ->name('public.registration.success.en');
 
-Route::get('/kebijakan', [PublicRegistrationController::class, 'policy'])
+Route::get('/ketentuan', [PublicRegistrationController::class, 'policy'])
     ->name('public.policy.id');
-Route::get('/policy', [PublicRegistrationController::class, 'policy'])
+Route::get('/terms', [PublicRegistrationController::class, 'policy'])
     ->name('public.policy.en');
 
 Route::delete('/profile/hapus-foto', [ProfileController::class, 'deletePhoto'])
