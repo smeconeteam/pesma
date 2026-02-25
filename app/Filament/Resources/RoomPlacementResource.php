@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Model;
 class RoomPlacementResource extends Resource
 {
     protected static ?string $model = User::class;
-    
+
     protected static ?string $slug = 'penempatan-kamar';
     protected static ?string $navigationGroup = 'Penghuni';
     protected static ?string $navigationLabel = 'Penempatan Kamar';
@@ -39,36 +39,32 @@ class RoomPlacementResource extends Resource
         return $u?->hasAnyRole(['super_admin', 'main_admin', 'branch_admin']) ?? false;
     }
 
+    /**
+     * Scope untuk menampilkan penghuni yang RELEVAN bagi branch_admin:
+     *
+     * 1. Penghuni yang SEDANG berkamar di cabangnya       → bisa transfer / checkout
+     * 2. Penghuni yang BELUM berkamar sama sekali          → bisa ditempatkan ke cabangnya
+     * 3. Penghuni yang SUDAH KELUAR dari cabangnya         → ditampilkan sebagai riwayat
+     *
+     * Penghuni yang berkamar di cabang LAIN tidak ditampilkan.
+     */
     public static function applyBranchScope(Builder $query): Builder
     {
         $user = auth()->user();
+
         if ($user && $user->hasRole('branch_admin')) {
-            $dormIds = $user->branchDormIds();
+            $dormIds = $user->branchDormIds()->toArray();
+
             return $query->where(function ($q) use ($dormIds) {
-                // 1. Sedang punya kamar aktif di cabang ini
-                $q->whereHas('activeRoomResident.room.block', function ($subQ) use ($dormIds) {
-                    $subQ->whereIn('dorm_id', $dormIds);
+                // 1. Sedang berkamar aktif di cabang ini
+                $q->whereHas('activeRoomResident.room.block', function ($sub) use ($dormIds) {
+                    $sub->whereIn('dorm_id', $dormIds);
                 })
-                // 2. ATAU sudah keluar (tidak punya kamar aktif sama sekali), tapi kamar terakhirnya di cabang ini
-                ->orWhere(function ($subQ) use ($dormIds) {
-                    $subQ->whereDoesntHave('activeRoomResident')
-                         ->whereHas('roomResidents.room.block', function ($subSubQ) use ($dormIds) {
-                             $subSubQ->whereIn('dorm_id', $dormIds);
-                         });
-                })
-                // 3. ATAU belum pernah punya kamar di manapun, tapi pendaftarannya memilih cabang ini ATAU belum memilih cabang (tanpa preferensi)
-                ->orWhere(function ($subQ) use ($dormIds) {
-                    $subQ->whereDoesntHave('roomResidents')
-                         ->whereHas('registrations', function ($regQ) use ($dormIds) {
-                            $regQ->where('status', 'approved')
-                                 ->where(function ($q) use ($dormIds) {
-                                     $q->whereIn('preferred_dorm_id', $dormIds)
-                                       ->orWhereNull('preferred_dorm_id');
-                                 });
-                         });
-                });
+                    // 2. Belum punya kamar aktif (baru daftar, pindahan, atau sudah keluar)
+                    ->orWhereDoesntHave('roomResidents', fn($rr) => $rr->whereNull('check_out_date'));
             });
         }
+
         return $query;
     }
 
@@ -78,8 +74,7 @@ class RoomPlacementResource extends Resource
             ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
             ->whereHas(
                 'residentProfile',
-                fn(Builder $q) =>
-                $q->whereIn('status', ['registered', 'active'])
+                fn(Builder $q) => $q->whereIn('status', ['registered', 'active'])
             )
             ->with([
                 'residentProfile.residentCategory',
@@ -104,13 +99,13 @@ class RoomPlacementResource extends Resource
                     ->colors([
                         'warning' => 'registered',
                         'success' => 'active',
-                        'danger' => 'inactive',
+                        'danger'  => 'inactive',
                     ])
                     ->formatStateUsing(fn($state) => match ($state) {
                         'registered' => 'Terdaftar',
-                        'active' => 'Aktif',
-                        'inactive' => 'Nonaktif',
-                        default => '-',
+                        'active'     => 'Aktif',
+                        'inactive'   => 'Nonaktif',
+                        default      => '-',
                     })
                     ->sortable(),
 
@@ -123,15 +118,15 @@ class RoomPlacementResource extends Resource
                     ->label('Kamar Saat Ini')
                     ->state(function (User $record) {
                         $active = $record->activeRoomResident;
-                        if (!$active) return '-';
+                        if (! $active) return '-';
 
-                        $room = $active->room;
+                        $room  = $active->room;
                         $block = $room->block;
-                        $dorm = $block->dorm;
+                        $dorm  = $block->dorm;
 
                         return "{$dorm->name} - {$block->name} - {$room->number}";
                     }),
-                    
+
                 Tables\Columns\IconColumn::make('has_room')
                     ->label('Ada Kamar?')
                     ->boolean()
@@ -142,7 +137,7 @@ class RoomPlacementResource extends Resource
                     ->label('Status')
                     ->options([
                         'registered' => 'Terdaftar',
-                        'active' => 'Aktif',
+                        'active'     => 'Aktif',
                     ])
                     ->query(function (Builder $query, array $data) {
                         return $query->when($data['value'] ?? null, function (Builder $q, $status) {
@@ -166,36 +161,19 @@ class RoomPlacementResource extends Resource
 
                 Tables\Filters\SelectFilter::make('dorm_id')
                     ->label('Cabang')
-                    ->options(fn () => Dorm::query()->orderBy('name')->pluck('name', 'id'))
+                    ->options(fn() => Dorm::query()->orderBy('name')->pluck('name', 'id'))
                     ->query(function (Builder $query, array $data) {
                         return $query->when($data['value'] ?? null, function (Builder $q, $dormId) {
-                            $q->where(function ($subQ) use ($dormId) {
-                                // 1. Aktif di kamar cabang ini
-                                $subQ->whereHas('activeRoomResident.room.block', function ($subSubQ) use ($dormId) {
-                                    $subSubQ->where('dorm_id', $dormId);
-                                })
-                                // 2. ATAU sudah keluar (tidak punya kamar aktif di cabang mana pun), tapi pernah di cabang ini
-                                ->orWhere(function ($subSubQ) use ($dormId) {
-                                    $subSubQ->whereDoesntHave('activeRoomResident')
-                                            ->whereHas('roomResidents.room.block', function ($subSubSubQ) use ($dormId) {
-                                                $subSubSubQ->where('dorm_id', $dormId);
-                                            });
-                                })
-                                // 3. ATAU belum pernah punya kamar, dan saat daftar milih cabang ini ATAU belum memilih cabang
-                                ->orWhere(function ($subSubQ) use ($dormId) {
-                                    $subSubQ->whereDoesntHave('roomResidents')
-                                            ->whereHas('registrations', function ($regQ) use ($dormId) {
-                                                $regQ->where('status', 'approved')
-                                                     ->where(function ($q) use ($dormId) {
-                                                         $q->where('preferred_dorm_id', $dormId)
-                                                           ->orWhereNull('preferred_dorm_id');
-                                                     });
-                                            });
-                                });
+                            $q->where(function ($sub) use ($dormId) {
+                                $sub->whereHas('activeRoomResident.room.block', fn($b) => $b->where('dorm_id', $dormId))
+                                    ->orWhere(function ($sub2) use ($dormId) {
+                                        $sub2->whereDoesntHave('activeRoomResident')
+                                            ->whereHas('roomResidents.room.block', fn($b) => $b->where('dorm_id', $dormId));
+                                    });
                             });
                         });
                     })
-                    ->visible(fn () => auth()->user()?->hasAnyRole(['super_admin', 'main_admin']))
+                    ->visible(fn() => auth()->user()?->hasAnyRole(['super_admin', 'main_admin']))
                     ->native(false),
             ])
             ->actions([
@@ -223,7 +201,7 @@ class RoomPlacementResource extends Resource
             ->defaultSort('id', 'desc');
     }
 
-   public static function getPages(): array
+    public static function getPages(): array
     {
         return [
             'index'    => Pages\ListRoomPlacements::route('/'),

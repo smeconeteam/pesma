@@ -16,20 +16,25 @@ class ListRoomPlacements extends ListRecords
     {
         $query = User::query()
             ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
-            // ✅ Tidak filter is_active, karena user tetap aktif meski sudah keluar
-            ->whereHas('residentProfile', fn(Builder $q) => 
+            ->whereHas(
+                'residentProfile',
+                fn(Builder $q) =>
                 $q->whereIn('status', ['registered', 'active'])
             );
-            
+
         return static::getResource()::applyBranchScope($query);
     }
 
     public function getTabs(): array
     {
+        $user = auth()->user();
+
         return [
+            // Semua penghuni dalam scope 
             'semua' => Tab::make('Semua Penghuni')
                 ->badge(fn() => $this->baseCountQuery()->count()),
 
+            // Belum berkamar 
             'belum_kamar' => Tab::make('Belum Ada Kamar')
                 ->modifyQueryUsing(function (Builder $query) {
                     return $query->whereDoesntHave('roomResidents', function (Builder $q) {
@@ -43,53 +48,79 @@ class ListRoomPlacements extends ListRecords
                 )
                 ->badgeColor('warning'),
 
+            //  Sudah berkamar di cabang ini 
             'sudah_kamar' => Tab::make('Sudah Ada Kamar')
-                ->modifyQueryUsing(function (Builder $query) {
-                    return $query->whereHas('roomResidents', function (Builder $q) {
+                ->modifyQueryUsing(function (Builder $query) use ($user) {
+                    $query = $query->whereHas('roomResidents', function (Builder $q) {
                         $q->whereNull('check_out_date');
                     });
+
+                    // Untuk branch_admin, pastikan kamar aktifnya memang di cabangnya
+                    if ($user->hasRole('branch_admin')) {
+                        $dormIds = $user->branchDormIds()->toArray();
+                        $query = $query->whereHas('activeRoomResident.room.block', function (Builder $b) use ($dormIds) {
+                            $b->whereIn('dorm_id', $dormIds);
+                        });
+                    }
+
+                    return $query;
                 })
-                ->badge(
-                    fn() => $this->baseCountQuery()
-                        ->whereHas('roomResidents', fn(Builder $q) => $q->whereNull('check_out_date'))
-                        ->count()
-                )
+                ->badge(function () use ($user) {
+                    $q = $this->baseCountQuery()
+                        ->whereHas('roomResidents', fn(Builder $q) => $q->whereNull('check_out_date'));
+
+                    if ($user->hasRole('branch_admin')) {
+                        $dormIds = $user->branchDormIds()->toArray();
+                        $q = $q->whereHas('activeRoomResident.room.block', fn(Builder $b) => $b->whereIn('dorm_id', $dormIds));
+                    }
+
+                    return $q->count();
+                })
                 ->badgeColor('success'),
 
+            //  Sudah keluar (terakhir dari cabang ini)
             'keluar' => Tab::make('Keluar')
-                ->modifyQueryUsing(function (Builder $query) {
-                    // ✅ Query penghuni yang sudah keluar
-                    $query = User::query()
+                ->modifyQueryUsing(function (Builder $query) use ($user) {
+                    // Override query supaya juga ambil status 'inactive'
+                    $baseQuery = User::query()
                         ->whereHas('roles', fn(Builder $q) => $q->where('name', 'resident'))
-                        // ✅ User TETAP AKTIF (tidak filter is_active)
                         ->whereHas('residentProfile', function (Builder $q) {
-                            $q->where('status', 'inactive'); // ✅ Status nonaktif
+                            $q->where('status', 'inactive');
                         })
                         ->whereHas('roomResidents', function (Builder $q) {
-                            // ✅ Pernah punya kamar
                             $q->whereNotNull('check_out_date');
                         })
                         ->whereDoesntHave('roomResidents', function (Builder $q) {
-                            // ✅ Tidak ada kamar aktif
                             $q->whereNull('check_out_date');
                         })
                         ->with([
                             'residentProfile.residentCategory',
                             'residentProfile.country',
-                            'roomResidents' => fn($q) => $q->latest('check_out_date')->limit(1)
+                            'roomResidents' => fn($q) => $q->latest('check_out_date')->limit(1),
                         ]);
-                        
-                    return static::getResource()::applyBranchScope($query);
+
+                    if ($user->hasRole('branch_admin')) {
+                        $dormIds = $user->branchDormIds()->toArray();
+                        $baseQuery->whereHas('roomResidents.room.block', function (Builder $b) use ($dormIds) {
+                            $b->whereIn('dorm_id', $dormIds);
+                        });
+                    }
+
+                    return $baseQuery;
                 })
-                ->badge(function () {
-                    $query = User::query()
+                ->badge(function () use ($user) {
+                    $q = User::query()
                         ->whereHas('roles', fn($q) => $q->where('name', 'resident'))
-                        // ✅ Tidak filter is_active
                         ->whereHas('residentProfile', fn($q) => $q->where('status', 'inactive'))
                         ->whereHas('roomResidents', fn($q) => $q->whereNotNull('check_out_date'))
                         ->whereDoesntHave('roomResidents', fn($q) => $q->whereNull('check_out_date'));
 
-                    return static::getResource()::applyBranchScope($query)->count();
+                    if ($user->hasRole('branch_admin')) {
+                        $dormIds = $user->branchDormIds()->toArray();
+                        $q->whereHas('roomResidents.room.block', fn($b) => $b->whereIn('dorm_id', $dormIds));
+                    }
+
+                    return $q->count();
                 })
                 ->badgeColor('danger'),
         ];
