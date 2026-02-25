@@ -3,7 +3,7 @@
         <div class="flex flex-col items-center justify-center gap-4 text-center md:gap-6">
             <h1 class="max-w-4xl text-3xl font-bold md:text-4xl lg:text-5xl dark:text-white">{{ $institution->landing_headline ?? __('public.landing-headline', ['name' => $institution->dormitory_name ?? config('app.name')]) }}</h1>
 
-            <p class="text-base text-gray-600 dark:text-gray-300">{{ $institution->landing_description ?? ($institution->dormitory_name . ' ' . __('public.landing-description')) }}</p>
+            <p class="text-base text-gray-600 dark:text-gray-300">{{ $institution->landing_description ?? $institution->dormitory_name . ' ' . __('public.landing-description') }}</p>
 
             <div class="mt-2 flex gap-2">
                 <a href="#rooms" class="rounded-md bg-gray-100 px-4 py-3 text-center text-sm font-medium text-green-600 ring-1 ring-inset ring-green-600 transition-colors hover:bg-green-600 hover:text-white dark:bg-gray-800 dark:text-green-400 dark:ring-green-500 dark:hover:bg-green-600 dark:hover:text-white">{{ __('public.view_rooms') }}</a>
@@ -16,16 +16,16 @@
     <div class="mx-auto px-4 sm:px-6 lg:px-8">
         <div class="mx-auto flex max-w-3xl flex-col items-center justify-between gap-6 rounded-2xl bg-white px-12 py-6 text-center shadow-md md:flex-row dark:bg-gray-800 dark:shadow-gray-900/10">
             <div class="flex flex-col gap-2">
+                <h3 class="text-4xl font-bold text-green-600 dark:text-green-400">{{ $totalDorms }}</h3>
+                <p class="text-gray-600 dark:text-gray-300">{{ __('public.total_branches') }}</p>
+            </div>
+            <div class="flex flex-col gap-2">
                 <h3 class="text-4xl font-bold text-green-600 dark:text-green-400">{{ $totalAllRooms }}</h3>
                 <p class="text-gray-600 dark:text-gray-300">{{ __('public.rooms_available') }}</p>
             </div>
             <div class="flex flex-col gap-2">
                 <h3 class="text-4xl font-bold text-green-600 dark:text-green-400">{{ $activeResidents }}</h3>
                 <p class="text-gray-600 dark:text-gray-300">{{ __('public.active_residents') }}</p>
-            </div>
-            <div class="flex flex-col gap-2">
-                <h3 class="text-4xl font-bold text-green-600 dark:text-green-400">{{ $totalDorms }}</h3>
-                <p class="text-gray-600 dark:text-gray-300">{{ __('public.total_branches') }}</p>
             </div>
         </div>
     </div>

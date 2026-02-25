@@ -50,7 +50,7 @@ class LandingController extends Controller
         });
 
         $totalDorms = cache()->remember('landing_total_dorms', 300, function () {
-            return Dorm::count();
+            return Dorm::where('is_active', true)->count();
         });
 
         return view('landing', compact('institution', 'rooms', 'totalRooms', 'totalAllRooms', 'activeResidents', 'totalDorms'));
@@ -104,10 +104,10 @@ class LandingController extends Controller
                     $q->whereHas('block.dorm', function ($q) use ($dormName) {
                         $q->where('name', 'like', "%{$dormName}%");
                     })
-                    ->whereHas('block', function ($q) use ($blockName) {
-                         $q->where('name', 'like', "%{$blockName}%");
-                    })
-                    ->where('number', $roomNumber);
+                        ->whereHas('block', function ($q) use ($blockName) {
+                            $q->where('name', 'like', "%{$blockName}%");
+                        })
+                        ->where('number', $roomNumber);
                 });
             }
             // Try to parse format: "{dorm} Nomor {number} Tipe {type}"
@@ -257,7 +257,7 @@ class LandingController extends Controller
         $institution = cache()->remember('institution_data', 3600, function () {
             return Institution::first();
         });
-        
+
         return view('about', compact('institution'));
     }
     /**
@@ -271,19 +271,19 @@ class LandingController extends Controller
         });
 
         // Main Admins (only active ones who opted to show on landing)
-        $mainAdmins = \App\Models\User::whereHas('roles', function($q) {
+        $mainAdmins = \App\Models\User::whereHas('roles', function ($q) {
             $q->where('name', 'main_admin');
         })->where('is_active', true)
-          ->whereHas('adminProfile', function($q) {
-              $q->where('show_phone_on_landing', true);
-          })
-          ->with(['adminProfile', 'residentProfile'])->get();
+            ->whereHas('adminProfile', function ($q) {
+                $q->where('show_phone_on_landing', true);
+            })
+            ->with(['adminProfile', 'residentProfile'])->get();
 
         // Branch Admins (grouped by Dorm, only those who opted to show on landing)
         $dorms = \App\Models\Dorm::where('is_active', true)
-            ->with(['adminScopes' => function($q) {
+            ->with(['adminScopes' => function ($q) {
                 $q->where('type', 'branch')
-                  ->where('show_phone_on_landing', true);
+                    ->where('show_phone_on_landing', true);
             }, 'adminScopes.user.residentProfile'])
             ->orderBy('name')
             ->get();
