@@ -63,7 +63,7 @@ class ResidentResource extends Resource
             return $query;
         }
 
-        // Branch admin: penghuni berkamar di cabangnya + belum berkamar + pernah keluar dari cabangnya
+        // Branch admin: penghuni berkamar di cabangnya + belum berkamar (semua yg belum punya kamar aktif)
         if ($user->hasRole('branch_admin')) {
             $dormIds = $user->branchDormIds()->toArray();
 
@@ -73,19 +73,12 @@ class ResidentResource extends Resource
                     $rr->whereNull('check_out_date')
                         ->whereHas('room.block', fn(Builder $b) => $b->whereIn('dorm_id', $dormIds));
                 })
-                    // 2. Belum pernah punya kamar sama sekali
-                    ->orWhereDoesntHave('roomResidents')
-                    // 3. Sudah keluar dari cabangnya (history terakhirnya di cabang ini)
-                    ->orWhere(function (Builder $sub) use ($dormIds) {
-                        $sub->whereDoesntHave('roomResidents', fn(Builder $rr) => $rr->whereNull('check_out_date'))
-                            ->whereHas('roomResidents', function (Builder $rr) use ($dormIds) {
-                                $rr->whereHas('room.block', fn(Builder $b) => $b->whereIn('dorm_id', $dormIds));
-                            });
-                    });
+                    // 2. Belum punya kamar aktif (baru daftar, pindahan, atau sudah keluar)
+                    ->orWhereDoesntHave('roomResidents', fn(Builder $rr) => $rr->whereNull('check_out_date'));
             });
         }
 
-        // Block admin: penghuni di kompleknya + belum berkamar + pernah keluar dari kompleknya
+        // Block admin: penghuni di kompleknya + belum berkamar (semua yg belum punya kamar aktif)
         if ($user->hasRole('block_admin')) {
             $blockIds = $user->blockIds()->toArray();
 
@@ -95,15 +88,8 @@ class ResidentResource extends Resource
                     $rr->whereNull('check_out_date')
                         ->whereHas('room', fn(Builder $room) => $room->whereIn('block_id', $blockIds));
                 })
-                    // 2. Belum pernah punya kamar sama sekali
-                    ->orWhereDoesntHave('roomResidents')
-                    // 3. Sudah keluar dari kompleknya
-                    ->orWhere(function (Builder $sub) use ($blockIds) {
-                        $sub->whereDoesntHave('roomResidents', fn(Builder $rr) => $rr->whereNull('check_out_date'))
-                            ->whereHas('roomResidents', function (Builder $rr) use ($blockIds) {
-                                $rr->whereHas('room', fn(Builder $room) => $room->whereIn('block_id', $blockIds));
-                            });
-                    });
+                    // 2. Belum punya kamar aktif (baru daftar, pindahan, atau sudah keluar)
+                    ->orWhereDoesntHave('roomResidents', fn(Builder $rr) => $rr->whereNull('check_out_date'));
             });
         }
 

@@ -61,13 +61,12 @@ class ListResidents extends ListRecords
 
         if ($user->hasRole('branch_admin')) {
             $dormIds = $user->branchDormIds()->toArray();
-            // Penghuni berkamar di cabangnya ATAU belum berkamar sama sekali
             $query->where(function (Builder $q) use ($dormIds) {
                 $q->whereHas('roomResidents', function (Builder $rr) use ($dormIds) {
                     $rr->whereNull('check_out_date')
                         ->whereHas('room.block', fn(Builder $b) => $b->whereIn('dorm_id', $dormIds));
                 })
-                    ->orWhereDoesntHave('roomResidents');
+                    ->orWhereDoesntHave('roomResidents', fn(Builder $rr) => $rr->whereNull('check_out_date'));
             });
         } elseif ($user->hasRole('block_admin')) {
             $blockIds = $user->blockIds()->toArray();
@@ -76,7 +75,7 @@ class ListResidents extends ListRecords
                     $rr->whereNull('check_out_date')
                         ->whereHas('room', fn(Builder $room) => $room->whereIn('block_id', $blockIds));
                 })
-                    ->orWhereDoesntHave('roomResidents');
+                    ->orWhereDoesntHave('roomResidents', fn(Builder $rr) => $rr->whereNull('check_out_date'));
             });
         }
 

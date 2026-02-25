@@ -60,18 +60,8 @@ class RoomPlacementResource extends Resource
                 $q->whereHas('activeRoomResident.room.block', function ($sub) use ($dormIds) {
                     $sub->whereIn('dorm_id', $dormIds);
                 })
-                    // 2. Belum pernah punya kamar sama sekali (penghuni baru)
-                    ->orWhere(function ($sub) {
-                        $sub->whereDoesntHave('roomResidents');
-                    })
-                    // 3. Sudah keluar tapi kamar terakhirnya di cabang ini
-                    ->orWhere(function ($sub) use ($dormIds) {
-                        $sub->whereDoesntHave('activeRoomResident')
-                            ->whereHas('roomResidents', function ($rr) use ($dormIds) {
-                                // hanya jika ada minimal satu record di cabang ini
-                                $rr->whereHas('room.block', fn($b) => $b->whereIn('dorm_id', $dormIds));
-                            });
-                    });
+                    // 2. Belum punya kamar aktif (baru daftar, pindahan, atau sudah keluar)
+                    ->orWhereDoesntHave('roomResidents', fn($rr) => $rr->whereNull('check_out_date'));
             });
         }
 
