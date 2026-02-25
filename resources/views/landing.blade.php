@@ -14,7 +14,7 @@
 
     <!-- Stats Section -->
     <div class="mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="mx-auto flex max-w-3xl flex-col items-center justify-between gap-6 rounded-2xl bg-white px-12 py-6 text-center shadow-md md:flex-row dark:bg-gray-800 dark:shadow-gray-900/10">
+        <div class="mx-auto flex max-w-2xl flex-col items-center justify-between gap-6 rounded-2xl bg-white px-12 py-6 text-center shadow-md md:flex-row dark:bg-gray-800 dark:shadow-gray-900/10">
             <div class="flex flex-col gap-2">
                 <h3 class="text-4xl font-bold text-green-600 dark:text-green-400">{{ $totalDorms }}</h3>
                 <p class="text-gray-600 dark:text-gray-300">{{ __('public.total_branches') }}</p>
@@ -31,7 +31,7 @@
     </div>
 
     <!-- Rooms Section -->
-    <div class="mx-auto mt-24 flex flex-col items-center justify-between gap-6 rounded-t-2xl bg-white px-4 py-6 sm:px-6 lg:px-8 dark:bg-gray-800 dark:shadow-gray-900/10" id="rooms">
+    <div class="mx-auto mt-24 flex flex-col items-center justify-between gap-6 max-w-7xl rounded-t-2xl bg-white px-4 py-6 sm:px-6 lg:px-8 dark:bg-gray-800 dark:shadow-gray-900/10" id="rooms">
         <div class="flex w-full items-center justify-between border-b-2 border-gray-200 pb-4 dark:border-gray-700">
             <div>
                 <h2 class="text-xl font-semibold text-gray-900 dark:text-white">{{ __('public.available_rooms') }}</h2>
