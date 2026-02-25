@@ -54,20 +54,6 @@ class PublicRegistrationController extends Controller
             })
             ->values();
 
-        // Ambil semua kamar aktif yang masih ada kapasitas untuk dropdown nomor kamar
-        $availableRooms = Room::with(['block.dorm', 'roomType', 'residentCategory'])
-            ->where('is_active', true)
-            ->whereNull('deleted_at')
-            ->whereHas(
-                'block',
-                fn($q) => $q->where('is_active', true)->whereNull('deleted_at')
-                    ->whereHas('dorm', fn($q2) => $q2->where('is_active', true)->whereNull('deleted_at'))
-            )
-            ->orderBy('number')
-            ->get()
-            ->filter(fn($room) => $room->available_capacity > 0)
-            ->values();
-
         $prefill = [
             'room_id'                => $request->integer('room_id') ?: null,
             'preferred_dorm_id'      => $request->integer('preferred_dorm_id') ?: null,
@@ -75,6 +61,7 @@ class PublicRegistrationController extends Controller
             'resident_category_id'   => $request->integer('resident_category_id') ?: null,
         ];
 
+        // ✅ Ini yang kurang — wajib dikirim ke view
         $fromRoom = !empty($prefill['room_id']);
 
         return view('public.registration.create', [
@@ -85,10 +72,9 @@ class PublicRegistrationController extends Controller
             'indoCountryId'      => $indoId,
             'policy'             => $policy,
             'roomAvailability'   => $roomAvailability,
-            'availableRooms'     => $availableRooms,
-            'prefill'            => $prefill,
-            'fromRoom'           => $fromRoom,
-            'prefillRoom'        => $fromRoom
+            'prefill'     => $prefill,
+            'fromRoom'    => $fromRoom,  // ✅ pastikan ini ada
+            'prefillRoom' => $fromRoom
                 ? Room::with(['block.dorm', 'roomType', 'residentCategory'])
                 ->find($prefill['room_id'])
                 : null,
@@ -123,7 +109,9 @@ class PublicRegistrationController extends Controller
 
         Registration::create($data);
 
-        return redirect()->route('public.registration.success');
+        // Redirect ke route sesuai bahasa aktif
+        $locale = app()->getLocale(); // 'id' atau 'en'
+        return redirect()->route("public.registration.success.{$locale}");
     }
 
     public function success()

@@ -167,8 +167,8 @@
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.citizenship') }} <span class="text-red-500">*</span></label>
                         <select id="citizenship_status" name="citizenship_status" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" required>
-                            <option value="WNI" @selected(old('citizenship_status', 'WNI' )==='WNI' )>WNI</option>
-                            <option value="WNA" @selected(old('citizenship_status')==='WNA' )>WNA</option>
+                            <option value="WNI" @selected(old('citizenship_status', 'WNI' )==='WNI' )>{{ __('registration.citizenship_indonesia') }}</option>
+                            <option value="WNA" @selected(old('citizenship_status')==='WNA' )>{{ __('registration.citizenship_foreign') }}</option>
                         </select>
                     </div>
 
@@ -267,7 +267,7 @@
                     {{-- Nomor Kamar --}}
                     <div class="md:col-span-2">
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Nomor Kamar <span class="text-gray-400 font-normal">(opsional)</span>
+                            {{ __('registration.room_number') }} <span class="text-gray-400 font-normal">{{ __('registration.optional') }}</span>
                         </label>
 
                         @if($fromRoom)
@@ -280,19 +280,19 @@
                                 {{ $prefillRoom?->block->dorm->name }} —
                                 No. {{ $prefillRoom?->number }}
                                 ({{ $prefillRoom?->roomType->name }}, {{ $prefillRoom?->residentCategory->name }},
-                                sisa {{ $prefillRoom?->available_capacity }} tempat)
+                                {{ __('registration.remaining_capacity', ['capacity' => $prefillRoom?->available_capacity]) }})
                             </span>
                         </div>
                         <input type="hidden" name="preferred_room_id" value="{{ $prefill['room_id'] }}">
                         <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                            Kamar dipilih dari halaman detail kamar.
-                            <a href="{{ route('public.registration.create') }}" class="text-green-600 underline hover:text-green-700">Daftar tanpa pilih kamar</a>
+                            {{ __('registration.selected_room_info') }}
+                            <a href="{{ localizedRoute('public.registration.create') }}" class="text-green-600 underline hover:text-green-700">{{ __('registration.registration_without_room') }}</a>
                         </p>
                         @else
                         {{-- Daftar langsung: bisa pilih bebas, atau kosongkan --}}
                         <select id="preferred_room_id" name="preferred_room_id"
                             class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
-                            <option value="">— Pilih nomor kamar (opsional) —</option>
+                            <option value="">{{ __('registration.select_room_number') }}</option>
                             @foreach($availableRooms->groupBy(fn($r) => $r->block->dorm->name) as $dormName => $rooms)
                             <optgroup label="{{ $dormName }}">
                                 @foreach($rooms->sortBy('number') as $room)
@@ -305,14 +305,14 @@
                                     No. {{ $room->number }}
                                     — {{ $room->roomType->name }}
                                     — {{ $room->residentCategory->name }}
-                                    (sisa {{ $room->available_capacity }} tempat)
+                                    ({{ __('registration.remaining_capacity', ['capacity' => $room->available_capacity]) }})
                                 </option>
                                 @endforeach
                             </optgroup>
                             @endforeach
                         </select>
                         <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                            Opsional. Pilih jika sudah tahu nomor kamar yang diinginkan. Pilihan akan menyesuaikan cabang dan tipe kamar secara otomatis.
+                            {{ __('registration.select_room_number_hint') }}
                         </p>
                         @endif
                     </div>
