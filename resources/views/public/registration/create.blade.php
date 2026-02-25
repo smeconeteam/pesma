@@ -136,7 +136,19 @@
 
                     <div class="md:col-span-2">
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.photo') }}</label>
-                        <input name="photo" type="file" accept="image/*" class="w-full rounded-lg border border-gray-300 border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300">
+                        <div class="cloud-upload relative overflow-hidden">
+                            <input name="photo" type="file" id="photo-input" accept="image/*" class="absolute inset-0 z-10 cursor-pointer opacity-0" onchange="handlePublicPhotoPreview(event)">
+                            <div class="cloud-upload-container">
+                                <div class="cloud-icon" id="preview-icon"></div>
+                                <div id="preview-container" class="hidden mb-4">
+                                    <img id="photo-v-preview" src="#" alt="Preview" class="h-32 w-32 rounded-xl object-cover border-2 border-blue-500 shadow-lg mx-auto">
+                                </div>
+                                <div class="cloud-upload-text">
+                                    <span class="font-semibold text-blue-500" id="upload-status">Klik untuk unggah</span> atau seret dan jatuhkan berkas Anda
+                                    <p class="mt-1 text-xs opacity-70">PNG, JPG atau WEBP (Maks. 2MB)</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -346,21 +358,107 @@
     </div>
 
     @push('scripts')
-        <script>
-            // Toggle Password Function
-            function togglePasswordField() {
-                const passwordInput = document.getElementById('password');
-                const eyeIcon = document.getElementById('eye-icon-reg');
-                const eyeSlashIcon = document.getElementById('eye-slash-icon-reg');
+    <style>
+        /* CSS injection for public view since admin styles aren't loaded here */
+        .cloud-upload {
+            background-color: rgba(0, 0, 0, 0.02);
+            border: none;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+        .dark .cloud-upload {
+            background-color: rgba(255, 255, 255, 0.03);
+            border: none;
+        }
+        .cloud-upload:hover {
+            border-color: #3b82f6;
+            background-color: rgba(59, 130, 246, 0.04);
+        }
+        .cloud-upload-container {
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .cloud-icon {
+            width: 56px;
+            height: 56px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 50%;
+            margin-bottom: 1rem;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.8' stroke='%233b82f6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z' /%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 28px;
+            transition: all 0.3s ease;
+        }
+    </style>
+    <script>
+        function handlePublicPhotoPreview(event) {
+            const file = event.target.files[0];
+            const icon = document.getElementById('preview-icon');
+            const container = document.getElementById('preview-container');
+            const preview = document.getElementById('photo-v-preview');
+            const status = document.getElementById('upload-status');
 
-                if (passwordInput.type === 'password') {
-                    passwordInput.type = 'text';
-                    eyeIcon.classList.add('hidden');
-                    eyeSlashIcon.classList.remove('hidden');
-                } else {
-                    passwordInput.type = 'password';
-                    eyeIcon.classList.remove('hidden');
-                    eyeSlashIcon.classList.add('hidden');
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    container.classList.remove('hidden');
+                    icon.classList.add('hidden');
+                    status.textContent = "Berkas terpilih: " + (file.name.substring(0, 15) + "...");
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Toggle Password Function
+        function togglePasswordField() {
+            const passwordInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eye-icon-reg');
+            const eyeSlashIcon = document.getElementById('eye-slash-icon-reg');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.classList.add('hidden');
+                eyeSlashIcon.classList.remove('hidden');
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.classList.remove('hidden');
+                eyeSlashIcon.classList.add('hidden');
+            }
+        }
+
+        // Form logic
+        (function() {
+            const fromRoom = @json($fromRoom);
+            const citizenship = document.getElementById('citizenship_status');
+            const country = document.getElementById('country_id');
+            const residentCategory = document.getElementById('resident_category_id');
+            const dormSelect = document.getElementById('preferred_dorm_id');
+            const roomTypeSelect = document.getElementById('preferred_room_type_id');
+            const roomSelect = document.getElementById('preferred_room_id'); // null jika fromRoom
+            const dormInfo = document.getElementById('dorm-info');
+            const roomTypeInfo = document.getElementById('room-type-info');
+            const indoId = @json($indoCountryId);
+
+            const trans = {
+                no_branch_available: "{{ __('registration.no_branch_available') }}",
+                branch_available: "{{ __('registration.branch_available') }}",
+                no_room_type_available: "{{ __('registration.no_room_type_available') }}",
+                no_room_type_available_cat: "{{ __('registration.no_room_type_available_cat') }}",
+                room_type_available: "{{ __('registration.room_type_available') }}",
+            };
+
+            const roomAvailability = @json($roomAvailability ?? []);
+
+            // ─── Sync negara ────────────────────────────────────────────────
+            function syncCountry() {
+                if (citizenship.value === 'WNI' && indoId && !country.value) {
+                    country.value = String(indoId);
                 }
             }
 

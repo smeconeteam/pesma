@@ -40,43 +40,41 @@
                     @endif
                 </div>
 
-                {{-- Upload and Delete Buttons --}}
+                {{-- Upload and Delete Area --}}
                 <div class="flex-1 w-full sm:w-auto">
-                    <div class="flex flex-col sm:flex-row gap-2">
-                        <div class="w-full sm:w-auto">
-                            <input 
-                                type="file" 
-                                id="photo" 
-                                name="photo" 
-                                accept="image/*"
-                                class="hidden"
-                                onchange="previewPhoto(event)"
-                            />
-                            <label 
-                                for="photo"
-                                class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition cursor-pointer w-full"
-                            >
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <span id="file-label">{{ __('profile.choose_image') }}</span>
-                            </label>
+                    <div class="cloud-upload relative overflow-hidden h-40">
+                        <input 
+                            type="file" 
+                            id="photo" 
+                            name="photo" 
+                            accept="image/*"
+                            class="absolute inset-0 z-10 cursor-pointer opacity-0"
+                            onchange="previewPhoto(event)"
+                        />
+                        <div class="cloud-upload-container h-full">
+                            <div class="cloud-icon" id="cloud-icon-p"></div>
+                            <div class="cloud-upload-text">
+                                <span class="font-semibold text-blue-500" id="file-label-text">Klik untuk ubah</span> atau seret foto baru
+                                <p class="mt-1 text-xs opacity-70">PNG, JPG atau WEBP (Maks. 2MB)</p>
+                            </div>
                         </div>
+                    </div>
 
-                        {{-- Remove Photo Button (if photo exists) --}}
-                        @if ($photoUrl)
+                    {{-- Remove Photo Button (styled as a small link/secondary button) --}}
+                    @if ($photoUrl)
+                        <div class="mt-3">
                             <button 
                                 type="button"
                                 onclick="confirmDeletePhoto()"
-                                class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition active:scale-95 w-full sm:w-auto"
+                                class="text-xs font-semibold text-red-500 hover:text-red-700 flex items-center gap-1 transition"
                             >
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                                 {{ __('profile.delete_photo') }}
                             </button>
-                        @endif
-                    </div>
+                        </div>
+                    @endif
                     <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
                         {{ __('profile.photo_format') }}
                     </p>
@@ -222,18 +220,61 @@
     </form>
 
     {{-- JavaScript for Photo Preview and Delete --}}
+    <style>
+        /* CSS injection for profile page */
+        .cloud-upload {
+            background-color: rgba(0, 0, 0, 0.02);
+            border: none;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+        .dark .cloud-upload {
+            background-color: rgba(255, 255, 255, 0.03);
+            border: none;
+        }
+        .cloud-upload:hover {
+            border-color: #3b82f6;
+            background-color: rgba(59, 130, 246, 0.04);
+        }
+        .cloud-upload-container {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        .cloud-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 50%;
+            margin-bottom: 0.75rem;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.8' stroke='%233b82f6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z' /%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 24px;
+            transition: all 0.3s ease;
+        }
+        .cloud-upload:hover .cloud-icon {
+            transform: scale(1.1);
+            background-color: #3b82f6;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.8' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z' /%3E%3C/svg%3E");
+        }
+    </style>
     <script>
         function previewPhoto(event) {
             const file = event.target.files[0];
             const preview = document.getElementById('photo-preview');
-            const fileLabel = document.getElementById('file-label');
+            const fileLabel = document.getElementById('file-label-text');
+            const cloudIcon = document.getElementById('cloud-icon-p');
             
             if (file) {
                 // Check file size (2MB = 2097152 bytes)
                 if (file.size > 2097152) {
                     alert("{{ __('profile.file_too_large') }}");
                     event.target.value = '';
-                    fileLabel.textContent = "{{ __('profile.choose_image') }}";
+                    fileLabel.textContent = "Klik untuk ubah";
                     return;
                 }
 
@@ -241,7 +282,7 @@
                 if (!file.type.match('image.*')) {
                     alert("{{ __('profile.invalid_file_type') }}");
                     event.target.value = '';
-                    fileLabel.textContent = "{{ __('profile.choose_image') }}";
+                    fileLabel.textContent = "Klik untuk ubah";
                     return;
                 }
 
@@ -251,12 +292,12 @@
                 const reader = new FileReader();
                 
                 reader.onload = function(e) {
-                    preview.innerHTML = `<img src="${e.target.result}" alt="Preview" class="h-20 w-20 rounded-full object-cover border-2 border-gray-300" />`;
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Preview" class="h-20 w-20 rounded-full object-cover border-2 border-blue-500 shadow-md" />`;
                 }
                 
                 reader.readAsDataURL(file);
             } else {
-                fileLabel.textContent = "{{ __('profile.choose_image') }}";
+                fileLabel.textContent = "Klik untuk ubah";
             }
         }
 
