@@ -148,7 +148,11 @@ class RoomRuleResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('rooms')
                             ->label('Kamar')
-                            ->relationship('rooms', 'id')
+                            ->relationship(
+                                name: 'rooms',
+                                titleAttribute: 'code',
+                                modifyQueryUsing: fn (\Illuminate\Database\Eloquent\Builder $query) => $query->with('block.dorm')
+                            )
                             ->multiple()
                             ->preload()
                             ->searchable()
