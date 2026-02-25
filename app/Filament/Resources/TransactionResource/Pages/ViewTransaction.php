@@ -64,6 +64,24 @@ class ViewTransaction extends ViewRecord
                             ->label('Dari Pembayaran Billing')
                             ->placeholder('-')
                             ->visible(fn ($record) => $record->bill_payment_id !== null),
+
+                        Infolists\Components\ImageEntry::make('billPayment.proof_path')
+                            ->label('Bukti Pembayaran (Dari Tagihan)')
+                            ->height(200)
+                            ->extraImgAttributes([
+                                'class' => 'rounded-lg shadow-md object-contain max-w-xs mt-2'
+                            ])
+                            ->visible(fn ($record) => $record && $record->bill_payment_id && $record->billPayment && $record->billPayment->proof_path)
+                            ->columnSpanFull(),
+
+                        Infolists\Components\ImageEntry::make('proof_path')
+                            ->label('Bukti Pembayaran')
+                            ->height(200)
+                            ->extraImgAttributes([
+                                'class' => 'rounded-lg shadow-md object-contain max-w-xs mt-2'
+                            ])
+                            ->visible(fn ($record) => !empty($record->proof_path))
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
 

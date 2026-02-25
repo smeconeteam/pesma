@@ -4,6 +4,7 @@ namespace App\Filament\Resources\RoomPlacementResource\Pages;
 
 use App\Filament\Resources\RoomPlacementResource;
 use App\Models\RoomHistory;
+use App\Models\RoomResident;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -36,6 +37,22 @@ class CheckoutResident extends Page
                 ->send();
 
             $this->redirect(RoomPlacementResource::getUrl('index'));
+            return;
+        }
+
+        // Pastikan branch_admin hanya bisa checkout penghuni dari cabangnya
+        $authUser = auth()->user();
+        if ($authUser->hasRole('branch_admin')) {
+            $currentDormId = $record->activeRoomResident->room->block->dorm_id;
+            if (! in_array($currentDormId, $authUser->branchDormIds()->toArray())) {
+                Notification::make()
+                    ->title('Anda tidak memiliki akses ke penghuni ini')
+                    ->danger()
+                    ->send();
+
+                $this->redirect(RoomPlacementResource::getUrl('index'));
+                return;
+            }
         }
 
         $this->form->fill([
@@ -167,7 +184,7 @@ class CheckoutResident extends Page
             $roomId = $currentRoomResident->room_id;
 
             // 1) Update RoomResident - set check_out_date
-            $currentRoomResident->withoutEvents(function () use ($currentRoomResident, $checkOutDate) {
+            RoomResident::withoutEvents(function () use ($currentRoomResident, $checkOutDate) {
                 $currentRoomResident->update([
                     'check_out_date' => $checkOutDate->toDateString(),
                 ]);
@@ -196,13 +213,13 @@ class CheckoutResident extends Page
 
             // 5) ASSIGN PIC BARU jika yang keluar adalah PIC
             if ($wasPic) {
-                $newPic = \App\Models\RoomResident::where('room_id', $roomId)
+                $newPic = RoomResident::where('room_id', $roomId)
                     ->whereNull('check_out_date')
                     ->orderBy('check_in_date', 'asc')
                     ->first();
 
                 if ($newPic) {
-                    \App\Models\RoomResident::withoutEvents(function () use ($newPic) {
+                    RoomResident::withoutEvents(function () use ($newPic) {
                         $newPic->update(['is_pic' => true]);
                     });
 

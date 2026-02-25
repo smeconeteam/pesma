@@ -75,8 +75,8 @@ class ContactResource extends Resource
 
     public static function canUseResource(): bool
     {
-        // semua admin boleh akses list/view
-        return self::hasAnyRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']);
+        // super_admin dan main_admin boleh akses list/view
+        return self::hasAnyRole(['super_admin', 'main_admin']);
     }
 
     /** ====== SCOPE: admin cabang/komplek ====== */

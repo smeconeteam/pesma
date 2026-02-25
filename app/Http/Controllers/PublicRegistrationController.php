@@ -54,18 +54,18 @@ class PublicRegistrationController extends Controller
             })
             ->values();
 
-        // Ambil semua kamar aktif yang masih ada kapasitas untuk dropdown nomor kamar
-        $availableRooms = Room::with(['block.dorm', 'roomType', 'residentCategory'])
+        // Eloquent Room models with relationships for the room number dropdown
+        $availableRooms = Room::query()
+            ->with(['block.dorm', 'roomType', 'residentCategory'])
+            ->withCount(['roomResidents as occupied_count' => function ($q) {
+                $q->whereNull('check_out_date');
+            }])
             ->where('is_active', true)
-            ->whereNull('deleted_at')
-            ->whereHas(
-                'block',
-                fn($q) => $q->where('is_active', true)->whereNull('deleted_at')
-                    ->whereHas('dorm', fn($q2) => $q2->where('is_active', true)->whereNull('deleted_at'))
-            )
-            ->orderBy('number')
+            ->whereHas('block', fn($q) => $q->where('is_active', true))
+            ->whereHas('block.dorm', fn($q) => $q->where('is_active', true))
             ->get()
-            ->filter(fn($room) => $room->available_capacity > 0)
+            ->filter(fn($room) => ($room->capacity - $room->occupied_count) > 0)
+            ->each(fn($room) => $room->available_capacity = $room->capacity - $room->occupied_count)
             ->values();
 
         $prefill = [
@@ -75,6 +75,7 @@ class PublicRegistrationController extends Controller
             'resident_category_id'   => $request->integer('resident_category_id') ?: null,
         ];
 
+        // ✅ Ini yang kurang — wajib dikirim ke view
         $fromRoom = !empty($prefill['room_id']);
 
         return view('public.registration.create', [
@@ -86,9 +87,9 @@ class PublicRegistrationController extends Controller
             'policy'             => $policy,
             'roomAvailability'   => $roomAvailability,
             'availableRooms'     => $availableRooms,
-            'prefill'            => $prefill,
-            'fromRoom'           => $fromRoom,
-            'prefillRoom'        => $fromRoom
+            'prefill'     => $prefill,
+            'fromRoom'    => $fromRoom,  // ✅ pastikan ini ada
+            'prefillRoom' => $fromRoom
                 ? Room::with(['block.dorm', 'roomType', 'residentCategory'])
                 ->find($prefill['room_id'])
                 : null,
@@ -123,7 +124,9 @@ class PublicRegistrationController extends Controller
 
         Registration::create($data);
 
-        return redirect()->route('public.registration.success');
+        // Redirect ke route sesuai bahasa aktif
+        $locale = app()->getLocale(); // 'id' atau 'en'
+        return redirect()->route("public.registration.success.{$locale}");
     }
 
     public function success()
