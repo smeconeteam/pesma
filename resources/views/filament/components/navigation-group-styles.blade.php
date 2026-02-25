@@ -22,28 +22,6 @@
         gap: 0.25rem !important;
     }
 
-    /* Pindahkan tombol filter full ke kiri, luruskan dengan checkbox */
-    .fi-ta-header-toolbar {
-        padding-left: 0 !important;
-    }
-
-    .fi-ta-header-toolbar > div.ms-auto {
-        margin-left: 0 !important;
-        flex: 1 !important;
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: center !important;
-    }
-
-    .fi-ta-search-field {
-        margin-left: auto !important; /* Dorong kolom pencarian ke ujung kanan */
-    }
-
-    /* Pastikan tombol filter berada paling kiri di grup ini */
-    .fi-ta-header-toolbar > div.ms-auto > *:not(.fi-ta-search-field) {
-        order: -1 !important;
-    }
-
     /* GLOBAL CLOUD UPLOAD DESIGN (PREMIUM POLISHED) */
     
     /* 1. Reset & Global Polish for Filament FileUpload */
