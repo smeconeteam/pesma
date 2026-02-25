@@ -54,6 +54,20 @@ class PublicRegistrationController extends Controller
             })
             ->values();
 
+        // Eloquent Room models with relationships for the room number dropdown
+        $availableRooms = Room::query()
+            ->with(['block.dorm', 'roomType', 'residentCategory'])
+            ->withCount(['roomResidents as occupied_count' => function ($q) {
+                $q->whereNull('check_out_date');
+            }])
+            ->where('is_active', true)
+            ->whereHas('block', fn($q) => $q->where('is_active', true))
+            ->whereHas('block.dorm', fn($q) => $q->where('is_active', true))
+            ->get()
+            ->filter(fn($room) => ($room->capacity - $room->occupied_count) > 0)
+            ->each(fn($room) => $room->available_capacity = $room->capacity - $room->occupied_count)
+            ->values();
+
         $prefill = [
             'room_id'                => $request->integer('room_id') ?: null,
             'preferred_dorm_id'      => $request->integer('preferred_dorm_id') ?: null,
@@ -72,6 +86,7 @@ class PublicRegistrationController extends Controller
             'indoCountryId'      => $indoId,
             'policy'             => $policy,
             'roomAvailability'   => $roomAvailability,
+            'availableRooms'     => $availableRooms,
             'prefill'     => $prefill,
             'fromRoom'    => $fromRoom,  // ✅ pastikan ini ada
             'prefillRoom' => $fromRoom
