@@ -71,16 +71,6 @@ class ViewRoom extends ViewRecord
                             ->suffix(' m')
                             ->placeholder('-'),
 
-                        TextEntry::make('width')
-                            ->label('Lebar Kamar')
-                            ->suffix(' m')
-                            ->placeholder('-'),
-
-                        TextEntry::make('length')
-                            ->label('Panjang Kamar')
-                            ->suffix(' m')
-                            ->placeholder('-'),
-
                         TextEntry::make('residentCategory.name')
                             ->label('Kategori Kamar')
                             ->placeholder('-'),
