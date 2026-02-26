@@ -433,6 +433,68 @@ class RoomResource extends Resource
                                     ->columns(1),
                             ]),
 
+                        Tabs\Tab::make('PIC')
+                            ->schema([
+                                Forms\Components\Repeater::make('activeResidents')
+                                    ->relationship('activeResidents')
+                                    ->label('Penghuni Kamar (Pilih PIC)')
+                                    ->addable(false)
+                                    ->deletable(false)
+                                    ->reorderable(false)
+                                    ->schema([
+                                        Forms\Components\Checkbox::make('is_pic')
+                                            ->label('Jadikan PIC')
+                                            ->inline(false)
+                                            ->columnSpan([
+                                                'default' => 12,
+                                                'md' => 4,
+                                                'lg' => 3,
+                                                'xl' => 2,
+                                            ]),
+                                        Forms\Components\Placeholder::make('resident_name')
+                                            ->label('Nama Penghuni')
+                                            ->content(function ($record) {
+                                                return $record?->user?->residentProfile?->full_name ?? $record?->user?->name ?? 'Tidak diketahui';
+                                            })
+                                            ->columnSpan([
+                                                'default' => 12,
+                                                'md' => 4,
+                                                'lg' => 5,
+                                                'xl' => 5,
+                                            ]),
+                                        Forms\Components\Placeholder::make('resident_phone')
+                                            ->label('No. Telepon')
+                                            ->content(function ($record) {
+                                                return $record?->user?->residentProfile?->phone_number ?? '-';
+                                            })
+                                            ->columnSpan([
+                                                'default' => 12,
+                                                'md' => 4,
+                                                'lg' => 4,
+                                                'xl' => 5,
+                                            ]),
+                                    ])
+                                    ->columns(12)
+                                    ->helperText('Jika kamar memiliki penghuni, minimal pilih 1 PIC dan maksimal 2 PIC.')
+                                    ->rule(function () {
+                                        return function (string $attribute, $value, \Closure $fail) {
+                                            if (!is_array($value)) return;
+                                            $picCount = 0;
+                                            foreach ($value as $item) {
+                                                if (!empty($item['is_pic'])) {
+                                                    $picCount++;
+                                                }
+                                            }
+                                            if (count($value) > 0 && $picCount < 1) {
+                                                $fail('Kamar berpenghuni harus menugaskan minimal 1 PIC.');
+                                            }
+                                            if ($picCount > 2) {
+                                                $fail('Kamar hanya dapat memiliki maksimal 2 PIC.');
+                                            }
+                                        };
+                                    }),
+                            ]),
+
                         Tabs\Tab::make('Foto')
                             ->schema([
                                 FileUpload::make('thumbnail')
@@ -1341,48 +1403,102 @@ class RoomResource extends Resource
             ->schema([
                 \Filament\Infolists\Components\Section::make('Informasi Utama')
                     ->schema([
-                        \Filament\Infolists\Components\TextEntry::make('code')->label('Kode Kamar'),
-                        \Filament\Infolists\Components\TextEntry::make('number')->label('Nomor'),
-                        \Filament\Infolists\Components\TextEntry::make('roomType.name')->label('Tipe'),
-                        \Filament\Infolists\Components\TextEntry::make('residentCategory.name')->label('Kategori'),
-                        \Filament\Infolists\Components\TextEntry::make('capacity')->label('Kapasitas'),
-                        \Filament\Infolists\Components\TextEntry::make('monthly_rate')->label('Tarif')->money('IDR'),
-                        \Filament\Infolists\Components\TextEntry::make('width')->label('Lebar')->suffix(' m'),
-                        \Filament\Infolists\Components\TextEntry::make('length')->label('Panjang')->suffix(' m'),
-                    ])->columns(4),
+                        \Filament\Infolists\Components\TextEntry::make('code')->label('Kode Kamar')->default('-'),
+                        \Filament\Infolists\Components\TextEntry::make('number')->label('Nomor')->default('-'),
+                        \Filament\Infolists\Components\TextEntry::make('roomType.name')->label('Tipe')->default('-'),
+                        \Filament\Infolists\Components\TextEntry::make('residentCategory.name')->label('Kategori')->default('-'),
+                        \Filament\Infolists\Components\TextEntry::make('capacity')->label('Kapasitas')->default('-'),
+                        \Filament\Infolists\Components\TextEntry::make('monthly_rate')->label('Tarif')->money('IDR')->default('-'),
+                        \Filament\Infolists\Components\TextEntry::make('width')->label('Lebar')->suffix(' m')->default('-'),
+                        \Filament\Infolists\Components\TextEntry::make('length')->label('Panjang')->suffix(' m')->default('-'),
+                        \Filament\Infolists\Components\TextEntry::make('contactPerson.name')
+                            ->label('Admin Penanggung Jawab')
+                            ->default('Belum ada admin ditugaskan'),
+                    ])->columns(['sm' => 2, 'md' => 3, 'lg' => 4]),
+
+                \Filament\Infolists\Components\Section::make('Penghuni & PIC Kamar')
+                    ->description('Daftar penghuni aktif beserta status Penanggung Jawab (PIC).')
+                    ->schema([
+                        \Filament\Infolists\Components\RepeatableEntry::make('activeResidents')
+                            ->label('')
+                            ->schema([
+                                \Filament\Infolists\Components\TextEntry::make('user.name')
+                                    ->label('Nama Penghuni')
+                                    ->formatStateUsing(function ($state, $record) {
+                                        $name = $record->user->residentProfile->full_name ?? $state ?? 'Tidak diketahui';
+                                        if ($record->is_pic) {
+                                            $name .= ' <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">PIC</span>';
+                                        }
+                                        return new \Illuminate\Support\HtmlString($name);
+                                    })
+                                    ->default('-'),
+                                \Filament\Infolists\Components\TextEntry::make('user.residentProfile.phone_number')
+                                    ->label('No. Telepon')
+                                    ->default('-'),
+                                \Filament\Infolists\Components\TextEntry::make('check_in_date')
+                                    ->label('Tanggal Masuk')
+                                    ->date('d M Y')
+                                    ->default('-'),
+                            ])
+                            ->columns(3),
+                    ])
+                    ->visible(fn ($record) => $record->activeResidents()->exists()),
+
+                \Filament\Infolists\Components\Section::make('Penghuni & PIC Kamar')
+                    ->schema([
+                        \Filament\Infolists\Components\TextEntry::make('empty_message')
+                            ->label('')
+                            ->default('Kamar saat ini kosong, tidak ada penghuni.')
+                    ])
+                    ->visible(fn ($record) => !$record->activeResidents()->exists()),     
 
                 \Filament\Infolists\Components\Section::make('Galeri')
                     ->schema([
                         \Filament\Infolists\Components\ImageEntry::make('thumbnail')
                             ->label('Thumbnail')
-                            ->extraImgAttributes(['class' => 'rounded-lg shadow-md aspect-video object-cover w-full']),
+                            ->defaultImageUrl('https://via.placeholder.com/300?text=Tidak+Ada+Thumbnail')
+                            ->extraImgAttributes(['class' => 'rounded-lg shadow-md aspect-video object-cover w-full max-w-sm']),
                         \Filament\Infolists\Components\ImageEntry::make('images')
-                            ->label('Galeri')
+                            ->label('Galeri Gambar')
                             ->simpleLightbox()
-                            ->columnSpanFull(),
+                            ->columnSpanFull()
+                            ->hidden(fn ($record) => empty($record->images)),
+                        \Filament\Infolists\Components\TextEntry::make('no_images')
+                            ->label('Galeri Gambar')
+                            ->default('Belum ada gambar tambahan di galeri.')
+                            ->visible(fn ($record) => empty($record->images)),
                     ]),
 
                 \Filament\Infolists\Components\Section::make('Fasilitas & Aturan')
+                    ->description('Daftar fasilitas yang tersedia dan aturan yang berlaku pada kamar ini.')
                     ->schema([
                         \Filament\Infolists\Components\RepeatableEntry::make('roomRules')
                             ->label('Peraturan Kamar')
+                            ->hidden(fn($record) => !$record->roomRules()->exists())
                             ->schema([
                                 \Filament\Infolists\Components\TextEntry::make('name')
+                                    ->label('')
                                     ->formatStateUsing(function ($state, $record) {
                                         $icon = $record->icon ? svg($record->icon, 'w-5 h-5 text-primary-500 inline mr-2')->toHtml() : '';
                                         return new \Illuminate\Support\HtmlString($icon . $state);
                                     }),
                             ])->grid(3),
+                            
+                        \Filament\Infolists\Components\TextEntry::make('no_room_rules')
+                            ->label('Peraturan Kamar')
+                            ->default('Belum ada peraturan kamar.')
+                            ->visible(fn($record) => !$record->roomRules()->exists()),
 
-                        \Filament\Infolists\Components\Grid::make(3)
+                        \Filament\Infolists\Components\Grid::make(2)
                             ->schema([
-                                \Filament\Infolists\Components\Section::make('Parkir')
+                                \Filament\Infolists\Components\Section::make('Fasilitas Parkir')
                                     ->icon('heroicon-o-truck')
                                     ->schema([
                                         \Filament\Infolists\Components\TextEntry::make('parkingFacilities_list')
                                             ->hiddenLabel()
                                             ->state(fn($record) => $record->parkingFacilities)
                                             ->formatStateUsing(function ($state) {
+                                                if ($state->isEmpty()) return 'Tidak ada fasilitas parkir.';
                                                 return $state->map(function ($facility) {
                                                     $icon = $facility->icon ? svg($facility->icon, 'w-5 h-5 text-info-500 inline mr-2')->toHtml() : '';
                                                     return '<div class="flex items-center mb-1">' . $icon . '<span>' . e($facility->name) . '</span></div>';
@@ -1390,16 +1506,16 @@ class RoomResource extends Resource
                                             })
                                             ->html(),
                                     ])
-                                    ->visible(fn($record) => $record->parkingFacilities()->exists())
                                     ->compact(),
 
-                                \Filament\Infolists\Components\Section::make('Umum')
+                                \Filament\Infolists\Components\Section::make('Fasilitas Umum')
                                     ->icon('heroicon-o-building-storefront')
                                     ->schema([
                                         \Filament\Infolists\Components\TextEntry::make('generalFacilities_list')
                                             ->hiddenLabel()
                                             ->state(fn($record) => $record->generalFacilities)
                                             ->formatStateUsing(function ($state) {
+                                                if ($state->isEmpty()) return 'Tidak ada fasilitas umum.';
                                                 return $state->map(function ($facility) {
                                                     $icon = $facility->icon ? svg($facility->icon, 'w-5 h-5 text-success-500 inline mr-2')->toHtml() : '';
                                                     return '<div class="flex items-center mb-1">' . $icon . '<span>' . e($facility->name) . '</span></div>';
@@ -1407,16 +1523,16 @@ class RoomResource extends Resource
                                             })
                                             ->html(),
                                     ])
-                                    ->visible(fn($record) => $record->generalFacilities()->exists())
                                     ->compact(),
 
-                                \Filament\Infolists\Components\Section::make('Kamar Mandi')
+                                \Filament\Infolists\Components\Section::make('Fasilitas Kamar Mandi')
                                     ->icon('heroicon-o-sparkles')
                                     ->schema([
                                         \Filament\Infolists\Components\TextEntry::make('bathroomFacilities_list')
                                             ->hiddenLabel()
                                             ->state(fn($record) => $record->bathroomFacilities)
                                             ->formatStateUsing(function ($state) {
+                                                if ($state->isEmpty()) return 'Tidak ada fasilitas kamar mandi.';
                                                 return $state->map(function ($facility) {
                                                     $icon = $facility->icon ? svg($facility->icon, 'w-5 h-5 text-warning-500 inline mr-2')->toHtml() : '';
                                                     return '<div class="flex items-center mb-1">' . $icon . '<span>' . e($facility->name) . '</span></div>';
@@ -1424,16 +1540,16 @@ class RoomResource extends Resource
                                             })
                                             ->html(),
                                     ])
-                                    ->visible(fn($record) => $record->bathroomFacilities()->exists())
                                     ->compact(),
 
-                                \Filament\Infolists\Components\Section::make('Kamar')
+                                \Filament\Infolists\Components\Section::make('Fasilitas Kamar')
                                     ->icon('heroicon-o-home')
                                     ->schema([
                                         \Filament\Infolists\Components\TextEntry::make('roomFacilities_list')
                                             ->hiddenLabel()
                                             ->state(fn($record) => $record->roomFacilities)
                                             ->formatStateUsing(function ($state) {
+                                                if ($state->isEmpty()) return 'Tidak ada fasilitas kamar.';
                                                 return $state->map(function ($facility) {
                                                     $icon = $facility->icon ? svg($facility->icon, 'w-5 h-5 text-primary-500 inline mr-2')->toHtml() : '';
                                                     return '<div class="flex items-center mb-1">' . $icon . '<span>' . e($facility->name) . '</span></div>';
@@ -1441,7 +1557,6 @@ class RoomResource extends Resource
                                             })
                                             ->html(),
                                     ])
-                                    ->visible(fn($record) => $record->roomFacilities()->exists())
                                     ->compact(),
                             ]),
                     ]),
