@@ -1159,7 +1159,7 @@ class RoomResource extends Resource
                 // ✅ Data terhapus tidak bisa di-edit
                 Tables\Actions\EditAction::make()
                     ->visible(
-                        fn(Room $record): bool => (auth()->user()?->hasRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']) ?? false)
+                        fn(Room $record): bool => (auth()->user()?->hasRole(['super_admin', 'main_admin']) ?? false)
                             && ! $record->trashed()
                     ),
 
@@ -1168,7 +1168,7 @@ class RoomResource extends Resource
                     ->visible(function (Room $record): bool {
                         $user = auth()->user();
 
-                        if (!($user?->hasRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']) ?? false)) {
+                        if (!($user?->hasRole(['super_admin', 'main_admin']) ?? false)) {
                             return false;
                         }
 
@@ -1635,7 +1635,7 @@ class RoomResource extends Resource
     public static function canEdit($record): bool
     {
         $user = auth()->user();
-        if (!($user?->hasRole(['super_admin', 'main_admin', 'branch_admin', 'block_admin']) ?? false)) {
+        if (!($user?->hasRole(['super_admin', 'main_admin', 'block_admin']) ?? false)) {
             return false;
         }
 
@@ -1651,8 +1651,6 @@ class RoomResource extends Resource
         return auth()->user()?->hasRole([
             'super_admin',
             'main_admin',
-            'branch_admin',
-            'block_admin',
         ]) ?? false;
     }
 
