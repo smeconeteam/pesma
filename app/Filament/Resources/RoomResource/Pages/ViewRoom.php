@@ -36,11 +36,31 @@ class ViewRoom extends ViewRecord
     {
         return $infolist
             ->schema([
-                InfoSection::make('Lokasi')
+                InfoSection::make('Informasi Kamar')
                     ->schema([
-                        TextEntry::make('block.dorm.name')->label('Cabang')->placeholder('-'),
-                        TextEntry::make('block.name')->label('Komplek')->placeholder('-'),
-                        TextEntry::make('roomType.name')->label('Tipe Kamar')->placeholder('-'),
+                        TextEntry::make('block.dorm.name')
+                            ->label('Cabang')
+                            ->placeholder('-'),
+
+                        TextEntry::make('block.name')
+                            ->label('Komplek')
+                            ->placeholder('-'),
+
+                        TextEntry::make('number')
+                            ->label('Nomor Kamar')
+                            ->placeholder('-'),
+
+                        TextEntry::make('roomType.name')
+                            ->label('Tipe Kamar')
+                            ->placeholder('-'),
+
+                        TextEntry::make('residentCategory.name')
+                            ->label('Kategori Kamar')
+                            ->placeholder('-'),
+
+                        IconEntry::make('is_active')
+                            ->label('Aktif')
+                            ->boolean(),
                     ])
                     ->columns(3),
 
@@ -51,8 +71,6 @@ class ViewRoom extends ViewRecord
                             ->copyable()
                             ->copyMessage('Kode disalin'),
 
-                        TextEntry::make('number')->label('Nomor Kamar')->placeholder('-'),
-
                         TextEntry::make('capacity')
                             ->label('Kapasitas')
                             ->formatStateUsing(fn($state) => $state ? "{$state} orang" : '-'),
@@ -60,7 +78,7 @@ class ViewRoom extends ViewRecord
                         TextEntry::make('monthly_rate')
                             ->label('Tarif Bulanan')
                             ->money('IDR', true),
-                        
+
                         TextEntry::make('width')
                             ->label('Lebar Kamar')
                             ->suffix(' m')
@@ -70,14 +88,6 @@ class ViewRoom extends ViewRecord
                             ->label('Panjang Kamar')
                             ->suffix(' m')
                             ->placeholder('-'),
-
-                        TextEntry::make('residentCategory.name')
-                            ->label('Kategori Kamar')
-                            ->placeholder('-'),
-
-                        IconEntry::make('is_active')
-                            ->label('Aktif')
-                            ->boolean(),
 
                         TextEntry::make('penghuni_aktif')
                             ->label('Penghuni Aktif')
@@ -104,7 +114,7 @@ class ViewRoom extends ViewRecord
                             ->icon('heroicon-m-user')
                             ->weight('semibold')
                             ->placeholder('-')
-                            ->default(fn ($record) => $record->contactPerson?->name),
+                            ->default(fn($record) => $record->contactPerson?->name),
 
                         TextEntry::make('contactPerson.residentProfile.phone_number')
                             ->label('Nomor WhatsApp')
@@ -112,10 +122,12 @@ class ViewRoom extends ViewRecord
                             ->placeholder('-')
                             ->copyable()
                             ->copyMessage('Nomor disalin')
-                            ->url(fn ($record) => $record->contactPerson?->residentProfile?->phone_number 
-                                ? 'https://wa.me/' . preg_replace('/[^0-9]/', '', $record->contactPerson->residentProfile->phone_number) 
-                                : null, 
-                                shouldOpenInNewTab: true)
+                            ->url(
+                                fn($record) => $record->contactPerson?->residentProfile?->phone_number
+                                    ? 'https://wa.me/' . preg_replace('/[^0-9]/', '', $record->contactPerson->residentProfile->phone_number)
+                                    : null,
+                                shouldOpenInNewTab: true
+                            )
                             ->color('success'),
                     ])
                     ->columns(2)
@@ -194,7 +206,9 @@ class ViewRoom extends ViewRecord
                                                             $svg = str_replace('stroke="currentColor"', 'stroke="#3b82f6"', $svg);
                                                             $base64 = base64_encode($svg);
                                                             $iconHtml = '<img src="data:image/svg+xml;base64,' . $base64 . '" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 12px;" />';
-                                                        } catch (\Exception $e) { $iconHtml = ''; }
+                                                        } catch (\Exception $e) {
+                                                            $iconHtml = '';
+                                                        }
                                                     }
                                                     return '<div class="flex items-center mb-3">' . $iconHtml . '<span class="text-sm font-semibold">' . e($facility->name) . '</span></div>';
                                                 })->implode(''));
@@ -219,7 +233,9 @@ class ViewRoom extends ViewRecord
                                                             $svg = str_replace('stroke="currentColor"', 'stroke="#22c55e"', $svg);
                                                             $base64 = base64_encode($svg);
                                                             $iconHtml = '<img src="data:image/svg+xml;base64,' . $base64 . '" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 12px;" />';
-                                                        } catch (\Exception $e) { $iconHtml = ''; }
+                                                        } catch (\Exception $e) {
+                                                            $iconHtml = '';
+                                                        }
                                                     }
                                                     return '<div class="flex items-center mb-3">' . $iconHtml . '<span class="text-sm font-semibold">' . e($facility->name) . '</span></div>';
                                                 })->implode(''));
@@ -244,7 +260,9 @@ class ViewRoom extends ViewRecord
                                                             $svg = str_replace('stroke="currentColor"', 'stroke="#eab308"', $svg);
                                                             $base64 = base64_encode($svg);
                                                             $iconHtml = '<img src="data:image/svg+xml;base64,' . $base64 . '" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 12px;" />';
-                                                        } catch (\Exception $e) { $iconHtml = ''; }
+                                                        } catch (\Exception $e) {
+                                                            $iconHtml = '';
+                                                        }
                                                     }
                                                     return '<div class="flex items-center mb-3">' . $iconHtml . '<span class="text-sm font-semibold">' . e($facility->name) . '</span></div>';
                                                 })->implode(''));
@@ -270,7 +288,9 @@ class ViewRoom extends ViewRecord
                                                             $svg = str_replace('stroke="currentColor"', 'stroke="#22c55e"', $svg);
                                                             $base64 = base64_encode($svg);
                                                             $iconHtml = '<img src="data:image/svg+xml;base64,' . $base64 . '" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 12px;" />';
-                                                        } catch (\Exception $e) { $iconHtml = ''; }
+                                                        } catch (\Exception $e) {
+                                                            $iconHtml = '';
+                                                        }
                                                     }
                                                     return '<div class="flex items-center mb-3">' . $iconHtml . '<span class="text-sm font-semibold">' . e($facility->name) . '</span></div>';
                                                 })->implode(''));
@@ -281,6 +301,13 @@ class ViewRoom extends ViewRecord
                                     ->compact(),
                             ])
                             ->visible(fn($record) => $record->facilities()->exists()),
+
+                        TextEntry::make('no_rules')
+                            ->label('')
+                            ->default('Belum ada peraturan')
+                            ->color('gray')
+                            ->visible(fn($record) => !$record->roomRules()->exists())
+                            ->columnSpanFull()
                     ])
                     ->collapsible(),
 
