@@ -81,6 +81,8 @@
                     </div>
                 </div>
 
+                @php $disabledClass = 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-700'; @endphp
+
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.resident_category') }} <span class="text-red-500">*</span></label>
@@ -88,7 +90,7 @@
                             $roomCategory = $fromRoom && $prefillRoom ? $prefillRoom->resident_category_id : null;
                             $lockCategory = $roomCategory ? true : false;
                         @endphp
-                        <select id="resident_category_id" name="resident_category_id" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white {{ $lockCategory ? $disabledClass : '' }}" {{ $lockCategory ? 'disabled' : '' }} required>
+                        <select id="resident_category_id" name="resident_category_id" class="{{ $lockCategory ? $disabledClass : '' }} w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" {{ $lockCategory ? 'disabled' : '' }} required>
                             <option value="">{{ __('registration.select_option') }}</option>
                             @foreach ($residentCategories as $cat)
                                 <option value="{{ $cat->id }}" @selected(old('resident_category_id', $roomCategory) == $cat->id)>
@@ -112,7 +114,7 @@
                             $roomGender = $fromRoom && $prefillRoom ? $prefillRoom->active_gender : null;
                             $lockGender = $roomGender ? true : false;
                         @endphp
-                        <select id="gender" name="gender" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white {{ $lockGender ? $disabledClass : '' }}" {{ $lockGender ? 'disabled' : '' }} required>
+                        <select id="gender" name="gender" class="{{ $lockGender ? $disabledClass : '' }} w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" {{ $lockGender ? 'disabled' : '' }} required>
                             <option value="">{{ __('registration.select_option') }}</option>
                             <option value="M" @selected(old('gender', $roomGender) === 'M')>{{ __('registration.male') }}</option>
                             <option value="F" @selected(old('gender', $roomGender) === 'F')>{{ __('registration.female') }}</option>
@@ -237,8 +239,6 @@
                         <h2 class="truncate text-lg font-bold text-gray-900 sm:text-xl dark:text-white">{{ __('registration.room_preference') }}</h2>
                     </div>
                 </div>
-
-                @php $disabledClass = 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-700'; @endphp
 
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 
@@ -583,7 +583,7 @@
                             const matchCategory = !categoryId || parseInt(opt.dataset.category) === categoryId;
                             const roomGender = opt.dataset.gender;
                             const matchGender = !selectedGender || !roomGender || roomGender === selectedGender;
-                            
+
                             const visible = matchDorm && matchType && matchCategory && matchGender;
                             opt.hidden = !visible;
                             opt.disabled = !visible;
