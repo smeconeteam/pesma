@@ -84,14 +84,21 @@
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.resident_category') }} <span class="text-red-500">*</span></label>
-                        <select id="resident_category_id" name="resident_category_id" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" required>
+                        @php
+                            $roomCategory = $fromRoom && $prefillRoom ? $prefillRoom->resident_category_id : null;
+                            $lockCategory = $roomCategory ? true : false;
+                        @endphp
+                        <select id="resident_category_id" name="resident_category_id" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white {{ $lockCategory ? $disabledClass : '' }}" {{ $lockCategory ? 'disabled' : '' }} required>
                             <option value="">{{ __('registration.select_option') }}</option>
                             @foreach ($residentCategories as $cat)
-                                <option value="{{ $cat->id }}" @selected(old('resident_category_id') == $cat->id)>
+                                <option value="{{ $cat->id }}" @selected(old('resident_category_id', $roomCategory) == $cat->id)>
                                     {{ $cat->name }}
                                 </option>
                             @endforeach
                         </select>
+                        @if ($lockCategory)
+                            <input type="hidden" name="resident_category_id" value="{{ $roomCategory }}">
+                        @endif
                     </div>
 
                     <div>
@@ -101,11 +108,19 @@
 
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ __('registration.gender') }} <span class="text-red-500">*</span></label>
-                        <select name="gender" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white" required>
+                        @php
+                            $roomGender = $fromRoom && $prefillRoom ? $prefillRoom->active_gender : null;
+                            $lockGender = $roomGender ? true : false;
+                        @endphp
+                        <select id="gender" name="gender" class="w-full rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white {{ $lockGender ? $disabledClass : '' }}" {{ $lockGender ? 'disabled' : '' }} required>
                             <option value="">{{ __('registration.select_option') }}</option>
-                            <option value="M" @selected(old('gender') === 'M')>{{ __('registration.male') }}</option>
-                            <option value="F" @selected(old('gender') === 'F')>{{ __('registration.female') }}</option>
+                            <option value="M" @selected(old('gender', $roomGender) === 'M')>{{ __('registration.male') }}</option>
+                            <option value="F" @selected(old('gender', $roomGender) === 'F')>{{ __('registration.female') }}</option>
                         </select>
+                        @if ($lockGender)
+                            <input type="hidden" name="gender" value="{{ $roomGender }}">
+                            <p class="mt-1 text-xs text-amber-600 dark:text-amber-500">Terkunci otomatis sesuai penghuni kamar aktif.</p>
+                        @endif
                     </div>
 
                     <div>
@@ -292,7 +307,7 @@
                                 @foreach ($availableRooms->groupBy(fn($r) => $r->block->dorm->name) as $dormName => $rooms)
                                     <optgroup label="{{ $dormName }}">
                                         @foreach ($rooms->sortBy('number') as $room)
-                                            <option value="{{ $room->id }}" data-dorm="{{ $room->block->dorm_id }}" data-room-type="{{ $room->room_type_id }}" data-category="{{ $room->resident_category_id }}" @selected(old('preferred_room_id') == $room->id)>
+                                            <option value="{{ $room->id }}" data-dorm="{{ $room->block->dorm_id }}" data-room-type="{{ $room->room_type_id }}" data-category="{{ $room->resident_category_id }}" data-gender="{{ $room->active_gender }}" @selected(old('preferred_room_id') == $room->id)>
                                                 No. {{ $room->number }}
                                                 — {{ $room->roomType->name }}
                                                 — {{ $room->residentCategory->name }}
@@ -401,6 +416,7 @@
                 const citizenship = document.getElementById('citizenship_status');
                 const country = document.getElementById('country_id');
                 const residentCategory = document.getElementById('resident_category_id');
+                const genderSelect = document.getElementById('gender');
                 const dormSelect = document.getElementById('preferred_dorm_id');
                 const roomTypeSelect = document.getElementById('preferred_room_type_id');
                 const roomSelect = document.getElementById('preferred_room_id'); // null jika fromRoom
@@ -557,6 +573,7 @@
                         const dormId = dormSelect?.value ? parseInt(dormSelect.value) : null;
                         const roomTypeId = roomTypeSelect?.value ? parseInt(roomTypeSelect.value) : null;
                         const categoryId = residentCategory?.value ? parseInt(residentCategory.value) : null;
+                        const selectedGender = genderSelect?.value;
 
                         let anyVisible = false;
                         Array.from(roomSelect.options).forEach((opt, i) => {
@@ -564,7 +581,10 @@
                             const matchDorm = !dormId || parseInt(opt.dataset.dorm) === dormId;
                             const matchType = !roomTypeId || parseInt(opt.dataset.roomType) === roomTypeId;
                             const matchCategory = !categoryId || parseInt(opt.dataset.category) === categoryId;
-                            const visible = matchDorm && matchType && matchCategory;
+                            const roomGender = opt.dataset.gender;
+                            const matchGender = !selectedGender || !roomGender || roomGender === selectedGender;
+                            
+                            const visible = matchDorm && matchType && matchCategory && matchGender;
                             opt.hidden = !visible;
                             opt.disabled = !visible;
                             if (visible) anyVisible = true;
@@ -586,6 +606,9 @@
                         // Set kategori dulu agar filterDorms tidak reset dorm
                         if (residentCategory && opt.dataset.category) {
                             residentCategory.value = opt.dataset.category;
+                        }
+                        if (genderSelect && opt.dataset.gender && !genderSelect.value) {
+                            genderSelect.value = opt.dataset.gender;
                         }
                         if (dormSelect && opt.dataset.dorm) {
                             dormSelect.value = opt.dataset.dorm;
@@ -669,6 +692,7 @@
                             filterDorms();
                             filterRoomOptions();
                         });
+                        genderSelect?.addEventListener('change', filterRoomOptions);
                         dormSelect?.addEventListener('change', () => {
                             filterRoomTypes();
                             filterRoomOptions();
