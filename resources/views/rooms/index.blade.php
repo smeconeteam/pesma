@@ -1,17 +1,16 @@
 <x-public-layout>
     <!-- Main Content -->
-    <!-- Main Content -->
     <div class="mx-auto max-w-7xl py-12">
         <!-- Breadcrumb -->
         <div class="mb-6 flex gap-2 px-4 text-sm text-gray-600 sm:px-6 lg:px-8 dark:text-gray-400">
             <a href="{{ localizedRoute('home') }}" class="text-green-600 hover:underline dark:text-green-400">{{ __('public.home') }}</a>
             <span>/</span>
-            <span>{{ __('public.rooms_available') }}</span>
+            <span>{{ __('navigation.available_rooms') }}</span>
         </div>
 
         <!-- Page Header -->
         <div class="mb-10 px-4 sm:px-6 lg:px-8">
-            <h1 class="mb-2 text-4xl font-bold text-gray-900 dark:text-white">{{ __('public.rooms_available') }}</h1>
+            <h1 class="mb-2 text-4xl font-bold text-gray-900 dark:text-white">{{ __('navigation.available_rooms') }}</h1>
             <p class="text-lg text-gray-600 dark:text-gray-400">{{ __('public.find_dream_room', ['count' => $rooms->total()]) }}</p>
         </div>
 

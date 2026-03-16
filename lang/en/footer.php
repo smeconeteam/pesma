@@ -4,7 +4,7 @@ return [
     'dormitory' => 'Dormitory',
     'institution' => 'Educational Institution',
     'quick_links' => 'Quick Links',
-    'rooms_available' => 'Available Rooms',
+    'rooms_available' => 'Rooms',
     'registration' => 'Registration',
     'login' => 'Login',
     'information' => 'Information',

@@ -43,6 +43,12 @@ class BillPaymentResource extends Resource
                     ->searchable()
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('amount')
+                    ->label('Jumlah')
+                    ->money('IDR')
+                    ->sortable()
+                    ->weight('bold'),
+
                 Tables\Columns\TextColumn::make('paidByUser.residentProfile.full_name')
                     ->label('Dibayar Oleh')
                     ->searchable(['users.name', 'resident_profiles.full_name'])
@@ -57,12 +63,6 @@ class BillPaymentResource extends Resource
                     ->trueColor('success')
                     ->falseColor('gray')
                     ->tooltip(fn($record) => $record->is_pic_payment ? 'Dibayar PIC' : 'Bayar Sendiri'),
-
-                Tables\Columns\TextColumn::make('amount')
-                    ->label('Jumlah')
-                    ->money('IDR')
-                    ->sortable()
-                    ->weight('bold'),
 
                 Tables\Columns\TextColumn::make('payment_date')
                     ->label('Tanggal Bayar')

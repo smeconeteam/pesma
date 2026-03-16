@@ -23,11 +23,24 @@ class CreateBillPayment extends CreateRecord
     public function mount(): void
     {
         $user = auth()->user();
+        
+        $billId = request()->query('bill_id');
+        $bill = null;
+        if ($billId) {
+            $bill = Bill::find($billId);
+        }
 
         $fillData = [
             'tab' => 'individual',
             'payment_date' => now()->toDateString(),
         ];
+
+        if ($bill) {
+            $fillData['user_id'] = $bill->user_id;
+            $fillData['bill_id'] = $bill->id;
+            $fillData['amount'] = $bill->remaining_amount;
+            $fillData['max_amount'] = $bill->remaining_amount;
+        }
 
         $this->form->fill($fillData);
     }

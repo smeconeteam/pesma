@@ -16,7 +16,7 @@ return [
     'language' => 'Bahasa',
     'dark_mode' => 'Mode Gelap',
     'home' => 'Beranda',
-    'available_rooms' => 'Kamar Tersedia',
+    'available_rooms' => 'Kamar',
     'about' => 'Tentang',
     'contact' => 'Kontak',
 

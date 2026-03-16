@@ -110,6 +110,13 @@ class TransactionResource extends Resource
                             ->native(false)
                             ->disabled(fn (callable $get) => !$get('dorm_id')),
 
+                        Forms\Components\FileUpload::make('proof_path')
+                            ->label('Bukti Pembayaran (Opsional)')
+                            ->image()
+                            ->directory('transaction-proofs')
+                            ->columnSpanFull()
+                            ->nullable(),
+
                         Forms\Components\Textarea::make('notes')
                             ->label('Catatan')
                             ->rows(3)
@@ -255,7 +262,7 @@ class TransactionResource extends Resource
     {
         return [
             'index' => Pages\ListTransactions::route('/'),
-            'create' => Pages\CreateTransaction::route('/create'),
+            'create' => Pages\CreateTransaction::route('/buat'),
             'view' => Pages\ViewTransaction::route('/{record}'),
             'edit' => Pages\EditTransaction::route('/{record}/edit'),
         ];

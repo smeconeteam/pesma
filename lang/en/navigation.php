@@ -16,7 +16,7 @@ return [
     'language' => 'Language',
     'dark_mode' => 'Dark Mode',
     'home' => 'Home',
-    'available_rooms' => 'Available Rooms',
+    'available_rooms' => 'Rooms',
     'about' => 'About',
     'contact' => 'Contact',
     'admin_panel' => 'Admin Panel',

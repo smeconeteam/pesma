@@ -21,6 +21,7 @@ class Transaction extends Model
         'dorm_id',
         'block_id',
         'bill_payment_id',
+        'proof_path',
         'created_by',
     ];
 

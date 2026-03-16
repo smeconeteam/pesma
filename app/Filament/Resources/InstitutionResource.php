@@ -6,6 +6,7 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use App\Models\Institution;
+use App\Models\Policy;
 use Filament\Resources\Resource;
 use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Tabs\Tab;
@@ -56,7 +57,7 @@ class InstitutionResource extends Resource
                                             ->label('Alamat')
                                             ->rows(3)
                                             ->required()
-                                            ->columnSpanFull(),
+                                            //->columnSpanFull(),
                                     ]),
 
                                 Forms\Components\Section::make('Logo')
@@ -176,6 +177,55 @@ class InstitutionResource extends Resource
                                             ->required()
                                             ->rows(2)
                                             ->columnSpanFull(),
+                                    ]),
+                            ]),
+
+                        Tab::make('Ketentuan')
+                            ->schema([
+                                Forms\Components\Section::make('Ketentuan Aktif')
+                                    ->description('Ketentuan ini akan ditampilkan kepada pengguna sebagai syarat dan ketentuan.')
+                                    ->schema([
+                                        // Field tersembunyi untuk menyimpan ID policy aktif
+                                        Forms\Components\Hidden::make('policy_id')
+                                            ->afterStateHydrated(function (Forms\Components\Hidden $component) {
+                                                $policy = Policy::where('is_active', true)->latest()->first();
+                                                $component->state($policy?->id);
+                                            })
+                                            ->dehydrated(false),
+
+                                        Forms\Components\TextInput::make('policy_title')
+                                            ->label('Judul Ketentuan')
+                                            ->required()
+                                            ->maxLength(255)
+                                            ->columnSpanFull()
+                                            ->afterStateHydrated(function (Forms\Components\TextInput $component) {
+                                                $policy = Policy::where('is_active', true)->latest()->first();
+                                                $component->state($policy?->title);
+                                            })
+                                            ->dehydrated(false),
+
+                                        Forms\Components\RichEditor::make('policy_content')
+                                            ->label('Isi Ketentuan')
+                                            ->required()
+                                            ->columnSpanFull()
+                                            ->toolbarButtons([
+                                                'bold',
+                                                'bulletList',
+                                                'h1',
+                                                'h2',
+                                                'h3',
+                                                'italic',
+                                                'link',
+                                                'orderedList',
+                                                'redo',
+                                                'underline',
+                                                'undo',
+                                            ])
+                                            ->afterStateHydrated(function (Forms\Components\RichEditor $component) {
+                                                $policy = Policy::where('is_active', true)->latest()->first();
+                                                $component->state($policy?->content);
+                                            })
+                                            ->dehydrated(false),
                                     ]),
                             ]),
                     ])

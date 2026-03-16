@@ -46,7 +46,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(\App\Filament\Pages\Auth\Login::class)
             ->colors([
                 'primary' => Color::Green,
             ])
@@ -139,6 +139,7 @@ class AdminPanelProvider extends PanelProvider
             })
             ->brandLogo(null)
             ->brandLogoHeight('auto')
+            ->homeUrl('/')
             ->renderHook(
                 'panels::user-menu.before',
                 fn() => Blade::render(<<<'HTML'

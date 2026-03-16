@@ -69,10 +69,10 @@ return [
 
     // Policy Page
     'policy' => [
-        'title' => 'Policy',
+        'title' => 'Terms & Conditions',
         'updated_at' => 'Updated at: :date',
         'back' => 'Back',
-        'active' => 'Active Policy',
+        'active' => 'Active Terms',
         'terms' => 'Terms & Conditions',
         'read_carefully' => 'Please read carefully',
         'footer_note' => 'This document is subject to change without prior notice.',

@@ -4,7 +4,7 @@ return [
     'dormitory' => 'Asrama',
     'institution' => 'Institusi Pendidikan',
     'quick_links' => 'Tautan Cepat',
-    'rooms_available' => 'Kamar Tersedia',
+    'rooms_available' => 'Kamar',
     'registration' => 'Pendaftaran',
     'login' => 'Login',
     'information' => 'Informasi',

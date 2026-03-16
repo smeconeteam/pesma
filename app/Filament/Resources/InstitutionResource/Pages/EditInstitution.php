@@ -4,6 +4,7 @@ namespace App\Filament\Resources\InstitutionResource\Pages;
 
 use App\Filament\Resources\InstitutionResource;
 use App\Models\Institution;
+use App\Models\Policy;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\Storage;
@@ -76,6 +77,37 @@ class EditInstitution extends EditRecord
         }
 
         return $data;
+    }
+
+    protected function afterSave(): void
+    {
+        $data = $this->form->getRawState();
+
+        $policyTitle   = $data['policy_title']   ?? null;
+        $policyContent = $data['policy_content'] ?? null;
+        $policyId      = $data['policy_id']      ?? null;
+
+        // Hanya simpan jika minimal salah satu field diisi
+        if (! $policyTitle && ! $policyContent) {
+            return;
+        }
+
+        if ($policyId) {
+            // Update policy yang sudah ada
+            Policy::where('id', $policyId)->update([
+                'title'   => $policyTitle,
+                'content' => $policyContent,
+            ]);
+        } else {
+            // Buat policy baru dan jadikan aktif
+            Policy::where('is_active', true)->update(['is_active' => false]);
+
+            Policy::create([
+                'title'     => $policyTitle,
+                'content'   => $policyContent,
+                'is_active' => true,
+            ]);
+        }
     }
 
     protected function getRedirectUrl(): string

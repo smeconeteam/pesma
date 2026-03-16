@@ -87,7 +87,7 @@
                             }
                         @endphp
 
-                        <div class="flex h-full flex-col rounded-2xl border border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-900">
+                        <div class="flex h-full flex-col rounded-2xl border border-gray-200 max-w-2xl bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-900">
                             <div class="mb-6 flex items-center gap-4">
                                 <div class="rounded-xl bg-green-100 p-3 dark:bg-green-900/30">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

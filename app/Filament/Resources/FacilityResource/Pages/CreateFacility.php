@@ -9,6 +9,8 @@ class CreateFacility extends CreateRecord
 {
     protected static string $resource = FacilityResource::class;
 
+    protected static ?string $title = 'Buat Fasilitas';
+
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index', ['activeTab' => $this->record->type]);
